@@ -179,10 +179,12 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js2_button1` | MTQ keypad A1 | `v_power_toggle` → *Vehicle Power - Toggle* | Master on/off for the whole power plant (all groups). Does **not** run the startup handshake — that's Flight Ready. |
+| `js2_button1` | MTQ keypad A1 | `v_power_toggle_weapons` → *Weapons Power - Toggle* | Cuts/restores weapon power. Only meaningful in SCM (weapons are stowed in NAV). |
 | `js2_button2` | MTQ keypad A2 | `v_power_toggle_thrusters` → *Thruster Power - Toggle* | Cuts/restores power to propulsion. Off = can't manoeuvre, lower engine signature (cold running). |
 | `js2_button3` | MTQ keypad A3 | `v_power_toggle_shields` → *Shield Power - Toggle* | Cuts/restores shields. Re-enabling incurs a boot delay; shields are offline in NAV mode regardless. |
-| `js2_button4` | MTQ keypad A4 | `v_power_toggle_weapons` → *Weapons Power - Toggle* | Cuts/restores weapon power. Only meaningful in SCM (weapons are stowed in NAV). |
+| `js2_button23` | MTQ 3-pos rocker **left** | `v_power_set_off` → *Vehicle Power - Off* | Dedicated master power **OFF** (always off, not a toggle). |
+
+> **Master power rocker (`js2_button22/23/24`, bottom-centre 3-position):** **left (23)** = master power **OFF** (`v_power_set_off`); **right (24)** = Flight Ready / power **ON** (`v_flightready`, in `spaceship_general`); **centre (22)** = resting position, intentionally unbound. The keypad buttons A1–A3 toggle weapons / thrusters / shields power; A4 toggles VTOL (see Flight & movement).
 
 ### Ship systems & utilities — `spaceship_general`
 
@@ -231,6 +233,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button54` | AB6 right wing 2 | `v_atc_loading_area_request` → *Request Cargo Loading* | Requests a cargo/loading area (freight) separate from a standard landing pad. |
 | `js2_button9` | MTQ keypad mid-bottom | `v_toggle_landing_system` → *Landing Gear Toggle* | Deploys/retracts gear and engages landing mode/HUD. |
 | `js2_button10` | MTQ keypad right-bottom | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. |
+| `js2_button4` | MTQ keypad A4 | `v_vtol_toggle` → *VTOL Toggle* | Toggles VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. |
 
 ### Quantum travel & navigation — `spaceship_quantum`, `spaceship_hud`
 

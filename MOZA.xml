@@ -18,17 +18,17 @@
   <!-- POWER MANAGEMENT                                                 -->
   <!-- ================================================================ -->
   <actionmap name="spaceship_power">
-    <action name="v_power_toggle">
-      <rebind input="js2_button1"/>  <!-- Toggle all power on/off -->
+    <action name="v_power_toggle_weapons">
+      <rebind input="js2_button1"/>  <!-- Weapons power on/off (MTQ keypad A1) -->
     </action>
     <action name="v_power_toggle_thrusters">
-      <rebind input="js2_button2"/>  <!-- Toggle thruster power -->
+      <rebind input="js2_button2"/>  <!-- Thruster power on/off (MTQ keypad A2) -->
     </action>
     <action name="v_power_toggle_shields">
-      <rebind input="js2_button3"/>  <!-- Toggle shield power -->
+      <rebind input="js2_button3"/>  <!-- Shield power on/off (MTQ keypad A3) -->
     </action>
-    <action name="v_power_toggle_weapons">
-      <rebind input="js2_button4"/>  <!-- Toggle weapon power -->
+    <action name="v_power_set_off">
+      <rebind input="js2_button23"/>  <!-- Master power OFF (MTQ 3-pos rocker LEFT position). Mirrors Flight Ready = master ON on button 24; button 22 = center/resting = intentionally unbound -->
     </action>
   </actionmap>
 
@@ -164,6 +164,9 @@
     </action>
     <action name="v_autoland">
       <rebind input="js2_button10"/>  <!-- Autoland at designated spot -->
+    </action>
+    <action name="v_vtol_toggle">
+      <rebind input="js2_button4"/>  <!-- VTOL thrust-mode toggle (MTQ keypad A4). VTOL-capable ships only -->
     </action>
   </actionmap>
 
