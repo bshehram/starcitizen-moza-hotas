@@ -1,0 +1,418 @@
+<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="MOZA">
+  <CustomisationUIHeader label="MOZA" description="MOZA MHG AB6 MTQ" image="">
+    <devices>
+      <joystick instance="1"/>
+      <joystick instance="2"/>
+    </devices>
+    <categories />
+  </CustomisationUIHeader>
+
+  <options type="joystick" instance="1" Product="MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}">
+    <flight_move_pitch invert="0"/>
+  </options>
+  <options type="joystick" instance="2" Product="MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}"/>
+
+  <modifiers />
+
+  <!-- ================================================================ -->
+  <!-- POWER MANAGEMENT                                                 -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_power">
+    <action name="v_power_toggle">
+      <rebind input="js2_button1"/>  <!-- Toggle all power on/off -->
+    </action>
+    <action name="v_power_toggle_thrusters">
+      <rebind input="js2_button2"/>  <!-- Toggle thruster power -->
+    </action>
+    <action name="v_power_toggle_shields">
+      <rebind input="js2_button3"/>  <!-- Toggle shield power -->
+    </action>
+    <action name="v_power_toggle_weapons">
+      <rebind input="js2_button4"/>  <!-- Toggle weapon power -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- SHIP SYSTEMS & UTILITIES                                         -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_general">
+    <action name="v_flightready">
+      <rebind input="js2_button24"/>  <!-- Flight ready - one-button startup sequence -->
+    </action>
+    <action name="v_unlock_all_doors">
+      <rebind input="js2_button25"/>  <!-- Unlock all doors -->
+    </action>
+    <action name="v_open_all_doors">
+      <rebind input="js2_button25"/>  <!-- Open all doors (combined with unlock) -->
+    </action>
+    <action name="v_lock_all_doors">
+      <rebind input="js2_button26"/>  <!-- Lock all doors -->
+    </action>
+    <action name="v_close_all_doors">
+      <rebind input="js2_button26"/>  <!-- Close all doors (combined with lock) -->
+    </action>
+    <action name="v_unlock_all_ports">
+      <rebind input="js2_button27"/>  <!-- Unlock all item ports (for component removal) -->
+    </action>
+    <action name="v_lock_all_ports">
+      <rebind input="js2_button28"/>  <!-- Lock all item ports -->
+    </action>
+  </actionmap>
+
+  <actionmap name="lights_controller">
+    <action name="v_lights_on">
+      <rebind input="js2_button29"/>  <!-- Turn ship lights on -->
+    </action>
+    <action name="v_lights_off">
+      <rebind input="js2_button30"/>  <!-- Turn ship lights off -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- FLIGHT CONTROLS & MOVEMENT                                       -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_movement">
+    <!-- Primary Flight Controls (MHG Stick - Axes) -->
+    <action name="v_pitch">
+      <rebind input="js1_y"/>  <!-- Pitch up/down -->
+    </action>
+    <action name="v_roll">
+      <rebind input="js1_x"/>  <!-- Roll left/right -->
+    </action>
+    <action name="v_yaw">
+      <rebind input="js1_rotz"/>  <!-- Yaw left/right (twist) -->
+    </action>
+
+    <!-- Strafe Controls (MHG Stick - Hat Switch) -->
+    <action name="v_strafe_up">
+      <rebind input="js1_button12"/>  <!-- Strafe up -->
+    </action>
+    <action name="v_strafe_down">
+      <rebind input="js1_button14"/>  <!-- Strafe down -->
+    </action>
+    <action name="v_strafe_right">
+      <rebind input="js1_button13"/>  <!-- Strafe right -->
+    </action>
+    <action name="v_strafe_left">
+      <rebind input="js1_button15"/>  <!-- Strafe left -->
+    </action>
+
+    <!-- Throttle & Speed (MTQ Throttle) -->
+    <action name="v_strafe_forward">
+      <rebind input="js2_roty"/>  <!-- Main throttle axis - forward/backward -->
+    </action>
+    <action name="v_strafe_back">
+      <rebind input="js2_button34"/>  <!-- Override backward strafe -->
+    </action>
+    <action name="v_space_brake">
+      <rebind input="js2_button51"/>  <!-- Space brake - full stop -->
+    </action>
+    <action name="v_afterburner">
+      <rebind input="js2_button65"/>  <!-- Afterburner boost -->
+    </action>
+    <action name="v_ifcs_throttle_swap_mode">
+      <rebind input="js2_button8"/>  <!-- Toggle cruise control on/off -->
+    </action>
+    <action name="v_toggle_jump_request">
+      <rebind input="js1_button56"/>  <!-- Activate jump portal (AB6 right dial button mode) -->
+    </action>
+
+    <!-- Master Mode (NAV vs SCM) -->
+    <action name="v_master_mode_cycle">
+      <rebind input="js2_button5"/>  <!-- Cycle master mode - NAV (travel/quantum) vs SCM (combat) -->
+    </action>
+
+    <!-- Speed Limiter Controls -->
+    <action name="v_ifcs_speed_limiter_increment">
+      <rebind input="js2_button12"/>  <!-- Increase speed limiter -->
+    </action>
+    <action name="v_ifcs_speed_limiter_decrement">
+      <rebind input="js2_button11"/>  <!-- Decrease speed limiter -->
+    </action>
+
+    <!-- Acceleration G-Force Limiter -->
+    <action name="v_accel_range_increment">
+      <rebind input="js2_button15"/>  <!-- Increase G-force limiter -->
+    </action>
+    <action name="v_accel_range_decrement">
+      <rebind input="js2_button14"/>  <!-- Decrease G-force limiter -->
+    </action>
+
+    <!-- Flight Control Assists -->
+    <action name="v_ifcs_vector_decoupling_toggle">
+      <rebind input="js1_button49"/>  <!-- Toggle coupled/decoupled mode - drift vs auto-stabilize -->
+    </action>
+    <action name="v_ifcs_toggle_esp">
+      <rebind input="js1_button50"/>  <!-- Toggle ESP - dampens input for precise aiming -->
+    </action>
+    <action name="v_ifcs_toggle_gforce_safety">
+      <rebind input="js1_button51"/>  <!-- Toggle G-Safe - prevents blackouts from high-G turns -->
+    </action>
+    <action name="v_ifcs_proximity_assist_toggle">
+      <rebind input="js1_button52"/>  <!-- Toggle proximity assist - auto-slows near objects -->
+    </action>
+
+    <!-- Landing & Air Traffic Control -->
+    <action name="v_atc_request">
+      <rebind input="js1_button53"/>  <!-- Request landing permission -->
+    </action>
+    <action name="v_atc_loading_area_request">
+      <rebind input="js1_button54"/>  <!-- Request hangar/loading area -->
+    </action>
+    <action name="v_toggle_landing_system">
+      <rebind input="js2_button9"/>  <!-- Toggle landing gear -->
+    </action>
+    <action name="v_autoland">
+      <rebind input="js2_button10"/>  <!-- Autoland at designated spot -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- QUANTUM TRAVEL & NAVIGATION                                      -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_quantum">
+    <action name="v_toggle_qdrive_engagement">
+      <rebind input="js2_button7"/>  <!-- Engage/disengage quantum drive -->
+    </action>
+  </actionmap>
+
+  <actionmap name="spaceship_hud">
+    <action name="v_starmap">
+      <rebind input="js2_button6"/>  <!-- Open starmap for navigation -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- MODE SWITCHING                                                   -->
+  <!-- ================================================================ -->
+  <actionmap name="seat_general">
+    <action name="v_toggle_missile_mode">
+      <rebind input="js1_button4"/>  <!-- Toggle between gun mode and missile mode -->
+    </action>
+    <action name="v_set_flight_mode">
+      <rebind input="js2_button17"/>  <!-- Set to flight sub-mode -->
+    </action>
+    <action name="v_set_quantum_mode">
+      <rebind input="js2_button18"/>  <!-- Set to quantum travel sub-mode -->
+    </action>
+    <action name="v_set_scan_mode">
+      <rebind input="js2_button19"/>  <!-- Set to scanning sub-mode -->
+    </action>
+    <action name="v_set_mining_mode">
+      <rebind input="js2_button20"/>  <!-- Set to mining sub-mode (future use) -->
+    </action>
+    <action name="v_set_salvage_mode">
+      <rebind input="js2_button21"/>  <!-- Set to salvage sub-mode (future use) -->
+    </action>
+    <action name="v_light_amplification_toggle">
+      <rebind input="js1_button55"/>  <!-- LAMP toggle - light amplification (AB6 left slider pos 1) -->
+    </action>
+    <action name="v_light_amplification_off">
+      <rebind input="js1_button59"/>  <!-- LAMP off - light amplification (AB6 left slider pos 3) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- TARGETING - BASIC (lock, pin, auto-targeting)                    -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_targeting">
+    <action name="v_target_lock_selected">
+      <rebind input="js1_button11"/>  <!-- Lock onto selected target -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- TARGETING - ADVANCED (cycling & reticle selection)               -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_targeting_advanced">
+    <action name="v_target_under_reticle">
+      <rebind input="js1_button5"/>  <!-- Target whatever is under your crosshair -->
+    </action>
+    <action name="v_target_cycle_hostile_fwd">
+      <rebind input="js1_button8"/>  <!-- Cycle to next hostile target -->
+    </action>
+    <action name="v_target_cycle_hostile_back">
+      <rebind input="js1_button10"/>  <!-- Cycle to previous hostile target -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- RADAR & SCANNING                                                 -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_radar">
+    <action name="v_invoke_ping">
+      <rebind input="js1_button20"/>  <!-- Radar ping - reveals nearby contacts -->
+    </action>
+  </actionmap>
+
+  <actionmap name="spaceship_scanning">
+    <action name="v_scanning_trigger_scan">
+      <rebind input="js1_button18"/>  <!-- Hold to scan target/area -->
+    </action>
+    <action name="v_inc_scan_focus_level">
+      <rebind input="js1_button17"/>  <!-- Narrow scan angle (more focused) -->
+    </action>
+    <action name="v_dec_scan_focus_level">
+      <rebind input="js1_button19"/>  <!-- Widen scan angle (broader area) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- WEAPONS & COMBAT SYSTEMS                                         -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_weapons">
+    <action name="v_weapon_preset_fire_guns0">
+      <rebind input="js1_button1"/>  <!-- Fire weapons 1 (trigger stage 1) -->
+    </action>
+    <action name="v_weapon_preset_fire_guns1">
+      <rebind input="js1_button6"/>  <!-- Fire weapons 2 (trigger stage 2) -->
+    </action>
+    <action name="v_weapon_preset_next">
+      <rebind input="js1_button22"/>  <!-- Next weapon group / next missile type in missile mode -->
+    </action>
+    <action name="v_weapon_preset_prev">
+      <rebind input="js1_button23"/>  <!-- Previous weapon group / prev missile type in missile mode -->
+    </action>
+    <action name="v_weapon_aim_type_cycle">
+      <rebind input="js1_button24"/>  <!-- Cycle aiming mode (fixed/gimbal/auto) -->
+    </action>
+    <action name="v_weapon_gimbals_state_toggle">
+      <rebind input="js1_button16"/>  <!-- Toggle gimbal lock - fixed vs auto-aim -->
+    </action>
+  </actionmap>
+
+  <actionmap name="spaceship_missiles">
+    <action name="v_weapon_toggle_launch_missile">
+      <rebind input="js1_button2"/>  <!-- Launch missile -->
+    </action>
+    <action name="v_weapon_cycle_missile_fwd">
+      <rebind input="js1_button22"/>  <!-- Next missile type (shared with weapon preset in missile mode) -->
+    </action>
+    <action name="v_weapon_cycle_missile_back">
+      <rebind input="js1_button23"/>  <!-- Previous missile type (shared with weapon preset in missile mode) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- DEFENSIVE SYSTEMS                                                -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_defensive">
+    <action name="v_weapon_countermeasure_decoy_launch">
+      <rebind input="js1_button7"/>  <!-- Launch decoy countermeasure (vs missiles) -->
+    </action>
+    <action name="v_weapon_countermeasure_noise_launch">
+      <rebind input="js1_button9"/>  <!-- Launch noise countermeasure (vs radar lock) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- VIEW & CAMERA CONTROLS                                           -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_view">
+    <action name="v_view_cycle_fwd">
+      <rebind input="js1_button29"/>  <!-- Cycle camera views (1st person, 3rd person, etc) -->
+    </action>
+    <action name="v_view_freelook_mode">
+      <rebind input="js1_button3"/>  <!-- Hold to freelook (look around cockpit) -->
+    </action>
+    <action name="v_view_pitch_up">
+      <rebind input="js1_button25" activationMode="hold"/>  <!-- Look up (hold) -->
+    </action>
+    <action name="v_view_pitch_down">
+      <rebind input="js1_button27" activationMode="hold"/>  <!-- Look down (hold) -->
+    </action>
+    <action name="v_view_yaw_left">
+      <rebind input="js1_button28" activationMode="hold"/>  <!-- Look left (hold) -->
+    </action>
+    <action name="v_view_yaw_right">
+      <rebind input="js1_button26" activationMode="hold"/>  <!-- Look right (hold) -->
+    </action>
+    <action name="v_view_zoom_in">
+      <rebind input="js2_button63"/>  <!-- Zoom in -->
+    </action>
+    <action name="v_view_zoom_out">
+      <rebind input="js2_button64"/>  <!-- Zoom out -->
+    </action>
+    <action name="v_ads_toggle">
+      <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- PLAYER CONTROLS (on foot)                                        -->
+  <!-- ================================================================ -->
+  <actionmap name="player">
+    <action name="zoom_in">
+      <rebind input="js2_button63"/>  <!-- Zoom in (on foot) -->
+    </action>
+    <action name="zoom_out">
+      <rebind input="js2_button64"/>  <!-- Zoom out (on foot) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- SPECTATOR CONTROLS                                               -->
+  <!-- ================================================================ -->
+  <actionmap name="spectator">
+    <action name="spectate_zoom_in">
+      <rebind input="js2_button63"/>  <!-- Spectator zoom in -->
+    </action>
+    <action name="spectate_zoom_out">
+      <rebind input="js2_button64"/>  <!-- Spectator zoom out -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- PLAYER CHOICE CONTROLS                                           -->
+  <!-- ================================================================ -->
+  <actionmap name="player_choice">
+    <action name="pc_zoom_in">
+      <rebind input="js2_button63"/>  <!-- Player choice zoom in -->
+    </action>
+    <action name="pc_zoom_out">
+      <rebind input="js2_button64"/>  <!-- Player choice zoom out -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- MINING CONTROLS (mode-specific duplicates)                       -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_mining">
+    <action name="v_toggle_mining_laser_fire">
+      <rebind input="js1_button1"/>  <!-- Mining laser fire (reuse trigger) -->
+    </action>
+    <action name="v_increase_mining_throttle">
+      <rebind input="js1_button22"/>  <!-- Increase mining laser power (reuse weapon next) -->
+    </action>
+    <action name="v_decrease_mining_throttle">
+      <rebind input="js1_button23"/>  <!-- Decrease mining laser power (reuse weapon prev) -->
+    </action>
+    <action name="v_toggle_mining_laser_type">
+      <rebind input="js1_button4"/>  <!-- Toggle mining laser type (reuse missile/gun mode toggle) -->
+    </action>
+    <action name="v_toggle_mining_mode_fracture">
+      <rebind input="js1_button18"/>  <!-- Fracture sensor (reuse scan trigger) -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- SALVAGE CONTROLS (mode-specific duplicates)                      -->
+  <!-- ================================================================ -->
+  <actionmap name="spaceship_salvage">
+    <action name="v_salvage_toggle_fire_focused">
+      <rebind input="js1_button1"/>  <!-- Salvage focused beam fire (reuse trigger) -->
+    </action>
+    <action name="v_salvage_toggle_gimbal_mode">
+      <rebind input="js1_button6"/>  <!-- Toggle salvage gimbal mode (reuse secondary fire) -->
+    </action>
+    <action name="v_salvage_toggle_fire_disintegrate">
+      <rebind input="js1_button10"/>  <!-- Disintegrate material (reuse cycle hostile target back) -->
+    </action>
+    <action name="v_salvage_toggle_fire_fracture">
+      <rebind input="js1_button8"/>  <!-- Fracture material (reuse cycle hostile target fwd) -->
+    </action>
+    <action name="v_salvage_cycle_modifiers_focused">
+      <rebind input="js1_button11"/>  <!-- Cycle salvage modifier mode (reuse target lock) -->
+    </action>
+  </actionmap>
+</ActionMaps>

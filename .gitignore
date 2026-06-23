@@ -1,0 +1,13 @@
+# Claude Code local project data (per-directory settings, caches)
+.claude/
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Scratch / backups
+*.bak
+*.tmp
