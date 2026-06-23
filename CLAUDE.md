@@ -283,7 +283,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button24` | MHG upper rocker center | `v_weapon_aim_type_cycle` → *Weapon Aim Type - Cycle* | Cycles gimbal aim mode (fixed-style / gimbal assist / manual gimbal). |
 | `js1_button16` | MHG right hat center press | `v_weapon_gimbals_state_toggle` → *Gimbals State - Toggle* | Quick on/off of gimbal lock (locked = tighter convergence). |
 
-> ⚠ **Correction:** `fire_guns0` / `fire_guns1` are **weapon group 1 / group 2**, *not* "trigger stage 1 / stage 2" as the XML comments say. The `0`/`1` suffix is the weapon group, independent of which physical trigger stage you put it on. (Here group 2 is conveniently on the trigger's 2nd stage, `js1_button6`.) Until you actually split your guns into two groups in the MFD, group 2 may have nothing to fire.
+> ⚠ **Note:** `fire_guns0` / `fire_guns1` are **weapon group 1 / group 2**, *not* "trigger stage 1 / stage 2" (the XML comments previously implied the latter and have been corrected). The `0`/`1` suffix is the weapon group, independent of which physical trigger stage you put it on. (Here group 2 is conveniently on the trigger's 2nd stage, `js1_button6`.) Until you actually split your guns into two groups in the MFD, group 2 may have nothing to fire.
 
 ### Missiles — `spaceship_missiles`
 
@@ -335,9 +335,9 @@ These reuse MHG controls; active only in **Mining** operator mode.
 | `js1_button22` | MHG rocker ↑ | `v_increase_mining_throttle` → *Mining Laser Power - Increase* | Raise laser power toward the fracture window. |
 | `js1_button23` | MHG rocker ↓ | `v_decrease_mining_throttle` → *Mining Laser Power - Decrease* | Lower laser power. |
 | `js1_button4` | MHG upper thumb button | `v_toggle_mining_laser_type` → *Switch Mining Laser* | Switch between fitted mining laser heads/modules. |
-| `js1_button18` | MHG lower hat → | `v_toggle_mining_mode_fracture` → **(invalid)** | See correction below. |
+| `js1_button18` | MHG lower hat → | `v_toggle_mining_mode` → *Mining Mode Toggle* (placeholder) | Swapped in to replace the invalid `v_toggle_mining_mode_fracture`. See note below. |
 
-> ⚠ **Correction:** `v_toggle_mining_mode_fracture` is **not a real Star Citizen action** — it does not exist in the master database, so this binding does nothing. If you wanted a mining-mode toggle, the valid action is `v_toggle_mining_mode` (*Mining Mode Toggle*). Modern mining doesn't have a separate "fracture sensor" action; fracturing happens by driving laser power into the green window with `v_increase_mining_throttle`. Recommend changing this line or removing it.
+> ⚠ **Note (placeholder binding):** The original `v_toggle_mining_mode_fracture` was **not a real action** (it doesn't exist in SC), so it did nothing. It has been swapped for `v_toggle_mining_mode` (*Mining Mode Toggle*) as a stop-gap. **Caveat:** `v_toggle_mining_mode` actually belongs to the `seat_general` action map (not `spaceship_mining`), and button 18 is also the scan trigger — so when wiring mining up properly, re-home it to `seat_general` on a dedicated free button. Modern mining has no separate "fracture sensor"; fracturing is done by driving laser power into the green window with `v_increase_mining_throttle`.
 
 ### Salvage — `spaceship_salvage`
 
@@ -372,9 +372,9 @@ This is normal and intended — only one of these action maps is "live" at a tim
 
 ## 6. Issues & recommendations found in `MOZA.xml`
 
-1. **`v_toggle_mining_mode_fracture` (line ~394, `js1_button18`) is invalid** — not a real action. Replace with `v_toggle_mining_mode`, or remove. *(See Mining table.)*
-2. **`fire_guns0` / `fire_guns1` comments are wrong** — they're weapon **groups 1/2**, not trigger stages. The binding itself is fine. *(See Weapons note.)*
-3. **`v_toggle_jump_request` is inter-system jump-point travel**, not a generic "jump portal" and not in-system quantum (that's `v_toggle_qdrive_engagement`). Bindings are fine; the mental model matters.
+1. **✅ Fixed — `v_toggle_mining_mode_fracture` (`js1_button18`) was invalid** (not a real action). Swapped to `v_toggle_mining_mode` as a placeholder; proper mining wiring is deferred. *(See Mining table + note.)*
+2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
+3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
 5. **Unbound hardware you could still use:** AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, encoder center-presses (13/16), keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP.
 6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.

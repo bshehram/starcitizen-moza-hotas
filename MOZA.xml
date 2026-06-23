@@ -114,7 +114,7 @@
       <rebind input="js2_button8"/>  <!-- Toggle cruise control on/off -->
     </action>
     <action name="v_toggle_jump_request">
-      <rebind input="js1_button56"/>  <!-- Activate jump portal (AB6 right dial button mode) -->
+      <rebind input="js1_button56"/>  <!-- Engage jump-point (inter-system) travel, e.g. Stanton/Pyro. NOT in-system quantum (js2_button7). Physical: AB6 right wing bottom button -->
     </action>
 
     <!-- Master Mode (NAV vs SCM) -->
@@ -262,10 +262,10 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_weapons">
     <action name="v_weapon_preset_fire_guns0">
-      <rebind input="js1_button1"/>  <!-- Fire weapons 1 (trigger stage 1) -->
+      <rebind input="js1_button1"/>  <!-- Fire weapon group 1 (the 0/1 suffix = weapon GROUP, not trigger stage) -->
     </action>
     <action name="v_weapon_preset_fire_guns1">
-      <rebind input="js1_button6"/>  <!-- Fire weapons 2 (trigger stage 2) -->
+      <rebind input="js1_button6"/>  <!-- Fire weapon group 2 (a separate weapon group; here placed on the trigger 2nd stage) -->
     </action>
     <action name="v_weapon_preset_next">
       <rebind input="js1_button22"/>  <!-- Next weapon group / next missile type in missile mode -->
@@ -390,8 +390,8 @@
     <action name="v_toggle_mining_laser_type">
       <rebind input="js1_button4"/>  <!-- Toggle mining laser type (reuse missile/gun mode toggle) -->
     </action>
-    <action name="v_toggle_mining_mode_fracture">
-      <rebind input="js1_button18"/>  <!-- Fracture sensor (reuse scan trigger) -->
+    <action name="v_toggle_mining_mode">
+      <rebind input="js1_button18"/>  <!-- PLACEHOLDER: Mining Mode toggle (replaced the invalid v_toggle_mining_mode_fracture). NOTE: v_toggle_mining_mode is really a seat_general action and button 18 is also the scan trigger; re-home this to seat_general on a dedicated free button when wiring mining properly -->
     </action>
   </actionmap>
 
