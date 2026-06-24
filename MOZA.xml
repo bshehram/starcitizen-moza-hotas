@@ -129,6 +129,9 @@
     <action name="v_ifcs_speed_limiter_decrement">
       <rebind input="js2_button11"/>  <!-- Decrease speed limiter -->
     </action>
+    <action name="v_ifcs_speed_limiter_toggle">
+      <rebind input="js2_button13"/>  <!-- Enable/disable the speed limiter (MTQ upper encoder CENTER PRESS). Self-contained dial: turn 11/12 to set the speed cap, push 13 to switch the cap on/off -->
+    </action>
 
     <!-- Acceleration G-Force Limiter -->
     <action name="v_accel_range_increment">
@@ -146,7 +149,7 @@
       <rebind input="js1_button50"/>  <!-- Toggle ESP - dampens input for precise aiming -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
-      <rebind input="js1_button51"/>  <!-- Toggle G-Safe - prevents blackouts from high-G turns -->
+      <rebind input="js2_button16"/>  <!-- Toggle G-Safe (MTQ lower encoder CENTER PRESS). Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the G-safety that governs it. MOVED here from js1_button51 (AB6 left wing 3), which is now FREE -->
     </action>
     <action name="v_ifcs_proximity_assist_toggle">
       <rebind input="js1_button52"/>  <!-- Toggle proximity assist - auto-slows near objects -->

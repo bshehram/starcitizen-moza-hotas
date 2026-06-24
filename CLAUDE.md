@@ -223,11 +223,12 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button5` | MTQ keypad mid-top | `v_master_mode_cycle` → *Master mode cycle* | Toggles **SCM** (combat: weapons/shields) ↔ **NAV** (travel: quantum, higher speed, weapons offline). |
 | `js2_button12` | MTQ upper encoder CW | `v_ifcs_speed_limiter_increment` → *Speed Limiter - Step Up* | Raises the SCM speed cap. |
 | `js2_button11` | MTQ upper encoder CCW | `v_ifcs_speed_limiter_decrement` → *Speed Limiter - Step Down* | Lowers the speed cap — fly slow/precise; tighter turns. |
+| `js2_button13` | MTQ upper encoder **center press** | `v_ifcs_speed_limiter_toggle` → *Speed Limiter - Enable / Disable* | Switches the speed cap on/off. Self-contained dial: turn 11/12 to set the cap, push 13 to engage/release it (instant full-speed sprint or back to capped). |
 | `js2_button15` | MTQ lower encoder CW | `v_accel_range_increment` → *Acceleration Limiter - Step Up* | Raises the acceleration (G-force) cap — snappier, harsher Gs. |
 | `js2_button14` | MTQ lower encoder CCW | `v_accel_range_decrement` → *Acceleration Limiter - Step Down* | Lowers the G-force cap — smoother, safer from blackout. |
+| `js2_button16` | MTQ lower encoder **center press** | `v_ifcs_toggle_gforce_safety` → *G-Force Safety* | G-Safe — caps manoeuvres to stop the pilot blacking out; off = full performance, blackout risk. Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the safety that governs it. **Moved here from `js1_button51`.** |
 | `js1_button49` | AB6 left wing 1 | `v_ifcs_vector_decoupling_toggle` → *Decoupled Mode Toggle* | Coupled (auto counter-thrust, atmospheric feel) ↔ decoupled (Newtonian drift). |
 | `js1_button50` | AB6 left wing 2 | `v_ifcs_toggle_esp` → *ESP Toggle* | Enhanced Stick Precision — softens input near a target to reduce overshoot (joystick aim assist). |
-| `js1_button51` | AB6 left wing 3 | `v_ifcs_toggle_gforce_safety` → *G-Force Safety* | G-Safe — caps manoeuvres to stop the pilot blacking out; off = full performance, blackout risk. |
 | `js1_button52` | AB6 left wing 4 | `v_ifcs_proximity_assist_toggle` → *Proximity Assist* | Auto-dampens thrust near surfaces for safer slow flying/landings. Boost overrides it. |
 | `js1_button53` | AB6 right wing 1 | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. |
 | `js1_button54` | AB6 right wing 2 | `v_atc_loading_area_request` → *Request Cargo Loading* | Requests a cargo/loading area (freight) separate from a standard landing pad. |
@@ -379,7 +380,7 @@ This is normal and intended — only one of these action maps is "live" at a tim
 2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
 3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
-5. **Unbound hardware you could still use:** AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, encoder center-presses (13/16), keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP.
+5. **Unbound hardware you could still use:** AB6 left wing 3 (`js1_button51`, **newly freed** — G-Safe moved to the MTQ lower-encoder press), AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Both encoder center-presses, 13/16, are now bound — see Flight & movement.)*
 6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
 
 ---
