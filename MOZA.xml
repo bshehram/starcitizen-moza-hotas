@@ -384,11 +384,16 @@
     <action name="v_view_pitch">
       <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
-    <action name="v_view_zoom_in">
-      <rebind input="js2_button63"/>  <!-- Zoom in -->
+    <!-- View zoom on the throttle dial (63 fwd / 64 back) = DYNAMIC zoom (rel.), the smooth FOV zoom that works in the
+         FIRST-PERSON COCKPIT. The old v_view_zoom_in/out ("3rd person view" only) did nothing - even in 3rd person -
+         so they were dropped. NOTE: SC has NO reliable dial-bindable zoom for the 3rd-person EXTERNAL camera; ship zoom
+         (ADS / dynamic zoom) is a 1st-person feature by design, so this is cockpit-only and that's expected.
+         _rel_in/_rel_out step per dial click. -->
+    <action name="v_view_dynamic_zoom_rel_in">
+      <rebind input="js2_button63"/>  <!-- Dynamic zoom IN (cockpit) - throttle dial forward/CW click -->
     </action>
-    <action name="v_view_zoom_out">
-      <rebind input="js2_button64"/>  <!-- Zoom out -->
+    <action name="v_view_dynamic_zoom_rel_out">
+      <rebind input="js2_button64"/>  <!-- Dynamic zoom OUT (cockpit) - throttle dial back/CCW click -->
     </action>
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
