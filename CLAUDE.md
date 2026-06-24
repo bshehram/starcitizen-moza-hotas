@@ -154,8 +154,8 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 6 | Keypad **"HDG"** (right-col top) | 30 | Lower-strip **toggle C** (gear-style plastic lever) — down |
 | 7 | Keypad **"SPD"** (mid-col middle) | 31–43 | **Throttle-lever gate detents** (one button per notch) |
 | 8 | Keypad **"ALT"** (right-col middle) | 34 | …right-center lever, bottom detent |
-| 9 | Keypad **"FD"** (mid-col bottom) | 49/50/51 | Right Module 3-position slider |
-| 10 | Keypad **"AP"** (right-col bottom) | 51 | …slider left/pos-1 |
+| 9 | Keypad **"FD"** (mid-col bottom) | 49/50/51 | Right Module **3-position switch** — 49 rest, 50 latched-forward, 51 momentary-back |
+| 10 | Keypad **"AP"** (right-col bottom) | | |
 | 11 | Upper round encoder — CCW/left | 52–56 | Right Module upper 8-way hat |
 | 12 | Upper encoder — CW/right | 57–61 | Right Module lower 4-way hat |
 | 13 | Upper encoder — center press | 62 | Left Module top thumb button |
@@ -216,7 +216,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button15` | MHG right hat ← | `v_strafe_left` → *Strafe left* | Translate left without yawing. |
 | `js2_roty` | MTQ throttle lever (RY) | `v_strafe_forward` → *Throttle - Increase* | Main forward throttle axis. Behaviour (absolute vs relative) depends on the cruise/throttle-mode toggle below. |
 | `js2_button34` | MTQ right-center lever bottom detent | `v_strafe_back` → *Throttle - Decrease* | Reverse / throttle-invert so a one-direction throttle can command backward thrust. |
-| `js2_button51` | MTQ Right Module slider pos-1 | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Usually held; essential in decoupled mode. |
+| `js2_button51` | MTQ Right Module switch — **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake (springs back to rest); essential in decoupled mode. Same 3-pos switch as 49/50 (coupled/decoupled). |
 | `js2_button65` | MTQ Left Module face button | `v_afterburner` → *Boost* | Boost — burst of extra acceleration from a depletable pool; also overrides proximity assist while held. |
 | `js1_button56` | MHG/AB6 right wing 4 | `v_toggle_jump_request` → *Jump Drive - Request Jump* | Engages **inter-system jump-point** travel (e.g. Stanton↔Pyro) — distinct from in-system quantum. |
 | `js2_button5` | MTQ keypad **"NAV"** (mid-top) | `v_master_mode_cycle` → *Master mode cycle* | Toggles **SCM** (combat: weapons/shields) ↔ **NAV** (travel: quantum, higher speed, weapons offline). Physical "NAV" label matches. |
@@ -226,7 +226,8 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button15` | MTQ lower encoder CW | `v_accel_range_increment` → *Acceleration Limiter - Step Up* | Raises the acceleration (G-force) cap — snappier, harsher Gs. |
 | `js2_button14` | MTQ lower encoder CCW | `v_accel_range_decrement` → *Acceleration Limiter - Step Down* | Lowers the G-force cap — smoother, safer from blackout. |
 | `js2_button16` | MTQ lower encoder **center press** | `v_ifcs_toggle_gforce_safety` → *G-Force Safety* | G-Safe — caps manoeuvres to stop the pilot blacking out; off = full performance, blackout risk. Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the safety that governs it. **Moved here from `js1_button51`.** |
-| `js1_button49` | AB6 left wing 1 | `v_ifcs_vector_decoupling_toggle` → *Decoupled Mode Toggle* | Coupled (auto counter-thrust, atmospheric feel) ↔ decoupled (Newtonian drift). |
+| `js2_button49` | MTQ Right Module switch — **rest** | `v_ifcs_vector_decoupling_off` → *Decoupled Mode Off* | **Coupled** (auto counter-thrust, atmospheric feel) — switch at rest. |
+| `js2_button50` | MTQ Right Module switch — **latched fwd** | `v_ifcs_vector_decoupling_on` → *Decoupled Mode On* | **Decoupled** (Newtonian drift) — push forward to latch, snap back to recouple. Frees the old stick toggle (`js1_button49`). |
 | `js1_button50` | AB6 left wing 2 | `v_ifcs_toggle_esp` → *ESP Toggle* | Enhanced Stick Precision — softens input near a target to reduce overshoot (joystick aim assist). |
 | `js1_button52` | AB6 left wing 4 | `v_ifcs_proximity_assist_toggle` → *Proximity Assist* | Auto-dampens thrust near surfaces for safer slow flying/landings. Boost overrides it. |
 | `js1_button53` | AB6 right wing 1 | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. |
@@ -382,7 +383,7 @@ This is normal and intended — only one of these action maps is "live" at a tim
 2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
 3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
-5. **Unbound hardware you could still use:** AB6 left wing 3 (`js1_button51`, **newly freed** — G-Safe moved to the MTQ lower-encoder press), AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Both encoder center-presses, 13/16, are now bound — see Flight & movement.)*
+5. **Unbound hardware you could still use:** AB6 left wing 1 (`js1_button49`, **newly freed** — decoupled moved to the MTQ Right Module switch) and wing 3 (`js1_button51`, **newly freed** — G-Safe moved to the MTQ lower-encoder press), AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Both encoder center-presses, 13/16, are now bound — see Flight & movement.)*
 6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
 
 ---

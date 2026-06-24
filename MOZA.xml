@@ -92,14 +92,24 @@
     </action>
 
     <!-- Throttle & Speed (MTQ Throttle) -->
+    <!-- Forward = analog axis (js2_roty); reverse = button (js2_button34, the rear detent). Reverse is
+         binary BY NECESSITY - proportional reverse was fully investigated and is NOT achievable here:
+           * MOZA side: the MTQ outputs a unidirectional 0-65535 axis, idle at ~8000 (~12%); it never
+             goes negative and Pithouse cannot set a custom center (confirmed in the MOZA software).
+           * SC side: neutral is locked to the axis CENTER (32767) and only center-symmetric axis
+             options exist (invert/exponent - verified in SC's own actionmaps.xml, e.g. flight_view
+             exponent="1"). No profile setting can move neutral to 12%.
+         Idle (12%) != center, and neither side can bridge it, so a full-range v_strafe_longitudinal
+         would read idle as deep reverse. Button reverse is the correct config for this hardware.
+         (Requires MOZA "Detent Button Mapping" ON so the rear detent emits button 34.) -->
     <action name="v_strafe_forward">
-      <rebind input="js2_roty"/>  <!-- Main throttle axis - forward/backward -->
+      <rebind input="js2_roty"/>  <!-- Main forward throttle axis (idle at bottom = 0 thrust) -->
     </action>
     <action name="v_strafe_back">
-      <rebind input="js2_button34"/>  <!-- Override backward strafe -->
+      <rebind input="js2_button34"/>  <!-- Reverse: rear-detent button (binary - see note above) -->
     </action>
     <action name="v_space_brake">
-      <rebind input="js2_button51"/>  <!-- Space brake - full stop -->
+      <rebind input="js2_button51"/>  <!-- Space brake - full stop. MTQ Right Module 3-pos switch, MOMENTARY back position (hold to brake; springs back to rest/49). Same switch's 49/50 = coupled/decoupled -->
     </action>
     <action name="v_afterburner">
       <rebind input="js2_button65"/>  <!-- Afterburner boost -->
@@ -133,8 +143,14 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <action name="v_ifcs_vector_decoupling_toggle">
-      <rebind input="js1_button49"/>  <!-- Toggle coupled/decoupled mode - drift vs auto-stabilize -->
+    <!-- Decoupled mode on the MTQ Right Module 3-position switch (maintained): rest (49) = coupled,
+         latched forward (50) = decoupled - the switch position shows your flight mode. The same switch's
+         momentary back position (51) is the space brake. Moved off js1_button49 (AB6 left wing 1), now FREE. -->
+    <action name="v_ifcs_vector_decoupling_off">
+      <rebind input="js2_button49"/>  <!-- Coupled (switch at REST). Auto counter-thrust / atmospheric feel -->
+    </action>
+    <action name="v_ifcs_vector_decoupling_on">
+      <rebind input="js2_button50"/>  <!-- Decoupled (switch LATCHED forward). Newtonian drift -->
     </action>
     <action name="v_ifcs_toggle_esp">
       <rebind input="js1_button50"/>  <!-- Toggle ESP - dampens input for precise aiming -->
