@@ -445,11 +445,13 @@
       <rebind input="js1_button23"/>  <!-- Decrease mining laser power (reuse weapon prev) -->
     </action>
     <!-- Mining laser power as an ABSOLUTE AXIS on the FLAPS slider (far-right). Hold power proportionally in the green
-         fracture window instead of tapping the +/- rocker. CONFIRMED in-game: FLAPS = js2_slider2 (joy.cpl calls it the
-         "Slider" axis, but SC enumerates it as slider2, not slider1). The synced throttle pair is js2_rotx/js2_roty -
-         not these sliders. FLAPS rests at "0" reading axis-MAX, so add invert in the js2 <options> block if more-power
-         runs backwards (confirm on first mining run). Supersedes the stepped inc/dec on js1_button22/23 above (absolute
-         axis wins when both are live). -->
+         fracture window instead of tapping the +/- rocker. CONFIRMED in-game (Golem): FLAPS = js2_slider2 (joy.cpl calls
+         it the "Slider" axis, but SC enumerates it as slider2, not slider1). The synced throttle pair is js2_rotx/js2_roty
+         - not these sliders. DIRECTION CONFIRMED CORRECT - NO invert needed: lever at rest (up) = laser charge ~20%,
+         pushed to FULL (down) = 100% (v_mining_throttle reads the axis opposite to the flight throttle, so it just works).
+         The ~20% at rest is the mining laser's minimum throttle floor - a game mechanic, not a binding issue, and harmless
+         (the laser only emits while firing). Supersedes the stepped inc/dec on js1_button22/23 above (absolute axis wins
+         when both are live). -->
     <action name="v_mining_throttle">
       <rebind input="js2_slider2"/>  <!-- FLAPS slider = absolute mining laser power -->
     </action>
@@ -481,9 +483,10 @@
       <rebind input="js1_button11"/>  <!-- Cycle salvage modifier mode (reuse target lock) -->
     </action>
     <!-- Salvage beam spacing as an ABSOLUTE AXIS on the SPEEDBRAKE slider (far-left). Set the gap between beams to match
-         the hull panel and leave it. CONFIRMED in-game: SPEEDBRAKE = js2_slider1 (joy.cpl calls it the "Dial" axis, but
-         SC enumerates it as slider1). SPEEDBRAKE rests at top "DOWN" reading axis-MAX; add invert in the js2 <options>
-         block if spacing runs backwards (confirm on first salvage run). -->
+         the hull panel and leave it. CONFIRMED in-game (Salvation): SPEEDBRAKE = js2_slider1 (joy.cpl calls it the "Dial"
+         axis, but SC enumerates it as slider1). Sweeping the lever opens/closes the beam gap across its full travel - the
+         absolute axis auto-maps slider range to spacing range, no calibration/range needed. Direction is preference (no
+         "zero at rest" requirement); current orientation accepted. -->
     <action name="v_salvage_beam_spacing_abs">
       <rebind input="js2_slider1"/>  <!-- SPEEDBRAKE slider = absolute salvage beam spacing -->
     </action>

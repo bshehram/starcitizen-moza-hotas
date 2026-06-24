@@ -173,7 +173,7 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 > - **FLAPS** (right): 5 engraved detents — **"0"** = button **40** (rest) · **"1"** = 39 · **"2"** = 38 · **"3"** = 37 · **"FULL"** = 36 — plus a smooth axis across the full throw.
 > - **SPEEDBRAKE** (far left): rests at button **43** (engraved **"DOWN"**); a gentle nudge to the single click hits button **31** (**"ARMED"**); past that it slides smoothly to the bottom with **no further buttons** — just the axis down to 0.
 >
-> Both levers stay where you leave them (**maintained**, not self-centering), so they suit **set-and-hold analog values**, *not* momentary actions. **Now bound** (confirmed in SC's binder): **FLAPS ("Slider" axis = `js2_slider2`) → mining laser power** (`v_mining_throttle`) and **SPEEDBRAKE ("Dial" axis = `js2_slider1`) → salvage beam spacing** (`v_salvage_beam_spacing_abs`) — both **modal** (active only in Mining / Salvage operator mode, so no flight/combat conflict). The **X/Y-Rotation** axes are the synced throttle pair, *not* these sliders. *(Button 34 is the separate main-throttle reverse detent, already bound to `v_strafe_back`; other indices in the 31–42 block are intermediate/unmapped — don't rely on them.)*
+> Both levers stay where you leave them (**maintained**, not self-centering), so they suit **set-and-hold analog values**, *not* momentary actions. **Now bound and confirmed in-ship (Golem + Salvation):** **FLAPS ("Slider" axis = `js2_slider2`) → mining laser power** (`v_mining_throttle`; rest ≈ 20% laser floor → FULL = 100%, no invert) and **SPEEDBRAKE ("Dial" axis = `js2_slider1`) → salvage beam spacing** (`v_salvage_beam_spacing_abs`; auto-mapped, no range to set) — both **modal** (active only in Mining / Salvage operator mode, so no flight/combat conflict). The **X/Y-Rotation** axes are the synced throttle pair, *not* these sliders. *(Button 34 is the separate main-throttle reverse detent, already bound to `v_strafe_back`; other indices in the 31–42 block are intermediate/unmapped — don't rely on them.)*
 
 > **Keypad labels (physical):** All keypad soft buttons (1–10) are **momentary press**. Left column = **A1–A4** (buttons 1–4). The mid+right 2×3 grid is engraved with MCP-style autopilot labels — **NAV** (5) · **HDG** (6) / **SPD** (7) · **ALT** (8) / **FD** (9) · **AP** (10) — repurposed to SC functions (see §4). The rotary knob's detents are engraved **1–5**.
 
@@ -354,7 +354,7 @@ These reuse MHG controls; active only in **Mining** operator mode.
 | `js1_button1` | MHG trigger | `v_toggle_mining_laser_fire` → *Fire Mining Laser* | Fire/extract with the mining laser (reuses the gun trigger). |
 | `js1_button22` | MHG rocker ↑ | `v_increase_mining_throttle` → *Mining Laser Power - Increase* | Raise laser power toward the fracture window. |
 | `js1_button23` | MHG rocker ↓ | `v_decrease_mining_throttle` → *Mining Laser Power - Decrease* | Lower laser power. |
-| `js2_slider2` *(FLAPS)* | MTQ FLAPS slider — **axis** ("Slider") | `v_mining_throttle` → *Mining Laser Power - Throttle* | **Absolute** laser power on the maintained FLAPS lever — hold it in the green fracture window. Supersedes the ± rocker above when both are live. Axis **confirmed in SC = `js2_slider2`** (joy.cpl "Slider"). |
+| `js2_slider2` *(FLAPS)* | MTQ FLAPS slider — **axis** ("Slider") | `v_mining_throttle` → *Mining Laser Power - Throttle* | **Absolute** laser power on the maintained FLAPS lever — hold it in the green fracture window. Supersedes the ± rocker above. **Confirmed in Golem:** rest (up) = ~20% charge (the laser's minimum floor), FULL (down) = 100% — direction correct, **no invert needed**. |
 | `js1_button4` | MHG upper thumb button | `v_toggle_mining_laser_type` → *Switch Mining Laser* | Switch between fitted mining laser heads/modules. |
 | `js1_button18` | MHG lower hat → | `v_toggle_mining_mode` → *Mining Mode Toggle* (placeholder) | Swapped in to replace the invalid `v_toggle_mining_mode_fracture`. See note below. |
 
@@ -371,7 +371,7 @@ These reuse MHG controls; active only in **Salvage** operator mode.
 | `js1_button10` | MHG left hat ← | `v_salvage_toggle_fire_disintegrate` → *Fire Disintegrate Beam* | Fire the disintegrate beam (break down material). |
 | `js1_button8` | MHG left hat → | `v_salvage_toggle_fire_fracture` → *Fire Fracture Beam* | Fire the fracture beam (crack structures into salvageable pieces). |
 | `js1_button11` | MHG left hat center press | `v_salvage_cycle_modifiers_focused` → *Cycle Focused Salvage Modifiers* | Cycle the mode/modifier of focused beam(s) (e.g. scraper vs tractor). |
-| `js2_slider1` *(SPEEDBRAKE)* | MTQ SPEEDBRAKE slider — **axis** ("Dial") | `v_salvage_beam_spacing_abs` → *Salvage Beam Spacing - Absolute* | **Absolute** beam gap on the maintained SPEEDBRAKE lever — set to match the panel and leave it. Axis **confirmed in SC = `js2_slider1`** (joy.cpl "Dial"); invert if it runs backwards. |
+| `js2_slider1` *(SPEEDBRAKE)* | MTQ SPEEDBRAKE slider — **axis** ("Dial") | `v_salvage_beam_spacing_abs` → *Salvage Beam Spacing - Absolute* | **Absolute** beam gap on the maintained SPEEDBRAKE lever — set to match the panel and leave it. **Confirmed in Salvation:** sweeping the lever opens/closes the gap across full travel (auto-mapped, no range to set). |
 
 ---
 
