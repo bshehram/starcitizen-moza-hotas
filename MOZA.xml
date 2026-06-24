@@ -444,6 +444,16 @@
     <action name="v_decrease_mining_throttle">
       <rebind input="js1_button23"/>  <!-- Decrease mining laser power (reuse weapon prev) -->
     </action>
+    <!-- Mining laser power as an ABSOLUTE AXIS on the FLAPS slider (far-right). Hold power proportionally in the green
+         fracture window instead of tapping the +/- rocker. CONFIRMED via joy.cpl: FLAPS = the "Slider" axis (NOT RX -
+         "X Rotation"/"Y Rotation" are the two SYNCED throttle bodies; "Dial" is the SPEEDBRAKE). SC string set to
+         js2_slider1; if SC's in-game capture shows js2_slider2 instead (slider1/slider2 order isn't knowable from
+         joy.cpl), swap the two slider numbers between this and the salvage action below. FLAPS rests at "0" reading
+         axis-MAX, so add invert in the js2 <options> block if more-power runs backwards. Supersedes the stepped inc/dec
+         on js1_button22/23 above (absolute axis wins when both are live). -->
+    <action name="v_mining_throttle">
+      <rebind input="js2_slider1"/>  <!-- FLAPS slider ("Slider" axis) = absolute mining laser power -->
+    </action>
     <action name="v_toggle_mining_laser_type">
       <rebind input="js1_button4"/>  <!-- Toggle mining laser type (reuse missile/gun mode toggle) -->
     </action>
@@ -470,6 +480,15 @@
     </action>
     <action name="v_salvage_cycle_modifiers_focused">
       <rebind input="js1_button11"/>  <!-- Cycle salvage modifier mode (reuse target lock) -->
+    </action>
+    <!-- Salvage beam spacing as an ABSOLUTE AXIS on the SPEEDBRAKE slider (far-left). Set the gap between beams to match
+         the hull panel and leave it. CONFIRMED via joy.cpl: SPEEDBRAKE = the "Dial" axis. SC has no literal "dial" name,
+         so this is set to js2_slider2 (the Dial is the other slider-family axis besides FLAPS's Slider) - BEST GUESS:
+         confirm with SC's in-game capture and swap if it shows otherwise (e.g. js2_slider1, in which case FLAPS becomes
+         js2_slider2). SPEEDBRAKE rests at top "DOWN" reading axis-MAX; add invert in the js2 <options> block if spacing
+         runs backwards. -->
+    <action name="v_salvage_beam_spacing_abs">
+      <rebind input="js2_slider2"/>  <!-- SPEEDBRAKE slider ("Dial" axis) = absolute salvage beam spacing -->
     </action>
   </actionmap>
 </ActionMaps>
