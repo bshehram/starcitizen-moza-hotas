@@ -389,41 +389,9 @@
     </action>
   </actionmap>
 
-  <!-- ================================================================ -->
-  <!-- PLAYER CONTROLS (on foot)                                        -->
-  <!-- ================================================================ -->
-  <actionmap name="player">
-    <action name="zoom_in">
-      <rebind input="js2_button63"/>  <!-- Zoom in (on foot) -->
-    </action>
-    <action name="zoom_out">
-      <rebind input="js2_button64"/>  <!-- Zoom out (on foot) -->
-    </action>
-  </actionmap>
-
-  <!-- ================================================================ -->
-  <!-- SPECTATOR CONTROLS                                               -->
-  <!-- ================================================================ -->
-  <actionmap name="spectator">
-    <action name="spectate_zoom_in">
-      <rebind input="js2_button63"/>  <!-- Spectator zoom in -->
-    </action>
-    <action name="spectate_zoom_out">
-      <rebind input="js2_button64"/>  <!-- Spectator zoom out -->
-    </action>
-  </actionmap>
-
-  <!-- ================================================================ -->
-  <!-- PLAYER CHOICE CONTROLS                                           -->
-  <!-- ================================================================ -->
-  <actionmap name="player_choice">
-    <action name="pc_zoom_in">
-      <rebind input="js2_button63"/>  <!-- Player choice zoom in -->
-    </action>
-    <action name="pc_zoom_out">
-      <rebind input="js2_button64"/>  <!-- Player choice zoom out -->
-    </action>
-  </actionmap>
+  <!-- Zoom removed entirely: the throttle dial's zoom did nothing in ANY view (1st-person, 3rd-person, or on foot),
+       so the ship dynamic-zoom AND the player / spectator / player_choice on-foot zoom maps were all dropped. The dial
+       (63/64) is flight assists only. -->
 
   <!-- ================================================================ -->
   <!-- MINING CONTROLS (mode-specific duplicates)                       -->

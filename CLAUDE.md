@@ -21,6 +21,8 @@ This document explains, in detail, **what every bound control does**, **how the 
 
 The MHG grip and the AB6 base report as **one** DirectInput device (`js1`): grip buttons are numbered 1–29, the base's own buttons continue at 49–62 (there is a 30–48 gap with no physical buttons). The MTQ throttle is a **separate** device (`js2`).
 
+> **⚑ Scope — vehicle only:** This MOZA rig is used **only when piloting a vehicle**. On foot / first-person / interaction the user plays on an **Xbox controller** instead — never the MOZA gear. So this profile deliberately binds **only vehicle/seat contexts**; there are **no `player` / `spectator` / `player_choice` (on-foot) bindings**, and none should be added.
+
 Product GUIDs as written in the profile:
 - `js1` → `MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}`
 - `js2` → `MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}`
@@ -167,7 +169,7 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 
 **Axes** (confirmed in `joy.cpl`): the **throttle is a synced pair of bodies** reporting as **X Rotation + Y Rotation** = `js2_rotx` + `js2_roty`; the throttle is bound on `js2_roty` (`v_strafe_forward`) and its twin `js2_rotx` is left alone. The **Left Module mini-stick** = `js2_x` (camera yaw) / `js2_y` (camera pitch) drives **camera look**. The two side sliders are the slider-family axes: **FLAPS** (far right) = joy.cpl's **"Slider"** axis = `js2_slider2`, and **SPEEDBRAKE** (far left) = joy.cpl's **"Dial"** axis = `js2_slider1` — both in MOZA "mixed mode" (buttons **and** axis), now bound to mining-power / salvage-spacing (see slider note). *(The joy.cpl name↔SC number is counter-intuitive — "Slider"→slider2, "Dial"→slider1 — confirmed via SC's in-game binder, not guessable from joy.cpl.)*
 
-> **Throttle-lever dial (buttons 63/64):** a **detented thumb dial on the throttle lever**, *not* two Left-Module face buttons as an earlier version of this doc claimed. It is an **incremental rotary encoder** — each forward/CW click pulses button **63**, each back/CCW click pulses button **64** (a momentary pulse per click, no held/latched state). It is therefore only suited to **increment/decrement** pairs — it can't cleanly hold or toggle. It is **buttons-only** (no axis); the configurator's analog **"Dial"** axis is a *different* control — `joy.cpl` confirmed that axis is the **SPEEDBRAKE slider**, not this wheel (an earlier version of this doc guessed the Dial axis was this wheel — wrong). Currently: **in the ship**, 63 = ESP toggle, 64 = proximity-assist toggle (grouping the flight assists on the throttle — see Flight & movement); **on foot / spectator / interaction**, the same clicks zoom. Ship-view dynamic zoom was tried and dropped (cockpit-only, not worth it). Buttons 63/64 firing is **confirmed in joy.cpl**. *(Buttons 62 and 65 are still believed to be the Left-Module mini-stick press and a face button respectively — re-verify if you find otherwise.)*
+> **Throttle-lever dial (buttons 63/64):** a **detented thumb dial on the throttle lever**, *not* two Left-Module face buttons as an earlier version of this doc claimed. It is an **incremental rotary encoder** — each forward/CW click pulses button **63**, each back/CCW click pulses button **64** (a momentary pulse per click, no held/latched state). It is therefore only suited to **increment/decrement** pairs — it can't cleanly hold or toggle. It is **buttons-only** (no axis); the configurator's analog **"Dial"** axis is a *different* control — `joy.cpl` confirmed that axis is the **SPEEDBRAKE slider**, not this wheel (an earlier version of this doc guessed the Dial axis was this wheel — wrong). Currently 63 = ESP toggle, 64 = proximity-assist toggle (grouping the flight assists on the throttle — see Flight & movement). All zoom was removed — it did nothing in any view, and the rig is **vehicle-only** anyway (on foot = Xbox controller, see §1). Buttons 63/64 firing is **confirmed in joy.cpl**. *(Buttons 62 and 65 are still believed to be the Left-Module mini-stick press and a face button respectively — re-verify if you find otherwise.)*
 
 > **Side sliders — FLAPS (right) & SPEEDBRAKE (left):** two smooth-action levers, each running in MOZA **"mixed mode"** so they emit **both** detent buttons **and** a continuous analog axis (the configurator's **RX** / **Slider** axes).
 > - **FLAPS** (right): 5 engraved detents — **"0"** = button **40** (rest) · **"1"** = 39 · **"2"** = 38 · **"3"** = 37 · **"FULL"** = 36 — plus a smooth axis across the full throw.
@@ -331,16 +333,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button3` | MHG lower side button | `v_view_freelook_mode` → *Freelook* | **Hold** to look around the cockpit independently of ship facing. |
 | `js2_x` | MTQ Left Module mini-stick — **X axis** | `v_view_yaw` → *Look left/right* | Analog camera yaw. Stick centers at 32767 = neutral (no off-center calibration needed). |
 | `js2_y` | MTQ Left Module mini-stick — **Y axis** | `v_view_pitch` → *Look up/down* | Analog camera pitch. Add `invert` in `<options>` if it feels reversed. Both moved off the MHG top coolie hat (25/26/27/28, now free). |
-| `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom). **The only ship-view zoom now** — the throttle dial (63/64) was reassigned to ESP/proximity toggles (dynamic zoom dropped; it only worked in 1st-person). |
-
-### On-foot / spectator / interaction zoom — `player`, `spectator`, `player_choice`
-
-| Input | Control | Action → In-game label | What it does |
-| --- | --- | --- | --- |
-| `js2_button63` | MTQ throttle-lever dial — fwd/CW click | `zoom_in` / `spectate_zoom_in` / `pc_zoom_in` | Zoom in while on foot, spectating, or in interaction mode. |
-| `js2_button64` | MTQ throttle-lever dial — back/CCW click | `zoom_out` / `spectate_zoom_out` / `pc_zoom_out` | Zoom out in those same contexts. |
-
-> The dial (63/64) drives zoom on **foot / spectator / interaction** (three contexts). **In the ship it's ESP / proximity toggles instead** (see Flight & movement) — different action maps, so no conflict.
+| `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom). The throttle dial (63/64) is ESP/proximity toggles, not zoom — **all zoom was removed** (it did nothing in any view, and the rig is vehicle-only — see §1). |
 
 ### Mining — `spaceship_mining`
 
