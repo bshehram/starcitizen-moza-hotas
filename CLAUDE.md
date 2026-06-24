@@ -146,12 +146,12 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 
 | # | Physical control | # | Physical control |
 | --- | --- | --- | --- |
-| 1 | Keypad **A1** | 25 | Lower-strip rocker A — up |
-| 2 | Keypad **A2** | 26 | Lower-strip rocker A — down |
-| 3 | Keypad **A3** | 27 | Lower-strip rocker B — up |
-| 4 | Keypad **A4** | 28 | Lower-strip rocker B — down |
-| 5 | Keypad mid-col top | 29 | Lower-strip toggle C — up |
-| 6 | Keypad right-col top | 30 | Lower-strip toggle C — down |
+| 1 | Keypad **A1** | 25 | Lower-strip **toggle A** (metal 2-pos) — up |
+| 2 | Keypad **A2** | 26 | Lower-strip **toggle A** (metal 2-pos) — down |
+| 3 | Keypad **A3** | 27 | Lower-strip **toggle B** (metal 2-pos) — up |
+| 4 | Keypad **A4** | 28 | Lower-strip **toggle B** (metal 2-pos) — down |
+| 5 | Keypad mid-col top | 29 | Lower-strip **toggle C** (gear-style plastic lever) — up |
+| 6 | Keypad right-col top | 30 | Lower-strip **toggle C** (gear-style plastic lever) — down |
 | 7 | Keypad mid-col middle | 31–43 | **Throttle-lever gate detents** (one button per notch) |
 | 8 | Keypad right-col middle | 34 | …right-center lever, bottom detent |
 | 9 | Keypad mid-col bottom | 49/50/51 | Right Module 3-position slider |
@@ -191,17 +191,15 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
 | `js2_button24` | MTQ 3-pos rocker (right) | `v_flightready` → *Flight/Systems Ready* | One-press full startup: power + avionics + engines + shields to flight-ready. Toggle — press again to spin down. |
-| `js2_button25` | MTQ lower-strip rocker A up | `v_unlock_all_doors` + `v_open_all_doors` | **Both** actions share this button: one press unlocks **and** opens all doors/ramps. |
-| `js2_button26` | MTQ lower-strip rocker A down | `v_lock_all_doors` + `v_close_all_doors` | **Both** share this button: one press closes **and** locks everything — "seal the ship". |
-| `js2_button27` | MTQ lower-strip rocker B up | `v_unlock_all_ports` | Unlocks external item ports so components/weapons can be removed with a tractor tool. |
-| `js2_button28` | MTQ lower-strip rocker B down | `v_lock_all_ports` | Re-locks all item ports after servicing. |
+| `js2_button25` | MTQ **toggle A** up | `v_unlock_all_doors` + `v_open_all_doors` | **Both** actions share this throw: unlocks **and** opens all doors/ramps — "open up the ship". |
+| `js2_button26` | MTQ **toggle A** down | `v_lock_all_doors` + `v_close_all_doors` | **Both** share this throw: closes **and** locks everything — "seal the ship". |
 
 ### Lights — `lights_controller`
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js2_button29` | MTQ lower-strip toggle C up | `v_lights_on` → *Headlights On* | Forces exterior/interior lights **on** (discrete, not a toggle). |
-| `js2_button30` | MTQ lower-strip toggle C down | `v_lights_off` → *Headlights Off* | Forces lights **off** (run dark — visual only, not EM/IR stealth). |
+| `js2_button27` | MTQ **toggle B** up | `v_lights_on` → *Headlights On* | Forces exterior/interior lights **on** (discrete). Toggle B, repurposed from item-port unlock (rarely used). |
+| `js2_button28` | MTQ **toggle B** down | `v_lights_off` → *Headlights Off* | Forces lights **off** (run dark — visual only, not EM/IR stealth). |
 
 ### Flight & movement — `spaceship_movement`
 
@@ -232,7 +230,9 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button52` | AB6 left wing 4 | `v_ifcs_proximity_assist_toggle` → *Proximity Assist* | Auto-dampens thrust near surfaces for safer slow flying/landings. Boost overrides it. |
 | `js1_button53` | AB6 right wing 1 | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. |
 | `js1_button54` | AB6 right wing 2 | `v_atc_loading_area_request` → *Request Cargo Loading* | Requests a cargo/loading area (freight) separate from a standard landing pad. |
-| `js2_button9` | MTQ keypad mid-bottom | `v_toggle_landing_system` → *Landing Gear Toggle* | Deploys/retracts gear and engages landing mode/HUD. |
+| `js2_button9` | MTQ keypad mid-bottom | `v_toggle_landing_system` → *Landing Gear Toggle* | Deploys/retracts gear and engages landing mode/HUD. Gear is **also** on the dedicated gear lever (toggle C, 29/30). |
+| `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing Gear Retract* | Gear **up**. Gear-shaped plastic lever — its position mirrors gear state. |
+| `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing Gear Deploy* | Gear **down**. Lever down = gear down (aircraft convention). |
 | `js2_button10` | MTQ keypad right-bottom | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. |
 | `js2_button4` | MTQ keypad A4 | `v_vtol_toggle` → *VTOL Toggle* | Toggles VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. |
 

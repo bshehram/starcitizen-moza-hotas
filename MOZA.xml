@@ -51,20 +51,14 @@
     <action name="v_close_all_doors">
       <rebind input="js2_button26"/>  <!-- Close all doors (combined with lock) -->
     </action>
-    <action name="v_unlock_all_ports">
-      <rebind input="js2_button27"/>  <!-- Unlock all item ports (for component removal) -->
-    </action>
-    <action name="v_lock_all_ports">
-      <rebind input="js2_button28"/>  <!-- Lock all item ports -->
-    </action>
   </actionmap>
 
   <actionmap name="lights_controller">
     <action name="v_lights_on">
-      <rebind input="js2_button29"/>  <!-- Turn ship lights on -->
+      <rebind input="js2_button27"/>  <!-- Lights ON (MTQ toggle B, up throw). Repurposed from item-port unlock -->
     </action>
     <action name="v_lights_off">
-      <rebind input="js2_button30"/>  <!-- Turn ship lights off -->
+      <rebind input="js2_button28"/>  <!-- Lights OFF (MTQ toggle B, down throw). Repurposed from item-port lock -->
     </action>
   </actionmap>
 
@@ -163,7 +157,13 @@
       <rebind input="js1_button54"/>  <!-- Request hangar/loading area -->
     </action>
     <action name="v_toggle_landing_system">
-      <rebind input="js2_button9"/>  <!-- Toggle landing gear -->
+      <rebind input="js2_button9"/>  <!-- Toggle landing gear (MTQ keypad). Gear is ALSO on the dedicated gear-shaped lever, buttons 29/30 -->
+    </action>
+    <action name="v_retract_landing_system">
+      <rebind input="js2_button29"/>  <!-- Gear UP / retract (MTQ toggle C, up throw - the gear-shaped lever) -->
+    </action>
+    <action name="v_deploy_landing_system">
+      <rebind input="js2_button30"/>  <!-- Gear DOWN / deploy (MTQ toggle C, down throw) -->
     </action>
     <action name="v_autoland">
       <rebind input="js2_button10"/>  <!-- Autoland at designated spot -->
