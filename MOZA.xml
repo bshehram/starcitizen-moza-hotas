@@ -10,7 +10,9 @@
   <options type="joystick" instance="1" Product="MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}">
     <flight_move_pitch invert="0"/>
   </options>
-  <options type="joystick" instance="2" Product="MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}"/>
+  <options type="joystick" instance="2" Product="MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}">
+    <flight_view_pitch invert="1"/>  <!-- Invert camera-look pitch (Left Module mini-stick Y axis / v_view_pitch). If pitch does NOT flip after reloading the profile, this element name is wrong - fall back to inverting js2_y in MOZA Pithouse (nothing else uses that axis). -->
+  </options>
 
   <modifiers />
 
