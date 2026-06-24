@@ -158,14 +158,14 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 10 | Keypad **"AP"** (right-col bottom) | | |
 | 11 | Upper round encoder — CCW/left | 52–56 | Right Module **"WPN" hat** (smaller, 4-way + press): 56↑ 55↓ 53→ 54← 52=press |
 | 12 | Upper encoder — CW/right | 57–61 | Right Module **"COM" hat** (larger, 4-way + press): 61↑ 60↓ 58→ 59← 57=press |
-| 13 | Upper encoder — center press | 62 | Left Module top thumb button |
+| 13 | Upper encoder — center press | 62 | Left Module **analog mini-stick press** (stick axes `js2_x`/`js2_y`, center 32767) |
 | 14 | Lower encoder — CCW/left | 63 | Left Module face button |
 | 15 | Lower encoder — CW/right | 64 | Left Module face button |
 | 16 | Lower encoder — center press | 65 | Left Module face button |
 | 17–21 | **Rotary mode-selector knob** — 5 detents physically engraved **1–5** (17 = pos 1/full CCW … 21 = pos 5/full CW); rests on one | | |
 | 22/23/24 | 3-position rocker (23 L / 22 C / 24 R) | | |
 
-**Axes:** `js2_roty` is used as the **main throttle** (`v_strafe_forward`). The configurator also exposes Dial, RX, RY, Slider bars and the two module mini-sticks (X/Y) — these are **not currently bound**.
+**Axes:** `js2_roty` = **main throttle** (`v_strafe_forward`); the **Left Module mini-stick** (`js2_x` = camera yaw, `js2_y` = camera pitch) now drives **camera look**. Still unbound: the configurator's **Dial / RX / Slider** axes.
 
 > **Keypad labels (physical):** All keypad soft buttons (1–10) are **momentary press**. Left column = **A1–A4** (buttons 1–4). The mid+right 2×3 grid is engraved with MCP-style autopilot labels — **NAV** (5) · **HDG** (6) / **SPD** (7) · **ALT** (8) / **FD** (9) · **AP** (10) — repurposed to SC functions (see §4). The rotary knob's detents are engraved **1–5**.
 
@@ -216,7 +216,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button59` | MTQ "COM" hat ← | `v_strafe_left` → *Strafe left* | Translate left without yawing. |
 | `js2_roty` | MTQ throttle lever (RY) | `v_strafe_forward` → *Throttle - Increase* | Main forward throttle axis. Behaviour (absolute vs relative) depends on the cruise/throttle-mode toggle below. |
 | `js2_button34` | MTQ right-center lever bottom detent | `v_strafe_back` → *Throttle - Decrease* | Reverse / throttle-invert so a one-direction throttle can command backward thrust. |
-| `js2_button51` | MTQ Right Module switch — **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake (springs back to rest); essential in decoupled mode. Same 3-pos switch as 49/50 (coupled/decoupled). |
+| `js2_button51` | MTQ Right Module switch — **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake; springs back to rest (49), which is UNBOUND so braking works cleanly in **any** flight mode. The switch's rest (49) and latched-forward (50) are intentionally left free. |
 | `js2_button65` | MTQ Left Module face button | `v_afterburner` → *Boost* | Boost — burst of extra acceleration from a depletable pool; also overrides proximity assist while held. |
 | `js1_button56` | MHG/AB6 right wing 4 | `v_toggle_jump_request` → *Jump Drive - Request Jump* | Engages **inter-system jump-point** travel (e.g. Stanton↔Pyro) — distinct from in-system quantum. |
 | `js2_button5` | MTQ keypad **"NAV"** (mid-top) | `v_master_mode_cycle` → *Master mode cycle* | Toggles **SCM** (combat: weapons/shields) ↔ **NAV** (travel: quantum, higher speed, weapons offline). Physical "NAV" label matches. |
@@ -226,8 +226,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button15` | MTQ lower encoder CW | `v_accel_range_increment` → *Acceleration Limiter - Step Up* | Raises the acceleration (G-force) cap — snappier, harsher Gs. |
 | `js2_button14` | MTQ lower encoder CCW | `v_accel_range_decrement` → *Acceleration Limiter - Step Down* | Lowers the G-force cap — smoother, safer from blackout. |
 | `js2_button16` | MTQ lower encoder **center press** | `v_ifcs_toggle_gforce_safety` → *G-Force Safety* | G-Safe — caps manoeuvres to stop the pilot blacking out; off = full performance, blackout risk. Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the safety that governs it. **Moved here from `js1_button51`.** |
-| `js2_button49` | MTQ Right Module switch — **rest** | `v_ifcs_vector_decoupling_off` → *Decoupled Mode Off* | **Coupled** (auto counter-thrust, atmospheric feel) — switch at rest. |
-| `js2_button50` | MTQ Right Module switch — **latched fwd** | `v_ifcs_vector_decoupling_on` → *Decoupled Mode On* | **Decoupled** (Newtonian drift) — push forward to latch, snap back to recouple. Frees the old stick toggle (`js1_button49`). |
+| `js1_button49` | AB6 left wing 1 | `v_ifcs_vector_decoupling_toggle` → *Decoupled Mode Toggle* | Coupled ↔ decoupled. Kept **off** the MTQ 3-pos switch (49/50) on purpose — that switch's rest is the space-brake return point, so a coupled/decoupled selector there would force-recouple every time you braked. As an independent toggle, decoupled survives braking. |
 | `js1_button50` | AB6 left wing 2 | `v_ifcs_toggle_esp` → *ESP Toggle* | Enhanced Stick Precision — softens input near a target to reduce overshoot (joystick aim assist). |
 | `js1_button52` | AB6 left wing 4 | `v_ifcs_proximity_assist_toggle` → *Proximity Assist* | Auto-dampens thrust near surfaces for safer slow flying/landings. Boost overrides it. |
 | `js1_button53` | AB6 right wing 1 | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. |
@@ -313,12 +312,10 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js1_button29` | MHG top coolie center press | `v_view_cycle_fwd` → *Cycle camera view* | Cycle 1st-person ↔ 3rd-person/chase views. |
+| `js2_button62` | MTQ Left Module mini-stick — **press** | `v_view_cycle_fwd` → *Cycle camera view* | Cycle cockpit ↔ external/chase views. Moved off the MHG coolie press (`js1_button29`). |
 | `js1_button3` | MHG lower side button | `v_view_freelook_mode` → *Freelook* | **Hold** to look around the cockpit independently of ship facing. |
-| `js1_button25` | MHG top coolie ↑ | `v_view_pitch_up` → *Look up* | Camera look up. `activationMode="hold"`. |
-| `js1_button27` | MHG top coolie ↓ | `v_view_pitch_down` → *Look down* | Camera look down. `hold`. |
-| `js1_button28` | MHG top coolie ← | `v_view_yaw_left` → *Look left* | Camera look left. `hold`. |
-| `js1_button26` | MHG top coolie → | `v_view_yaw_right` → *Look right* | Camera look right. `hold`. |
+| `js2_x` | MTQ Left Module mini-stick — **X axis** | `v_view_yaw` → *Look left/right* | Analog camera yaw. Stick centers at 32767 = neutral (no off-center calibration needed). |
+| `js2_y` | MTQ Left Module mini-stick — **Y axis** | `v_view_pitch` → *Look up/down* | Analog camera pitch. Add `invert` in `<options>` if it feels reversed. Both moved off the MHG top coolie hat (25/26/27/28, now free). |
 | `js2_button63` | MTQ Left Module face | `v_view_zoom_in` → *Zoom in (3rd person)* | Zoom camera in. |
 | `js2_button64` | MTQ Left Module face | `v_view_zoom_out` → *Zoom out (3rd person)* | Zoom camera out. |
 | `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom). |
@@ -383,7 +380,7 @@ This is normal and intended — only one of these action maps is "live" at a tim
 2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
 3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
-5. **Unbound hardware you could still use:** **Recently freed** — AB6 left wing 1 (`js1_button49`, was decoupled), left wing 3 (`js1_button51`, was G-Safe), right wing 3 (`js1_button55`, was LAMP), and the **MHG right hat's 4 directions** (`js1_button12/13/14/15`, was strafe — now open for the planned js1 weapons/targeting role; the hat's center-press 16 still holds the gimbal toggle). **Still open:** AB6 right "Dial" lever (60/61/62) and most of the AB6 left "Slider" (57/58), the MTQ **"WPN" hat (52–56)** plus Left module hats, the MTQ rotary dial, keypad spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Encoder center-presses 13/16 are bound — see Flight & movement.)*
+5. **Unbound hardware you could still use:** **Recently freed** — AB6 left wing 3 (`js1_button51`, was G-Safe), right wing 3 (`js1_button55`, was LAMP), the **MHG right hat's 4 directions** (`js1_button12/13/14/15`, was strafe; press 16 still = gimbal toggle), and the **MHG top coolie hat** (`js1_button25/26/27/28/29`, was camera look/cycle) — the freed MHG hats are now open for the planned js1 weapons/targeting role. **Still open:** the **MTQ 3-pos switch rest + latched** (`js2_button49/50`, freed when decoupled went back to the stick — but 49 is the space-brake spring-return, so bind it only to things harmless to re-fire on every brake release), AB6 right "Dial" lever (60/61/62) and most of the AB6 left "Slider" (57/58), the MTQ **"WPN" hat (52–56)**, the MTQ rotary dial, keypad spares, and the spare **Dial/RX/Slider** axes. Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Encoder center-presses 13/16 are bound — see Flight & movement.)*
 6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
 
 ---

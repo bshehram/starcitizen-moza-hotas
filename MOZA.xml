@@ -110,7 +110,7 @@
       <rebind input="js2_button34"/>  <!-- Reverse: rear-detent button (binary - see note above) -->
     </action>
     <action name="v_space_brake">
-      <rebind input="js2_button51"/>  <!-- Space brake - full stop. MTQ Right Module 3-pos switch, MOMENTARY back position (hold to brake; springs back to rest/49). Same switch's 49/50 = coupled/decoupled -->
+      <rebind input="js2_button51"/>  <!-- Space brake - full stop. MTQ Right Module 3-pos switch, MOMENTARY back position (hold to brake; springs back to rest/49, which is UNBOUND so braking is clean in ANY flight mode). Switch rest (49) and latched-forward (50) are intentionally free - see decoupled note above -->
     </action>
     <action name="v_afterburner">
       <rebind input="js2_button65"/>  <!-- Afterburner boost -->
@@ -144,14 +144,12 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <!-- Decoupled mode on the MTQ Right Module 3-position switch (maintained): rest (49) = coupled,
-         latched forward (50) = decoupled - the switch position shows your flight mode. The same switch's
-         momentary back position (51) is the space brake. Moved off js1_button49 (AB6 left wing 1), now FREE. -->
-    <action name="v_ifcs_vector_decoupling_off">
-      <rebind input="js2_button49"/>  <!-- Coupled (switch at REST). Auto counter-thrust / atmospheric feel -->
-    </action>
-    <action name="v_ifcs_vector_decoupling_on">
-      <rebind input="js2_button50"/>  <!-- Decoupled (switch LATCHED forward). Newtonian drift -->
+    <!-- Coupled<->decoupled TOGGLE on AB6 left wing 1. Kept OFF the MTQ 3-pos switch (49/50) on purpose:
+         that switch's rest position (49) is the spring-return point for the momentary space brake (51), so
+         a coupled/decoupled selector on 49/50 would force-recouple every time you braked (you can't brake
+         while staying decoupled). As an independent toggle here, decoupled is unaffected by braking. -->
+    <action name="v_ifcs_vector_decoupling_toggle">
+      <rebind input="js1_button49"/>  <!-- Toggle coupled/decoupled (AB6 left wing 1) -->
     </action>
     <action name="v_ifcs_toggle_esp">
       <rebind input="js1_button50"/>  <!-- Toggle ESP - dampens input for precise aiming -->
@@ -338,22 +336,20 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_view">
     <action name="v_view_cycle_fwd">
-      <rebind input="js1_button29"/>  <!-- Cycle camera views (1st person, 3rd person, etc) -->
+      <rebind input="js2_button62"/>  <!-- Cycle camera view (cockpit <-> external). MTQ Left Module mini-stick PRESS. Moved off MHG coolie press js1_button29 -->
     </action>
     <action name="v_view_freelook_mode">
       <rebind input="js1_button3"/>  <!-- Hold to freelook (look around cockpit) -->
     </action>
-    <action name="v_view_pitch_up">
-      <rebind input="js1_button25" activationMode="hold"/>  <!-- Look up (hold) -->
+    <!-- Camera look on the MTQ Left Module analog mini-stick (centers at 32767 = neutral, so NO off-center
+         calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now
+         FREE). VERIFY in joy.cpl that the stick reports as js2_x (left/right) and js2_y (up/down); if pitch
+         feels inverted, add <flight_view ...> / invert in the js2 <options> block. -->
+    <action name="v_view_yaw">
+      <rebind input="js2_x"/>  <!-- Look left/right (mini-stick X axis) -->
     </action>
-    <action name="v_view_pitch_down">
-      <rebind input="js1_button27" activationMode="hold"/>  <!-- Look down (hold) -->
-    </action>
-    <action name="v_view_yaw_left">
-      <rebind input="js1_button28" activationMode="hold"/>  <!-- Look left (hold) -->
-    </action>
-    <action name="v_view_yaw_right">
-      <rebind input="js1_button26" activationMode="hold"/>  <!-- Look right (hold) -->
+    <action name="v_view_pitch">
+      <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
     <action name="v_view_zoom_in">
       <rebind input="js2_button63"/>  <!-- Zoom in -->
