@@ -119,7 +119,7 @@
       <rebind input="js2_button65"/>  <!-- Afterburner boost -->
     </action>
     <action name="v_toggle_jump_request">
-      <rebind input="js1_button56"/>  <!-- Engage jump-point (inter-system) travel, e.g. Stanton/Pyro. NOT in-system quantum (js2_button7). Physical: AB6 right wing bottom button -->
+      <rebind input="js2_button9"/>  <!-- Engage jump-point (inter-system) travel, e.g. Stanton/Pyro. NOT in-system quantum (js2_button7). MTQ keypad "FD" - sits directly BELOW the quantum-drive key (7/"SPD") to form a travel column. Moved off js1_button56 (AB6 right wing 4, now FREE) -->
     </action>
 
     <!-- Master Mode (NAV vs SCM) -->
@@ -157,21 +157,18 @@
       <rebind input="js2_button57"/>  <!-- Toggle coupled/decoupled - MTQ "COM" strafe-hat CENTER PRESS -->
     </action>
     <action name="v_ifcs_toggle_esp">
-      <rebind input="js1_button50"/>  <!-- Toggle ESP - dampens input for precise aiming -->
+      <rebind input="js2_button63"/>  <!-- Toggle ESP (aim-assist input dampening) - MTQ throttle DIAL forward/CW click. Groups the flight assists on the throttle (decoupled = 57, G-Safe = 16). Moved off js1_button50 (AB6 left wing 2, now FREE). NOTE: the dial is an incremental encoder, so each click = one toggle -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
       <rebind input="js2_button16"/>  <!-- Toggle G-Safe (MTQ lower encoder CENTER PRESS). Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the G-safety that governs it. MOVED here from js1_button51 (AB6 left wing 3), which is now FREE -->
     </action>
     <action name="v_ifcs_proximity_assist_toggle">
-      <rebind input="js1_button52"/>  <!-- Toggle proximity assist - auto-slows near objects -->
+      <rebind input="js2_button64"/>  <!-- Toggle proximity assist (auto-slows near surfaces) - MTQ throttle DIAL back/CCW click. Paired with ESP on the same dial (63 = ESP, 64 = proximity). Moved off js1_button52 (AB6 left wing 4, now FREE) -->
     </action>
 
     <!-- Landing & Air Traffic Control -->
     <action name="v_atc_request">
-      <rebind input="js1_button53"/>  <!-- Request landing permission -->
-    </action>
-    <action name="v_atc_loading_area_request">
-      <rebind input="js1_button54"/>  <!-- Request hangar/loading area -->
+      <rebind input="js2_button10"/>  <!-- Request landing (open hangar/pad). MTQ keypad "AP" - bottom-right key, next to the door/light/gear toggle strip (ground-ops cluster). Moved off js1_button53 (AB6 right wing 1, now FREE). The cargo-loading request (v_atc_loading_area_request) was REMOVED - never used, no docking/cargo-hauler use case -->
     </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- Gear UP / retract (MTQ toggle C, up throw - the gear-shaped lever) -->
@@ -268,10 +265,10 @@
       <rebind input="js1_button10"/>  <!-- Cycle to previous hostile target -->
     </action>
     <action name="v_target_cycle_subitem_fwd">
-      <rebind input="js2_button9"/>  <!-- Cycle SUB-TARGETS / components of the locked ship (MTQ keypad, "FD" label). Focus-fire thrusters/weapons/power plant to disable -->
+      <rebind input="js1_button12"/>  <!-- Cycle SUB-TARGETS / components of the locked ship. Focus-fire thrusters/weapons/power plant to disable. MHG RIGHT hat UP. Moved off the MTQ keypad (js2_button9) to keep targeting on the stick. Right hat DOWN (14) reserved for the sub-target BACK cycle if added later -->
     </action>
     <action name="v_target_cycle_attacker_fwd">
-      <rebind input="js2_button10"/>  <!-- Cycle ATTACKERS - lock whoever is currently shooting you (MTQ keypad "AP" label) -->
+      <rebind input="js1_button13"/>  <!-- Cycle ATTACKERS - lock whoever is currently shooting you. MHG RIGHT hat RIGHT. Moved off the MTQ keypad (js2_button10). Right hat LEFT (15) reserved for the attacker BACK cycle if added later -->
     </action>
   </actionmap>
 
@@ -384,17 +381,9 @@
     <action name="v_view_pitch">
       <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
-    <!-- View zoom on the throttle dial (63 fwd / 64 back) = DYNAMIC zoom (rel.), the smooth FOV zoom that works in the
-         FIRST-PERSON COCKPIT. The old v_view_zoom_in/out ("3rd person view" only) did nothing - even in 3rd person -
-         so they were dropped. NOTE: SC has NO reliable dial-bindable zoom for the 3rd-person EXTERNAL camera; ship zoom
-         (ADS / dynamic zoom) is a 1st-person feature by design, so this is cockpit-only and that's expected.
-         _rel_in/_rel_out step per dial click. -->
-    <action name="v_view_dynamic_zoom_rel_in">
-      <rebind input="js2_button63"/>  <!-- Dynamic zoom IN (cockpit) - throttle dial forward/CW click -->
-    </action>
-    <action name="v_view_dynamic_zoom_rel_out">
-      <rebind input="js2_button64"/>  <!-- Dynamic zoom OUT (cockpit) - throttle dial back/CCW click -->
-    </action>
+    <!-- Throttle dial (63/64) no longer zooms the SHIP view - reassigned to ESP / proximity-assist toggles (see Flight
+         Control Assists) so all flight assists live on the throttle. Ship dynamic zoom was dropped (it only worked in
+         1st-person cockpit). The dial STILL zooms ON FOOT - see player / spectator / player_choice maps below. -->
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
     </action>
