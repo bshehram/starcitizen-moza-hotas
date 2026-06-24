@@ -77,18 +77,19 @@
       <rebind input="js1_rotz"/>  <!-- Yaw left/right (twist) -->
     </action>
 
-    <!-- Strafe Controls (MHG Stick - Hat Switch) -->
+    <!-- Strafe Controls (MTQ Right Module "COM" hat, 57-61, the larger hat). Moved off the MHG right
+         hat (js1 12/13/14/15, now FREE for weapons/targeting). Center-press 57 = VTOL (see below). -->
     <action name="v_strafe_up">
-      <rebind input="js1_button12"/>  <!-- Strafe up -->
+      <rebind input="js2_button61"/>  <!-- Strafe up (COM hat up) -->
     </action>
     <action name="v_strafe_down">
-      <rebind input="js1_button14"/>  <!-- Strafe down -->
+      <rebind input="js2_button60"/>  <!-- Strafe down (COM hat down) -->
     </action>
     <action name="v_strafe_right">
-      <rebind input="js1_button13"/>  <!-- Strafe right -->
+      <rebind input="js2_button58"/>  <!-- Strafe right (COM hat right) -->
     </action>
     <action name="v_strafe_left">
-      <rebind input="js1_button15"/>  <!-- Strafe left -->
+      <rebind input="js2_button59"/>  <!-- Strafe left (COM hat left) -->
     </action>
 
     <!-- Throttle & Speed (MTQ Throttle) -->
@@ -179,7 +180,7 @@
       <rebind input="js2_button8"/>  <!-- Autoland (MTQ keypad, "ALT" label - altitude/approach fits). Moved from button 10. Landing gear toggle is now ONLY on the gear lever 29/30 -->
     </action>
     <action name="v_vtol_toggle">
-      <rebind input="js2_button4"/>  <!-- VTOL thrust-mode toggle (MTQ keypad A4). VTOL-capable ships only -->
+      <rebind input="js2_button57"/>  <!-- VTOL thrust-mode toggle (MTQ "COM" hat CENTER PRESS). VTOL-capable ships only. Moved off keypad A4 (now free) to pair with the strafe hat -->
     </action>
   </actionmap>
 
@@ -226,7 +227,7 @@
       <rebind input="js2_button21"/>  <!-- Detent 5 (full CW) = Salvage operator mode (salvage-capable ships) -->
     </action>
     <action name="v_light_amplification_toggle">
-      <rebind input="js1_button55"/>  <!-- LAMP toggle - light amplification (AB6 left slider pos 1) -->
+      <rebind input="js2_button4"/>  <!-- LAMP toggle - canopy night-vision (MTQ keypad "A4"). Moved off js1_button55 (AB6 right wing 3, now FREE); A4 was vacated by VTOL -->
     </action>
     <action name="v_light_amplification_off">
       <rebind input="js1_button59"/>  <!-- LAMP off - light amplification (AB6 left slider pos 3) -->

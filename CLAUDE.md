@@ -156,8 +156,8 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 8 | Keypad **"ALT"** (right-col middle) | 34 | …right-center lever, bottom detent |
 | 9 | Keypad **"FD"** (mid-col bottom) | 49/50/51 | Right Module **3-position switch** — 49 rest, 50 latched-forward, 51 momentary-back |
 | 10 | Keypad **"AP"** (right-col bottom) | | |
-| 11 | Upper round encoder — CCW/left | 52–56 | Right Module upper 8-way hat |
-| 12 | Upper encoder — CW/right | 57–61 | Right Module lower 4-way hat |
+| 11 | Upper round encoder — CCW/left | 52–56 | Right Module **"WPN" hat** (smaller, 4-way + press): 56↑ 55↓ 53→ 54← 52=press |
+| 12 | Upper encoder — CW/right | 57–61 | Right Module **"COM" hat** (larger, 4-way + press): 61↑ 60↓ 58→ 59← 57=press |
 | 13 | Upper encoder — center press | 62 | Left Module top thumb button |
 | 14 | Lower encoder — CCW/left | 63 | Left Module face button |
 | 15 | Lower encoder — CW/right | 64 | Left Module face button |
@@ -210,10 +210,10 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_y` | MHG pitch axis | `v_pitch` → *Pitch* | Nose up/down. Pull back = nose up (inverted by default; `invert` set in `<options>`). Usually the fastest rotation axis. |
 | `js1_x` | MHG roll axis | `v_roll` → *Roll* | Bank left/right. Roll-onto-target + pitch is the core aiming technique. |
 | `js1_rotz` | MHG twist | `v_yaw` → *Yaw* | Nose left/right via grip twist. Usually the slowest axis. |
-| `js1_button12` | MHG right hat ↑ | `v_strafe_up` → *Strafe up* | Translate straight up (no rotation). Digital thrust. |
-| `js1_button14` | MHG right hat ↓ | `v_strafe_down` → *Strafe down* | Translate straight down. |
-| `js1_button13` | MHG right hat → | `v_strafe_right` → *Strafe right* | Translate right without yawing. |
-| `js1_button15` | MHG right hat ← | `v_strafe_left` → *Strafe left* | Translate left without yawing. |
+| `js2_button61` | MTQ "COM" hat ↑ | `v_strafe_up` → *Strafe up* | Translate straight up (no rotation). Digital thrust. |
+| `js2_button60` | MTQ "COM" hat ↓ | `v_strafe_down` → *Strafe down* | Translate straight down. |
+| `js2_button58` | MTQ "COM" hat → | `v_strafe_right` → *Strafe right* | Translate right without yawing. |
+| `js2_button59` | MTQ "COM" hat ← | `v_strafe_left` → *Strafe left* | Translate left without yawing. |
 | `js2_roty` | MTQ throttle lever (RY) | `v_strafe_forward` → *Throttle - Increase* | Main forward throttle axis. Behaviour (absolute vs relative) depends on the cruise/throttle-mode toggle below. |
 | `js2_button34` | MTQ right-center lever bottom detent | `v_strafe_back` → *Throttle - Decrease* | Reverse / throttle-invert so a one-direction throttle can command backward thrust. |
 | `js2_button51` | MTQ Right Module switch — **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake (springs back to rest); essential in decoupled mode. Same 3-pos switch as 49/50 (coupled/decoupled). |
@@ -235,7 +235,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing Gear Retract* | Gear **up**. Gear-shaped plastic lever — its position mirrors gear state. |
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing Gear Deploy* | Gear **down**. Lever down = gear down (aircraft convention). |
 | `js2_button8` | MTQ keypad **"ALT"** (right-mid) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. Moved from button 10; "ALT" (altitude/approach) label fits. Gear toggle is now **only** on the gear lever (29/30). |
-| `js2_button4` | MTQ keypad A4 | `v_vtol_toggle` → *VTOL Toggle* | Toggles VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. |
+| `js2_button57` | MTQ "COM" hat — **press** | `v_vtol_toggle` → *VTOL Toggle* | Toggles VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. Center-press of the strafe hat; moved off keypad A4. |
 
 ### Quantum travel & navigation — `spaceship_quantum`, `spaceship_hud`
 
@@ -254,7 +254,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button19` | MTQ mode knob — detent 3 (center) | `v_set_scan_mode` → *Scan Mode On* | Selects the **Scanning** operator mode (radar/ping). |
 | `js2_button20` | MTQ mode knob — detent 4 | `v_set_mining_mode` → *Mining Mode On* | Selects the **Mining** operator mode (mining-capable ships only). |
 | `js2_button21` | MTQ mode knob — detent 5 (full CW) | `v_set_salvage_mode` → *Salvage Mode On* | Selects the **Salvage** operator mode (salvage-capable ships only). |
-| `js1_button55` | AB6 right wing 3 | `v_light_amplification_toggle` → *LAMP Toggle* | Toggles canopy night-vision (Light Amplification). LAMP-equipped ships only. |
+| `js2_button4` | MTQ keypad "A4" | `v_light_amplification_toggle` → *LAMP Toggle* | Toggles canopy night-vision (Light Amplification). LAMP-equipped ships only. Moved here from `js1_button55` (AB6 right wing 3, now free); A4 was vacated by VTOL. |
 | `js1_button59` | AB6 left "Slider" bottom | `v_light_amplification_off` → *LAMP Off* | Forces LAMP off (discrete). |
 
 > ⚠ **Note:** These five sit on the **rotary mode-selector knob** (detents 17–21), each directly **setting** one operator mode (`v_set_*_mode` are discrete activators, not "sub-modes" of a cycle). Operator modes are separate from Master Modes (SCM/NAV, cycled on `js2_button5`). Because the knob is a **maintained selector**, its physical position may not match the actual operator mode after seat entry or another mode change — turn off-and-back onto a detent to re-assert it. **Flight** and **Quantum** operator modes are intentionally *not* on the knob: Guns mode covers combat-flight, and quantum travel is handled by NAV master mode + QD-engage (`js2_button7`), so dedicated detents for them were redundant.
@@ -383,7 +383,7 @@ This is normal and intended — only one of these action maps is "live" at a tim
 2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
 3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
-5. **Unbound hardware you could still use:** AB6 left wing 1 (`js1_button49`, **newly freed** — decoupled moved to the MTQ Right Module switch) and wing 3 (`js1_button51`, **newly freed** — G-Safe moved to the MTQ lower-encoder press), AB6 right "Dial" lever (60/61/62) and most of the left "Slider" (57/58), MTQ Right/Left module hats (52–61), MTQ rotary dial, keypad has spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Both encoder center-presses, 13/16, are now bound — see Flight & movement.)*
+5. **Unbound hardware you could still use:** **Recently freed** — AB6 left wing 1 (`js1_button49`, was decoupled), left wing 3 (`js1_button51`, was G-Safe), right wing 3 (`js1_button55`, was LAMP), and the **MHG right hat's 4 directions** (`js1_button12/13/14/15`, was strafe — now open for the planned js1 weapons/targeting role; the hat's center-press 16 still holds the gimbal toggle). **Still open:** AB6 right "Dial" lever (60/61/62) and most of the AB6 left "Slider" (57/58), the MTQ **"WPN" hat (52–56)** plus Left module hats, the MTQ rotary dial, keypad spares, and the spare analog axes (Dial/RX/Slider + module X/Y). Plenty of room for power-triage (F5–F7), shield-pip controls, MFD navigation, mining/salvage analog beam-spacing, or VOIP. *(Encoder center-presses 13/16 are bound — see Flight & movement.)*
 6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
 
 ---
