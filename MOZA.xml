@@ -104,9 +104,6 @@
     <action name="v_afterburner">
       <rebind input="js2_button65"/>  <!-- Afterburner boost -->
     </action>
-    <action name="v_ifcs_throttle_swap_mode">
-      <rebind input="js2_button8"/>  <!-- Toggle cruise control on/off -->
-    </action>
     <action name="v_toggle_jump_request">
       <rebind input="js1_button56"/>  <!-- Engage jump-point (inter-system) travel, e.g. Stanton/Pyro. NOT in-system quantum (js2_button7). Physical: AB6 right wing bottom button -->
     </action>
@@ -156,9 +153,6 @@
     <action name="v_atc_loading_area_request">
       <rebind input="js1_button54"/>  <!-- Request hangar/loading area -->
     </action>
-    <action name="v_toggle_landing_system">
-      <rebind input="js2_button9"/>  <!-- Toggle landing gear (MTQ keypad). Gear is ALSO on the dedicated gear-shaped lever, buttons 29/30 -->
-    </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- Gear UP / retract (MTQ toggle C, up throw - the gear-shaped lever) -->
     </action>
@@ -166,7 +160,7 @@
       <rebind input="js2_button30"/>  <!-- Gear DOWN / deploy (MTQ toggle C, down throw) -->
     </action>
     <action name="v_autoland">
-      <rebind input="js2_button10"/>  <!-- Autoland at designated spot -->
+      <rebind input="js2_button8"/>  <!-- Autoland (MTQ keypad, "ALT" label - altitude/approach fits). Moved from button 10. Landing gear toggle is now ONLY on the gear lever 29/30 -->
     </action>
     <action name="v_vtol_toggle">
       <rebind input="js2_button4"/>  <!-- VTOL thrust-mode toggle (MTQ keypad A4). VTOL-capable ships only -->
@@ -178,7 +172,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_quantum">
     <action name="v_toggle_qdrive_engagement">
-      <rebind input="js2_button7"/>  <!-- Engage/disengage quantum drive -->
+      <rebind input="js2_button7"/>  <!-- Engage/disengage quantum drive (MTQ keypad "SPD" label - speed/quantum, loose match) -->
     </action>
   </actionmap>
 
@@ -195,10 +189,11 @@
     <action name="v_toggle_missile_mode">
       <rebind input="js1_button4"/>  <!-- Toggle between gun mode and missile mode -->
     </action>
-    <!-- MTQ rotary mode-selector knob (5 detents = buttons 17-21). Each detent directly SETS one
-         operator mode. Maintained selector: the knob position may not match the actual operator mode
-         after seat entry or another mode change; turn off-and-back onto a detent to re-assert it.
-         Operator modes are separate from Master Mode (SCM/NAV, cycled on js2_button5). -->
+    <!-- MTQ rotary mode-selector knob (5 detents = buttons 17-21, physically engraved 1-5 on the dial:
+         17=pos1/full CCW ... 21=pos5/full CW). Each detent directly SETS one operator mode. Maintained
+         selector: the knob position may not match the actual operator mode after seat entry or another
+         mode change; turn off-and-back onto a detent to re-assert it. Operator modes are separate from
+         Master Mode (SCM/NAV, cycled on js2_button5). -->
     <action name="v_set_guns_mode">
       <rebind input="js2_button17"/>  <!-- Detent 1 (full CCW) = Guns operator mode. Default park/rest position -->
     </action>
@@ -243,6 +238,12 @@
     </action>
     <action name="v_target_cycle_hostile_back">
       <rebind input="js1_button10"/>  <!-- Cycle to previous hostile target -->
+    </action>
+    <action name="v_target_cycle_subitem_fwd">
+      <rebind input="js2_button9"/>  <!-- Cycle SUB-TARGETS / components of the locked ship (MTQ keypad, "FD" label). Focus-fire thrusters/weapons/power plant to disable -->
+    </action>
+    <action name="v_target_cycle_attacker_fwd">
+      <rebind input="js2_button10"/>  <!-- Cycle ATTACKERS - lock whoever is currently shooting you (MTQ keypad "AP" label) -->
     </action>
   </actionmap>
 

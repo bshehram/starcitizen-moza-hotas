@@ -150,22 +150,24 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 2 | Keypad **A2** | 26 | Lower-strip **toggle A** (metal 2-pos) — down |
 | 3 | Keypad **A3** | 27 | Lower-strip **toggle B** (metal 2-pos) — up |
 | 4 | Keypad **A4** | 28 | Lower-strip **toggle B** (metal 2-pos) — down |
-| 5 | Keypad mid-col top | 29 | Lower-strip **toggle C** (gear-style plastic lever) — up |
-| 6 | Keypad right-col top | 30 | Lower-strip **toggle C** (gear-style plastic lever) — down |
-| 7 | Keypad mid-col middle | 31–43 | **Throttle-lever gate detents** (one button per notch) |
-| 8 | Keypad right-col middle | 34 | …right-center lever, bottom detent |
-| 9 | Keypad mid-col bottom | 49/50/51 | Right Module 3-position slider |
-| 10 | Keypad right-col bottom | 51 | …slider left/pos-1 |
+| 5 | Keypad **"NAV"** (mid-col top) | 29 | Lower-strip **toggle C** (gear-style plastic lever) — up |
+| 6 | Keypad **"HDG"** (right-col top) | 30 | Lower-strip **toggle C** (gear-style plastic lever) — down |
+| 7 | Keypad **"SPD"** (mid-col middle) | 31–43 | **Throttle-lever gate detents** (one button per notch) |
+| 8 | Keypad **"ALT"** (right-col middle) | 34 | …right-center lever, bottom detent |
+| 9 | Keypad **"FD"** (mid-col bottom) | 49/50/51 | Right Module 3-position slider |
+| 10 | Keypad **"AP"** (right-col bottom) | 51 | …slider left/pos-1 |
 | 11 | Upper round encoder — CCW/left | 52–56 | Right Module upper 8-way hat |
 | 12 | Upper encoder — CW/right | 57–61 | Right Module lower 4-way hat |
 | 13 | Upper encoder — center press | 62 | Left Module top thumb button |
 | 14 | Lower encoder — CCW/left | 63 | Left Module face button |
 | 15 | Lower encoder — CW/right | 64 | Left Module face button |
 | 16 | Lower encoder — center press | 65 | Left Module face button |
-| 17–21 | **Rotary mode-selector knob** — 5 detents (17 = full CCW, 18/19/20 = middle, 21 = full CW); rests on one | | |
+| 17–21 | **Rotary mode-selector knob** — 5 detents physically engraved **1–5** (17 = pos 1/full CCW … 21 = pos 5/full CW); rests on one | | |
 | 22/23/24 | 3-position rocker (23 L / 22 C / 24 R) | | |
 
 **Axes:** `js2_roty` is used as the **main throttle** (`v_strafe_forward`). The configurator also exposes Dial, RX, RY, Slider bars and the two module mini-sticks (X/Y) — these are **not currently bound**.
+
+> **Keypad labels (physical):** All keypad soft buttons (1–10) are **momentary press**. Left column = **A1–A4** (buttons 1–4). The mid+right 2×3 grid is engraved with MCP-style autopilot labels — **NAV** (5) · **HDG** (6) / **SPD** (7) · **ALT** (8) / **FD** (9) · **AP** (10) — repurposed to SC functions (see §4). The rotary knob's detents are engraved **1–5**.
 
 > ⚠ **Note:** Buttons **44–48** are not present/labelled on the MTQ diagram — don't bind to them. The **rotary mode-selector knob does emit numbered buttons**: its five detents are **17–21** (see the row above). *(An earlier version of this doc wrongly described 17–21 as a "thumb directional hat" and claimed the rotary emits no buttons — both were incorrect; the diagram shows the knob's detents numbered 17–21.)*
 
@@ -216,9 +218,8 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button34` | MTQ right-center lever bottom detent | `v_strafe_back` → *Throttle - Decrease* | Reverse / throttle-invert so a one-direction throttle can command backward thrust. |
 | `js2_button51` | MTQ Right Module slider pos-1 | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Usually held; essential in decoupled mode. |
 | `js2_button65` | MTQ Left Module face button | `v_afterburner` → *Boost* | Boost — burst of extra acceleration from a depletable pool; also overrides proximity assist while held. |
-| `js2_button8` | MTQ keypad right-mid | `v_ifcs_throttle_swap_mode` → *Throttle - Cruise Mode - Toggle* | Swaps throttle between **absolute/cruise** (holds a set speed hands-free) and **relative** (commands acceleration). |
 | `js1_button56` | MHG/AB6 right wing 4 | `v_toggle_jump_request` → *Jump Drive - Request Jump* | Engages **inter-system jump-point** travel (e.g. Stanton↔Pyro) — distinct from in-system quantum. |
-| `js2_button5` | MTQ keypad mid-top | `v_master_mode_cycle` → *Master mode cycle* | Toggles **SCM** (combat: weapons/shields) ↔ **NAV** (travel: quantum, higher speed, weapons offline). |
+| `js2_button5` | MTQ keypad **"NAV"** (mid-top) | `v_master_mode_cycle` → *Master mode cycle* | Toggles **SCM** (combat: weapons/shields) ↔ **NAV** (travel: quantum, higher speed, weapons offline). Physical "NAV" label matches. |
 | `js2_button12` | MTQ upper encoder CW | `v_ifcs_speed_limiter_increment` → *Speed Limiter - Step Up* | Raises the SCM speed cap. |
 | `js2_button11` | MTQ upper encoder CCW | `v_ifcs_speed_limiter_decrement` → *Speed Limiter - Step Down* | Lowers the speed cap — fly slow/precise; tighter turns. |
 | `js2_button13` | MTQ upper encoder **center press** | `v_ifcs_speed_limiter_toggle` → *Speed Limiter - Enable / Disable* | Switches the speed cap on/off. Self-contained dial: turn 11/12 to set the cap, push 13 to engage/release it (instant full-speed sprint or back to capped). |
@@ -230,18 +231,17 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button52` | AB6 left wing 4 | `v_ifcs_proximity_assist_toggle` → *Proximity Assist* | Auto-dampens thrust near surfaces for safer slow flying/landings. Boost overrides it. |
 | `js1_button53` | AB6 right wing 1 | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. |
 | `js1_button54` | AB6 right wing 2 | `v_atc_loading_area_request` → *Request Cargo Loading* | Requests a cargo/loading area (freight) separate from a standard landing pad. |
-| `js2_button9` | MTQ keypad mid-bottom | `v_toggle_landing_system` → *Landing Gear Toggle* | Deploys/retracts gear and engages landing mode/HUD. Gear is **also** on the dedicated gear lever (toggle C, 29/30). |
 | `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing Gear Retract* | Gear **up**. Gear-shaped plastic lever — its position mirrors gear state. |
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing Gear Deploy* | Gear **down**. Lever down = gear down (aircraft convention). |
-| `js2_button10` | MTQ keypad right-bottom | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. |
+| `js2_button8` | MTQ keypad **"ALT"** (right-mid) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. Moved from button 10; "ALT" (altitude/approach) label fits. Gear toggle is now **only** on the gear lever (29/30). |
 | `js2_button4` | MTQ keypad A4 | `v_vtol_toggle` → *VTOL Toggle* | Toggles VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. |
 
 ### Quantum travel & navigation — `spaceship_quantum`, `spaceship_hud`
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js2_button7` | MTQ keypad mid-middle | `v_toggle_qdrive_engagement` → *Engage Quantum Drive* | Spools & engages the quantum drive for **in-system** travel (needs NAV mode + an aligned marker). Press again to drop out. |
-| `js2_button6` | MTQ keypad right-top | `v_starmap` → *Starmap* | Opens the 3D star map (mobiGlas) to pick a quantum destination. |
+| `js2_button7` | MTQ keypad **"SPD"** (mid-middle) | `v_toggle_qdrive_engagement` → *Engage Quantum Drive* | Spools & engages the quantum drive for **in-system** travel (needs NAV mode + an aligned marker). Press again to drop out. (Physical "SPD"/speed label — loose quantum match.) |
+| `js2_button6` | MTQ keypad **"HDG"** (right-top) | `v_starmap` → *Starmap* | Opens the 3D star map (mobiGlas) to pick a quantum destination. (Physical "HDG"/heading label — loose nav match.) |
 
 ### Mode switching & LAMP — `seat_general`
 
@@ -266,6 +266,8 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button5` | MHG lower-center face button | `v_target_under_reticle` → *Lock target under reticle* | Locks whatever is under the crosshair — "target what I'm aiming at". |
 | `js1_button8` | MHG left hat → | `v_target_cycle_hostile_fwd` → *Cycle Lock - Hostiles Forward* | Cycles forward through hostiles only. |
 | `js1_button10` | MHG left hat ← | `v_target_cycle_hostile_back` → *Cycle Lock - Hostiles Back* | Cycles backward through hostiles only. |
+| `js2_button9` | MTQ keypad **"FD"** (mid-bottom) | `v_target_cycle_subitem_fwd` → *Cycle Lock - Sub-Target - Forward* | Cycles **sub-targets** (components) of the locked ship — focus-fire thrusters/weapons/power plant to disable. (Repurposed "FD" button.) |
+| `js2_button10` | MTQ keypad **"AP"** (right-bottom) | `v_target_cycle_attacker_fwd` → *Cycle Lock - Attackers - Forward* | Locks whoever is **currently attacking you** — snap to the active threat in a furball. ("AP"/autopilot label — repurposed; autoland lives on "ALT"/button 8 instead, to keep the targeting pair adjacent on 9/10.) |
 
 ### Radar & scanning — `spaceship_radar`, `spaceship_scanning`
 
