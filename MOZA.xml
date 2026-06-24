@@ -195,20 +195,24 @@
     <action name="v_toggle_missile_mode">
       <rebind input="js1_button4"/>  <!-- Toggle between gun mode and missile mode -->
     </action>
-    <action name="v_set_flight_mode">
-      <rebind input="js2_button17"/>  <!-- Set to flight sub-mode -->
+    <!-- MTQ rotary mode-selector knob (5 detents = buttons 17-21). Each detent directly SETS one
+         operator mode. Maintained selector: the knob position may not match the actual operator mode
+         after seat entry or another mode change; turn off-and-back onto a detent to re-assert it.
+         Operator modes are separate from Master Mode (SCM/NAV, cycled on js2_button5). -->
+    <action name="v_set_guns_mode">
+      <rebind input="js2_button17"/>  <!-- Detent 1 (full CCW) = Guns operator mode. Default park/rest position -->
     </action>
-    <action name="v_set_quantum_mode">
-      <rebind input="js2_button18"/>  <!-- Set to quantum travel sub-mode -->
+    <action name="v_set_missile_mode">
+      <rebind input="js2_button18"/>  <!-- Detent 2 = Missile operator mode (also quick gun<->missile toggle on js1_button4) -->
     </action>
     <action name="v_set_scan_mode">
-      <rebind input="js2_button19"/>  <!-- Set to scanning sub-mode -->
+      <rebind input="js2_button19"/>  <!-- Detent 3 (center) = Scan operator mode -->
     </action>
     <action name="v_set_mining_mode">
-      <rebind input="js2_button20"/>  <!-- Set to mining sub-mode (future use) -->
+      <rebind input="js2_button20"/>  <!-- Detent 4 = Mining operator mode (mining-capable ships) -->
     </action>
     <action name="v_set_salvage_mode">
-      <rebind input="js2_button21"/>  <!-- Set to salvage sub-mode (future use) -->
+      <rebind input="js2_button21"/>  <!-- Detent 5 (full CW) = Salvage operator mode (salvage-capable ships) -->
     </action>
     <action name="v_light_amplification_toggle">
       <rebind input="js1_button55"/>  <!-- LAMP toggle - light amplification (AB6 left slider pos 1) -->

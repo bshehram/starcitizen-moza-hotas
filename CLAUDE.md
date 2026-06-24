@@ -162,12 +162,12 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 14 | Lower encoder — CCW/left | 63 | Left Module face button |
 | 15 | Lower encoder — CW/right | 64 | Left Module face button |
 | 16 | Lower encoder — center press | 65 | Left Module face button |
-| 17–21 | Thumb directional hat | | |
+| 17–21 | **Rotary mode-selector knob** — 5 detents (17 = full CCW, 18/19/20 = middle, 21 = full CW); rests on one | | |
 | 22/23/24 | 3-position rocker (23 L / 22 C / 24 R) | | |
 
 **Axes:** `js2_roty` is used as the **main throttle** (`v_strafe_forward`). The configurator also exposes Dial, RX, RY, Slider bars and the two module mini-sticks (X/Y) — these are **not currently bound**.
 
-> ⚠ **Note:** Buttons **44–48** are not present/labelled on the MTQ diagram, and the 9-position rotary selector dial does not emit numbered buttons in the diagram. Don't bind to 44–48.
+> ⚠ **Note:** Buttons **44–48** are not present/labelled on the MTQ diagram — don't bind to them. The **rotary mode-selector knob does emit numbered buttons**: its five detents are **17–21** (see the row above). *(An earlier version of this doc wrongly described 17–21 as a "thumb directional hat" and claimed the rotary emits no buttons — both were incorrect; the diagram shows the knob's detents numbered 17–21.)*
 
 ---
 
@@ -248,15 +248,15 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
 | `js1_button4` | MHG upper thumb button | `v_toggle_missile_mode` → *Missile Mode Toggle* | Switches the seat between **gun** and **missile** operator interfaces. |
-| `js2_button17` | MTQ thumb hat ← | `v_set_flight_mode` → *Flight Mode On* | Jumps the seat straight to the default **Flight** operator mode. |
-| `js2_button18` | MTQ thumb hat ↖ | `v_set_quantum_mode` → *Quantum Mode On* | Selects the **Quantum** operator mode (QT targeting/spool UI). |
-| `js2_button19` | MTQ thumb hat ↑ | `v_set_scan_mode` → *Scan Mode On* | Selects the **Scanning** operator mode (radar/ping). |
-| `js2_button20` | MTQ thumb hat ↗ | `v_set_mining_mode` → *Mining Mode On* | Selects the **Mining** operator mode (mining-capable ships only). |
-| `js2_button21` | MTQ thumb hat → | `v_set_salvage_mode` → *Salvage Mode On* | Selects the **Salvage** operator mode (salvage-capable ships only). |
+| `js2_button17` | MTQ mode knob — detent 1 (full CCW) | `v_set_guns_mode` → *Guns Mode On* | Sets the seat to **Guns** operator mode. **Default park position** for the knob (combat-ready). |
+| `js2_button18` | MTQ mode knob — detent 2 | `v_set_missile_mode` → *Missile Mode On* | Sets **Missile** operator mode. Overlaps the quick gun↔missile toggle on `js1_button4` (deliberate set vs fast flip). |
+| `js2_button19` | MTQ mode knob — detent 3 (center) | `v_set_scan_mode` → *Scan Mode On* | Selects the **Scanning** operator mode (radar/ping). |
+| `js2_button20` | MTQ mode knob — detent 4 | `v_set_mining_mode` → *Mining Mode On* | Selects the **Mining** operator mode (mining-capable ships only). |
+| `js2_button21` | MTQ mode knob — detent 5 (full CW) | `v_set_salvage_mode` → *Salvage Mode On* | Selects the **Salvage** operator mode (salvage-capable ships only). |
 | `js1_button55` | AB6 right wing 3 | `v_light_amplification_toggle` → *LAMP Toggle* | Toggles canopy night-vision (Light Amplification). LAMP-equipped ships only. |
 | `js1_button59` | AB6 left "Slider" bottom | `v_light_amplification_off` → *LAMP Off* | Forces LAMP off (discrete). |
 
-> ⚠ **Note:** `v_set_*_mode` actions are **direct selectors**, not "sub-modes" of a cycle. Each jumps straight to that operator mode (the inline XML comments call these "sub-modes" — harmless, but they're discrete activators). Operator modes are separate from Master Modes (NAV/SCM).
+> ⚠ **Note:** These five sit on the **rotary mode-selector knob** (detents 17–21), each directly **setting** one operator mode (`v_set_*_mode` are discrete activators, not "sub-modes" of a cycle). Operator modes are separate from Master Modes (SCM/NAV, cycled on `js2_button5`). Because the knob is a **maintained selector**, its physical position may not match the actual operator mode after seat entry or another mode change — turn off-and-back onto a detent to re-assert it. **Flight** and **Quantum** operator modes are intentionally *not* on the knob: Guns mode covers combat-flight, and quantum travel is handled by NAV master mode + QD-engage (`js2_button7`), so dedicated detents for them were redundant.
 
 ### Targeting — `spaceship_targeting`, `spaceship_targeting_advanced`
 
@@ -359,7 +359,7 @@ These reuse MHG controls; active only in **Salvage** operator mode.
 
 ## 5. Operator-mode reuse (mining & salvage)
 
-The MHG trigger and hats are deliberately **shared** across flight, mining, and salvage. Which action fires depends on the seat's **operator mode** (set via the `v_set_*_mode` buttons on the MTQ thumb hat, or `v_toggle_missile_mode`):
+The MHG trigger and hats are deliberately **shared** across flight, mining, and salvage. Which action fires depends on the seat's **operator mode** (set via the `v_set_*_mode` detents on the MTQ rotary mode-selector knob, or `v_toggle_missile_mode`):
 
 | Physical control | Flight/SCM | Mining mode | Salvage mode |
 | --- | --- | --- | --- |
