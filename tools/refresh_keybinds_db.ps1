@@ -3,15 +3,16 @@
     ------------------------------------------------------------------
     Re-downloads the Star Citizen keybind master database that powers
     https://starbinder.space/ and regenerates the grouped Markdown
-    reference STARBINDER_KEYBINDS_DATABASE_v<version>.md in this folder.
+    reference reference/STARBINDER_KEYBINDS_DATABASE_v<version>.md.
 
+    This script lives in tools/; it writes the catalogue into ../reference/.
     The game version is auto-detected from the starbinder homepage
     ("UPDATED FOR x.y") and baked into the output file name. Any older
-    STARBINDER_KEYBINDS_DATABASE_v*.md is removed so only the latest
+    reference/STARBINDER_KEYBINDS_DATABASE_v*.md is removed so only the latest
     snapshot remains.
 
-    Usage (from this folder):
-        powershell -ExecutionPolicy Bypass -File .\refresh_keybinds_db.ps1
+    Usage (from the project root):
+        powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1
 
     Data sources (all relative to https://starbinder.space/):
         keybinds.json      -> action_name => { label, description, keywords[] }
@@ -21,7 +22,9 @@
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$here   = Split-Path -Parent $MyInvocation.MyCommand.Path
+$outDir = Join-Path (Split-Path -Parent $here) 'reference'   # tools/ -> ../reference/
+if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 $base = 'https://starbinder.space/'
 
 # 1) Detect SC version from the homepage banner ("UPDATED FOR 4.8")
@@ -77,7 +80,7 @@ $sb = [System.Text.StringBuilder]::new()
 [void]$sb.AppendLine("> **Game version:** Star Citizen Alpha **$ver** (starbinder homepage reads ""UPDATED FOR $ver"").")
 [void]$sb.AppendLine("> **Actions:** $($kb.PSObject.Properties.Name.Count) across $($byCat.Keys.Count) categories.  **Snapshot:** $today.")
 [void]$sb.AppendLine('>')
-[void]$sb.AppendLine('> The `Action` column is the internal action name you put inside `<action name="...">` in your `.xml` profile. The `In-Game Label` is what appears in the Keybindings menu. This is a *reference of what exists* - see `CLAUDE.md` for what is actually bound on the MOZA rig. Regenerate with `refresh_keybinds_db.ps1`.')
+[void]$sb.AppendLine('> The `Action` column is the internal action name you put inside `<action name="...">` in your `.xml` profile. The `In-Game Label` is what appears in the Keybindings menu. This is a *reference of what exists* - see `CLAUDE.md` for what is actually bound on the MOZA rig. Regenerate with `tools/refresh_keybinds_db.ps1`.')
 [void]$sb.AppendLine('')
 [void]$sb.AppendLine('## Contents')
 [void]$sb.AppendLine('')
@@ -98,9 +101,9 @@ foreach ($cat in $order) {
 }
 
 # 6) Write versioned file and prune older snapshots
-$target = Join-Path $here ("STARBINDER_KEYBINDS_DATABASE_v$ver.md")
+$target = Join-Path $outDir ("STARBINDER_KEYBINDS_DATABASE_v$ver.md")
 $sb.ToString() | Out-File -FilePath $target -Encoding utf8
-Get-ChildItem $here -Filter 'STARBINDER_KEYBINDS_DATABASE_v*.md' |
+Get-ChildItem $outDir -Filter 'STARBINDER_KEYBINDS_DATABASE_v*.md' |
     Where-Object { $_.FullName -ne $target } |
     ForEach-Object { Write-Host "Removing old snapshot: $($_.Name)"; Remove-Item $_.FullName -Force }
 Write-Host "Wrote $target ($((Get-Item $target).Length) bytes)"

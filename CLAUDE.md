@@ -4,11 +4,32 @@ This folder holds a custom Star Citizen control-mapping profile for a **MOZA** f
 This document explains, in detail, **what every bound control does**, **how the XML profile format works**, and **how to keep the keybind reference database up to date**.
 
 - **Profile file:** [`MOZA.xml`](MOZA.xml) — the actual bindings loaded by the game.
-- **Master action catalogue:** [`STARBINDER_KEYBINDS_DATABASE_v4.8.md`](STARBINDER_KEYBINDS_DATABASE_v4.8.md) — every bindable SC action that *exists* (714 of them), with official labels/descriptions, pulled from the database behind <https://starbinder.space/>. Versioned to the SC patch it was captured from (**4.8**).
-- **DB refresh tool:** [`refresh_keybinds_db.ps1`](refresh_keybinds_db.ps1) — re-downloads and regenerates the catalogue above for the current game version. See [Refreshing the keybind database](#refreshing-the-keybind-database).
-- **Device diagrams:** `MOZA_AB6.png`, `MOZA_MHG.png`, `MOZA_MTQ.png` — the manufacturer button-number maps these bindings are based on.
+- **Master action catalogue:** [`reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md`](reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md) — every bindable SC action that *exists* (714 of them), with official labels/descriptions, pulled from the database behind <https://starbinder.space/>. Versioned to the SC patch it was captured from (**4.8**).
+- **DB refresh tool:** [`tools/refresh_keybinds_db.ps1`](tools/refresh_keybinds_db.ps1) — re-downloads and regenerates the catalogue above for the current game version. See [Refreshing the keybind database](#refreshing-the-keybind-database).
+- **Device diagrams:** `diagrams/MOZA_AB6.png`, `diagrams/MOZA_MHG.png`, `diagrams/MOZA_MTQ.png` — the manufacturer button-number maps these bindings are based on. **Do not delete these** — they're the source art for the reference cards below.
+- **Button-reference cards:** [`cards/MOZA_AB6_ref.png`](cards/MOZA_AB6_ref.png), [`cards/MOZA_MHG_ref.png`](cards/MOZA_MHG_ref.png), [`cards/MOZA_MTQ_ref.png`](cards/MOZA_MTQ_ref.png) — printable landscape "cheat sheets": each is the numbered manufacturer diagram (recolored to white) beside a **button# → function** lookup table. The `.svg` next to each PNG is its editable source. See [Regenerating the button-reference cards](#8-regenerating-the-button-reference-cards) (§8).
+- **Card generator:** [`tools/regen_cards.ps1`](tools/regen_cards.ps1) — rebuilds the three reference cards from the manufacturer diagrams + the binding tables embedded in it. Re-run after any binding change.
 
 > Descriptions below were verified against the starbinder master database (the game's own action labels/descriptions) plus community references. Where the inline comments in `MOZA.xml` are imprecise or wrong, this file says so in a **⚠ Note**.
+
+### Folder layout
+
+The root holds only the two files the workflow needs front-and-centre; everything else is filed by role. **`MOZA.xml` must stay in this folder** — it's the path Star Citizen loads control profiles from (subfolders are ignored by the game, so they're safe for our own files).
+
+```
+mappings/
+├─ MOZA.xml                  ← the profile the game loads (keep in root)
+├─ CLAUDE.md                 ← this document (keep in root)
+├─ .gitignore
+├─ diagrams/                 ← manufacturer button-number maps (source art — do not delete)
+│   └─ MOZA_AB6.png · MOZA_MHG.png · MOZA_MTQ.png
+├─ cards/                    ← generated button-reference cheat sheets (PNG + editable SVG)
+│   └─ MOZA_{AB6,MHG,MTQ}_ref.{png,svg}
+├─ reference/                ← bulk reference material
+│   └─ STARBINDER_KEYBINDS_DATABASE_v4.8.md · MOZA_BINDINGS.html
+└─ tools/                    ← regeneration scripts (run from the project root)
+    └─ refresh_keybinds_db.ps1 · regen_cards.ps1
+```
 
 ---
 
@@ -108,7 +129,7 @@ A physical button can appear in several action maps because **only one action ma
 
 ## 3. Physical control reference
 
-Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`, `MOZA_MHG.png`, `MOZA_MTQ.png`).
+Button indices come directly from the MOZA configurator diagrams (`diagrams/MOZA_AB6.png`, `diagrams/MOZA_MHG.png`, `diagrams/MOZA_MTQ.png`).
 
 ### 3.1 `js1` — MHG grip (1–29)
 
@@ -438,10 +459,10 @@ The master catalogue is **patch-specific**. When a new Star Citizen version ship
 
 ### Easy way (one command)
 
-From this folder:
+From the project root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\refresh_keybinds_db.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1
 ```
 
 The script auto-detects the version, re-downloads the data, regenerates the Markdown as `STARBINDER_KEYBINDS_DATABASE_v<version>.md`, and deletes the previous snapshot. **After it runs, update the version number referenced at the top of this `CLAUDE.md`** if it changed.
@@ -460,16 +481,70 @@ starbinder is a static client-side app; its search box indexes plain JSON the pa
 4. **Group & render** — group actions by their **first** `keywords` entry (that's the category), then emit one Markdown table per category.
 5. **Name & prune** — save as `STARBINDER_KEYBINDS_DATABASE_v<version>.md` and remove the old versioned file so only the current snapshot stays.
 
-The full implementation lives in [`refresh_keybinds_db.ps1`](refresh_keybinds_db.ps1) — if the site's file names or structure change, update the URLs/parsing there.
+The full implementation lives in [`tools/refresh_keybinds_db.ps1`](tools/refresh_keybinds_db.ps1) — if the site's file names or structure change, update the URLs/parsing there.
 
 > Tooling note: `keybinds.json` and `localisation.json` are plain HTTPS GETs (PowerShell `Invoke-WebRequest`, `curl`, or the WebFetch tool all work). No auth, no API key.
 
 ---
 
-## 8. Reference links
+## 8. Regenerating the button-reference cards
+
+The three `MOZA_<device>_ref.png` cards are **printable cheat sheets**: on the left, the manufacturer's numbered diagram recolored onto a white background; on the right, a **button# → function** lookup table. You glance at a number on the diagram, find that number in the table, read what it does. They're rebuilt by one committed script — [`tools/regen_cards.ps1`](tools/regen_cards.ps1) — and there's **no hand-placement of numbers** anywhere in the process (that's the whole point; see §8.2).
+
+### 8.1 Rebuild them (one command)
+
+From the project root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1
+```
+
+It writes the six card files into `cards/` — `MOZA_AB6_ref.png/.svg`, `MOZA_MHG_ref.png/.svg`, `MOZA_MTQ_ref.png/.svg` — overwriting the previous versions. The `.svg` is the editable source (self-contained: the recolored diagram is embedded as a base64 PNG, so the SVG needs no sidecar files). **Requirements:** Windows PowerShell + .NET `System.Drawing`, and **Chrome or Edge** installed (used headless to rasterize SVG → PNG at 2×). The script auto-detects the browser.
+
+### 8.2 How a card is built (two independent layers)
+
+A card is just **diagram layer + table layer**, composited in an SVG:
+
+1. **Diagram layer — comes straight from the manufacturer PNG, never edited by hand.** `diagrams/MOZA_AB6.png` / `diagrams/MOZA_MHG.png` / `diagrams/MOZA_MTQ.png` already show every button numbered with a leader line pointing at the physical control. The script's `Get-Diagram` recolors that art to white-background line work and crops the header — it does **not** move, add, or relabel a single number. So the numbers are *always* in the right place, because they're the manufacturer's own numbers riding along inside the image. (Conveniently, the clean traced wireframes from the earlier card experiment are pixel-for-pixel the same size as these PNGs, so the recolor lines up with them too.)
+   - Recolor math = **grayscale → invert → levels stretch**, done in one `ColorMatrix`: `out = -k·luma + k·(1−black)`, with `k = 1/(white−black)`. Tuned constants: `black=0.45`, `white=0.85` (turns the navy bg pure white and the faint light line-art crisp dark). A top strip is cropped per device (`72 / 52 / 64` px) to drop the "Button Number" header; 8 px off the bottom.
+2. **Table layer — the only thing you edit.** Three PowerShell arrays in `tools/regen_cards.ps1` — `$AB6`, `$MHG_L`/`$MHG_R`, `$MTQ_L`/`$MTQ_R` — hold one hashtable per row. The renderer (`Add-Row` / `New-Card`) draws each as a dark number badge + function text, with alternating row shading, and rasterizes via headless Chrome.
+
+> **Source of truth is `MOZA.xml`, not these arrays.** The arrays are a hand-maintained *view* of the bindings. Nothing cross-checks them against the XML, so when you change a binding you must edit both (see §8.3).
+
+### 8.3 Updating after you change a binding
+
+1. Edit [`MOZA.xml`](MOZA.xml) as usual (and its inline comment / §4 of this doc).
+2. Open `tools/regen_cards.ps1`, find the row whose `Label` is that **button number**, and edit its fields:
+
+| Field | Meaning | Example |
+| --- | --- | --- |
+| `Label` | The number printed on the diagram (or an axis name / a range like `57-59`). **Must match the diagram.** | `'52'`, `'Slider'`, `'31-43'` |
+| `Primary` | The main (combat / default) function — what the button does in flight. | `'Target: lock closest attacker'` |
+| `Hint` | *(optional)* greyed parenthetical naming **where** the control is. Used heavily on the MTQ. | `'WPN hat up'`, `'keypad A1'` |
+| `Variants` | *(optional)* the operator-mode alternates for that **same physical button**, built with `V '<tag>' '<text>' $color`. | `@((V 'Mine:' 'mining module 1' $C_MINE),(V 'Salv:' 'focus all heads' $C_SALV))` |
+| `Unbound=$true` | *(optional)* renders the row greyed (rest positions, reserved levers, absent axes). | rocker centre `22`, levers `57-62` |
+| `Header='…'` | A row that is actually a section header inside a column (no badge). | `@{Header='AXES'}` |
+
+3. Re-run the rebuild command (§8.1).
+
+The mode-tag colours are fixed: **`Mine:`** = amber `$C_MINE`, **`Salv:`** = teal `$C_SALV`, **`Msl:`/notes** = grey `$C_NOTE`. These encode the [operator-mode reuse](#5-operator-mode-reuse-mining--salvage) — one physical control doing a different job per mode.
+
+> **You rarely touch anything else.** Button numbers and leader lines are baked into the diagram art, so adding/removing a binding is a one-row text edit. You only touch `Get-Diagram`'s crop/levels or swap the `MOZA_<device>.png` source if **MOZA ships a new device diagram** with a different layout.
+
+### 8.4 Layout knobs & gotchas (for whoever maintains the script)
+
+- **Per-card layout** lives in each `New-Card @{…}` call: `CanvasW`/`CanvasH` (the SVG is rendered at 2×), `DiagW`/`DiagX`/`DiagY` (diagram size/placement; height auto-scales), and `Cols=@(@{X;Y;W;Rows})` (one entry per table column — the MHG/MTQ use two). If a column runs past the bottom, widen the canvas or rebalance which buttons go in which column.
+- ⚠ **PowerShell variables are case-insensitive.** An early bug used `$h` as a loop var, which silently clobbered `$H` (canvas height) and threw the footer to the top. Keep row-local names distinct (`$rh`, not `$h`).
+- ⚠ **Chrome writes "NNN bytes written…" to stderr.** Under `$ErrorActionPreference='Stop'` the call operator turns that into a terminating `NativeCommandError` *even though the PNG rendered fine*. The script launches the browser via **`Start-Process` … `-RedirectStandardError`** to avoid it. Don't switch back to `& $chrome …`.
+- ⚠ **`--window-size` must be one token.** `--window-size="$W,$H"` lets PowerShell treat the comma as the array operator and only the width survives (the screenshot collapses to a sliver). Pass it as a single interpolated string: `"--window-size=$CW,$CH"`.
+- The script stays **pure ASCII**; the only non-ASCII glyph (the `·` separator) is injected by code-point (`[char]0x00B7`) so the `.ps1` can't be corrupted by ANSI-vs-UTF-8 reads. SVGs are written UTF-8 **without BOM**.
+
+---
+
+## 9. Reference links
 
 - **starbinder keybind reference:** <https://starbinder.space/>
-- **Local master catalogue:** [`STARBINDER_KEYBINDS_DATABASE_v4.8.md`](STARBINDER_KEYBINDS_DATABASE_v4.8.md)
+- **Local master catalogue:** [`reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md`](reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md)
 - **Star Citizen wiki — Controls:** <https://starcitizen.tools/Guide:Controls>
 - **Master Modes / IFCS:** <https://starcitizen.tools/Flight_system>
 - **ESP (Enhanced Stick Precision):** <https://starcitizen.tools/ESP>
