@@ -100,10 +100,12 @@ function Get-SubDiagram($file,$sw,$sh,$x0,$y0,$x1,$y1){
 # Lay recolored sub-views into the left half of the card as a stack of fixed-height
 # BANDS (quadrants). Each band spans the zone width and gets height ~ $HFrac (equal
 # by default). A band holds one or more images placed side by side: each image owns
-# a cell = $Frac of the zone width (cells centred within the band), and is fit
-# (aspect-preserved) and centred in its cell. An optional caption sits under it.
-#   $rows = @( @{ HFrac=<opt>; Imgs=@( @{D=<diagram>; Frac=<0..1>; Caption=<opt>}, ... ) }, ... )
-# Used here as: band 1 = the two small views side by side; band 2 = the one big view.
+# a cell = $Frac of the zone width (cells centred within the band), is fit
+# (aspect-preserved) in its cell, and is aligned vertically by $VA ('t'op / 'c'entre
+# (default) / 'b'ottom) - used to STAGGER a side-by-side pair (one high, one low) so
+# they use the band's whitespace. An optional caption sits under each image.
+#   $rows = @( @{ HFrac=<opt>; Imgs=@( @{D=<diag>; Frac=<0..1>; VA=<opt>; Caption=<opt>}, ... ) }, ... )
+# Used here as: band 1 = the two small views side by side (staggered); band 2 = the big view.
 function Add-DiagramStack($sb,$rows,$zx,$zy,$zw,$zh,$rowGap,$F){
   $capH = [math]::Round(20*$F)
   $cellPad = [math]::Round(12*$F)
@@ -125,7 +127,8 @@ function Add-DiagramStack($sb,$rows,$zx,$zy,$zw,$zh,$rowGap,$F){
       $scale = [math]::Min(($cellW-$cellPad)/$d.W, $areaH/$d.H)
       $dw = $d.W*$scale; $dh = $d.H*$scale
       $ix = $x + ($cellW-$dw)/2
-      $iy = $y + ($areaH-$dh)/2
+      $va = if($im.VA){[string]$im.VA}else{'c'}
+      $iy = switch($va){ 't' {$y} 'b' {$y + ($areaH-$dh)} default {$y + ($areaH-$dh)/2} }
       [void]$sb.Append("<image xlink:href='data:image/png;base64,$($d.B64)' x='$(R2 $ix)' y='$(R2 $iy)' width='$(R2 $dw)' height='$(R2 $dh)'/>")
       if($hasCap){
         $cy = $iy + $dh + [math]::Round(17*$F)
@@ -375,13 +378,13 @@ $MHG_AB6_COL2 = $MHG_R + $AB6
 New-Card @{ Name='MOZA_MHG_AB6_ref'; F=1.18; CanvasW=1860; CanvasH=1437;
   Title='MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)';
   Sub="MHG grip 1-29 mounted on the AB6 base 49-62  $MID  trigger / hats / rocker / wings reused per operator mode";
-  Stack=@{ X=24; W=1040; Gap=26; Rows=@(
-    @{ Imgs=@(
-        @{D=$SUB_MHG_FRONT; Frac=0.50; Caption='MHG grip - front (hats & buttons)'},
-        @{D=$SUB_MHG_SIDE;  Frac=0.38; Caption='MHG grip - side'}
+  Stack=@{ X=24; W=1040; Gap=22; Rows=@(
+    @{ HFrac=1.12; Imgs=@(
+        @{D=$SUB_MHG_FRONT; Frac=0.56; VA='t'; Caption='MHG grip - front (hats & buttons)'},
+        @{D=$SUB_MHG_SIDE;  Frac=0.44; VA='b'; Caption='MHG grip - side'}
     )},
-    @{ Imgs=@(
-        @{D=$SUB_AB6_BASE;  Frac=0.42; Caption='AB6 base - wings & levers'}
+    @{ HFrac=1.00; Imgs=@(
+        @{D=$SUB_AB6_BASE;  Frac=0.53; VA='b'; Caption='AB6 base - wings & levers'}
     )}
   )};
   Cols=@( @{X=1090; W=370; Rows=$MHG_L}, @{X=1475; W=365; Rows=$MHG_AB6_COL2} );
@@ -393,13 +396,13 @@ New-Card @{ Name='MOZA_MHG_AB6_ref'; F=1.18; CanvasW=1860; CanvasH=1437;
 New-Card @{ Name='MOZA_MTQ_ref'; F=1.15; CanvasW=1860; CanvasH=1437;
   Title='MOZA MTQ Throttle Panel  -  Button Reference  (js2)';
   Sub="throttle 1-65 + axes  $MID  buttons 44-48 are absent on the device";
-  Stack=@{ X=24; W=1040; Gap=26; Rows=@(
-    @{ Imgs=@(
-        @{D=$SUB_MTQ_RIGHT; Frac=0.46},
-        @{D=$SUB_MTQ_LEFT;  Frac=0.46}
+  Stack=@{ X=24; W=1040; Gap=22; Rows=@(
+    @{ HFrac=0.95; Imgs=@(
+        @{D=$SUB_MTQ_RIGHT; Frac=0.52; VA='t'},
+        @{D=$SUB_MTQ_LEFT;  Frac=0.52; VA='b'}
     )},
-    @{ Imgs=@(
-        @{D=$SUB_MTQ_MAIN;  Frac=0.62; Caption='Throttle panel'}
+    @{ HFrac=1.30; Imgs=@(
+        @{D=$SUB_MTQ_MAIN;  Frac=0.74; Caption='Throttle panel'}
     )}
   )};
   Cols=@( @{X=1090; W=370; Rows=$MTQ_L}, @{X=1475; W=365; Rows=$MTQ_R} );
