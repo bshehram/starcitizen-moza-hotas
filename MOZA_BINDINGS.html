@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOZA HOTAS — Star Citizen Bindings (profile "MOZA", SC 4.8)</title>
+<style>
+  :root{
+    --ink:#16202b; --muted:#5b6b7a; --line:#c8d2dc; --bg:#fff;
+    --combat:#1f6fb2; --mining:#b5700a; --salvage:#1f7a4d; --util:#5b6b7a;
+    --head:#eef3f7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#e9eef2;color:var(--ink);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .sheet{max-width:1100px;margin:14px auto;background:var(--bg);padding:18px 20px;}
+  h1{font-size:19px;margin:0 0 2px}
+  h1 small{font-weight:400;color:var(--muted);font-size:12px}
+  .meta{font-size:11px;color:var(--muted);margin:0 0 10px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;margin:0 0 14px;
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fafcfe}
+  .legend b{font-weight:600}
+  .tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.3px;
+    padding:1px 5px;border-radius:3px;color:#fff;vertical-align:middle}
+  .t-combat{background:var(--combat)} .t-mining{background:var(--mining)}
+  .t-salvage{background:var(--salvage)} .t-util{background:var(--util)}
+  .device{margin:0 0 14px;break-inside:avoid}
+  .device > h2{font-size:14px;margin:0 0 6px;padding:5px 8px;background:var(--ink);
+    color:#fff;border-radius:5px}
+  .device > h2 span{font-weight:400;color:#b9c6d2;font-size:11px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .card{border:1px solid var(--line);border-radius:6px;overflow:hidden;break-inside:avoid}
+  .card h3{font-size:11px;margin:0;padding:4px 8px;background:var(--head);
+    border-bottom:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  table{width:100%;border-collapse:collapse;font-size:10.5px}
+  td{padding:3px 7px;border-top:1px solid #eef2f6;vertical-align:top}
+  tr:first-child td{border-top:0}
+  .btn{white-space:nowrap;font-weight:600;color:var(--ink);width:38%}
+  .btn .n{display:inline-block;min-width:16px;color:var(--muted);font-weight:700}
+  .fn{color:var(--ink)}
+  .fn .row{display:block;line-height:1.35}
+  .fn .lbl{font-weight:600}
+  .unbound{color:var(--muted);font-style:italic}
+  .note{font-size:10.5px;color:var(--muted);margin:10px 0 0;padding:8px 10px;
+    border:1px dashed var(--line);border-radius:6px;background:#fafcfe}
+  .note b{color:var(--ink)}
+  @media print{
+    @page{size:letter;margin:9mm}
+    html,body{background:#fff}
+    .sheet{margin:0;max-width:none;padding:0}
+    .device{break-inside:avoid}
+    .card{break-inside:avoid}
+    body{font-size:9pt}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <h1>MOZA HOTAS — Star&nbsp;Citizen Bindings <small>profile “MOZA” · SC Alpha 4.8 · vehicle-only rig</small></h1>
+  <p class="meta">MHG grip + AB6 base = device <b>js1</b> · MTQ throttle = device <b>js2</b>. Generated from <code>MOZA.xml</code>.</p>
+
+  <div class="legend">
+    <span><b>Many controls do different things per operator mode</b> (set on the MTQ mode knob). Tags:</span>
+    <span class="tag t-combat">COMBAT</span> flight / guns / missiles
+    <span class="tag t-mining">MINING</span> mining mode
+    <span class="tag t-salvage">SALVAGE</span> salvage mode
+    <span class="tag t-util">ALWAYS</span> works in every mode
+  </div>
+
+  <!-- ============================== MHG GRIP ============================== -->
+  <div class="device">
+    <h2>MHG Grip <span>· js1 buttons 1–29 · roll/pitch/yaw stick</span></h2>
+    <div class="grid">
+
+      <div class="card"><h3>Trigger &amp; face buttons</h3><table>
+        <tr><td class="btn"><span class="n">1</span> Main trigger</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Fire Guns — Group 1</span>
+          <span class="row"><span class="tag t-mining">M</span> Fire mining laser</span>
+          <span class="row"><span class="tag t-salvage">S</span> Fire focused salvage beam</span></td></tr>
+        <tr><td class="btn"><span class="n">6</span> Trigger stage 2</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Fire Guns — Group 2</span>
+          <span class="row"><span class="tag t-salvage">S</span> Toggle salvage gimbal mode</span></td></tr>
+        <tr><td class="btn"><span class="n">2</span> Top-left face</td><td class="fn"><span class="tag t-combat">C</span> Launch missile (hold = stronger lock)</td></tr>
+        <tr><td class="btn"><span class="n">5</span> Lower-centre face</td><td class="fn"><span class="tag t-combat">C</span> Lock target under reticle</td></tr>
+        <tr><td class="btn"><span class="n">4</span> Upper thumb btn</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Gun ↔ missile mode toggle</span>
+          <span class="row"><span class="tag t-mining">M</span> Switch mining laser</span></td></tr>
+        <tr><td class="btn"><span class="n">3</span> Lower side (pinky)</td><td class="fn"><span class="tag t-util">A</span> Freelook (hold)</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Left hat (4-way + press)</h3><table>
+        <tr><td class="btn"><span class="n">7</span> Up</td><td class="fn"><span class="tag t-util">A</span> Decoy / flares</td></tr>
+        <tr><td class="btn"><span class="n">9</span> Down</td><td class="fn"><span class="tag t-util">A</span> Noise / chaff</td></tr>
+        <tr><td class="btn"><span class="n">8</span> Right</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle hostile — forward</span>
+          <span class="row"><span class="tag t-salvage">S</span> Fire fracture beam</span></td></tr>
+        <tr><td class="btn"><span class="n">10</span> Left</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle hostile — back</span>
+          <span class="row"><span class="tag t-salvage">S</span> Fire disintegrate beam</span></td></tr>
+        <tr><td class="btn"><span class="n">11</span> Press</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Lock current target</span>
+          <span class="row"><span class="tag t-salvage">S</span> Cycle focused modifiers</span></td></tr>
+      </table></div>
+
+      <div class="card"><h3>Right hat (4-way + press)</h3><table>
+        <tr><td class="btn"><span class="n">12</span> Up</td><td class="fn"><span class="tag t-combat">C</span> Sub-target — forward</td></tr>
+        <tr><td class="btn"><span class="n">14</span> Down</td><td class="fn"><span class="tag t-combat">C</span> Sub-target — back</td></tr>
+        <tr><td class="btn"><span class="n">13</span> Right</td><td class="fn"><span class="tag t-combat">C</span> Attacker — forward</td></tr>
+        <tr><td class="btn"><span class="n">15</span> Left</td><td class="fn"><span class="tag t-combat">C</span> Attacker — back</td></tr>
+        <tr><td class="btn"><span class="n">16</span> Press</td><td class="fn"><span class="tag t-combat">C</span> Gimbal lock toggle</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Lower hat (4-way + press)</h3><table>
+        <tr><td class="btn"><span class="n">17</span> Up</td><td class="fn"><span class="tag t-util">A</span> Scan angle — narrow</td></tr>
+        <tr><td class="btn"><span class="n">19</span> Down</td><td class="fn"><span class="tag t-util">A</span> Scan angle — widen</td></tr>
+        <tr><td class="btn"><span class="n">18</span> Right</td><td class="fn"><span class="tag t-util">A</span> Scan (hold)</td></tr>
+        <tr><td class="btn"><span class="n">20</span> Left</td><td class="fn"><span class="tag t-util">A</span> Radar ping</td></tr>
+        <tr><td class="btn"><span class="n">21</span> Press</td><td class="fn"><span class="tag t-util">A</span> Cockpit zoom / ADS toggle</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Upper rocker (↑ ↓ centre)</h3><table>
+        <tr><td class="btn"><span class="n">22</span> Up</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Weapon preset / missile — next</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining power +</span>
+          <span class="row"><span class="tag t-salvage">S</span> Beam spacing +</span></td></tr>
+        <tr><td class="btn"><span class="n">23</span> Down</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Weapon preset / missile — prev</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining power −</span>
+          <span class="row"><span class="tag t-salvage">S</span> Beam spacing −</span></td></tr>
+        <tr><td class="btn"><span class="n">24</span> Centre</td><td class="fn"><span class="tag t-combat">C</span> Weapon aim-type cycle</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Top coolie hat (4-way + press)</h3><table>
+        <tr><td class="btn"><span class="n">25</span> Up</td><td class="fn"><span class="tag t-combat">C</span> Cycle ALL contacts — forward</td></tr>
+        <tr><td class="btn"><span class="n">27</span> Down</td><td class="fn"><span class="tag t-combat">C</span> Cycle ALL contacts — back</td></tr>
+        <tr><td class="btn"><span class="n">26</span> Right</td><td class="fn"><span class="tag t-combat">C</span> Snap closest hostile</td></tr>
+        <tr><td class="btn"><span class="n">28</span> Left</td><td class="fn"><span class="tag t-combat">C</span> Cycle pinned — forward</td></tr>
+        <tr><td class="btn"><span class="n">29</span> Press</td><td class="fn"><span class="tag t-combat">C</span> Pin current target</td></tr>
+      </table></div>
+
+    </div>
+  </div>
+
+  <!-- ============================== AB6 BASE ============================== -->
+  <div class="device">
+    <h2>AB6 Base <span>· js1 buttons 49–62 · the stick mount</span></h2>
+    <div class="grid">
+
+      <div class="card"><h3>Left wing (momentary)</h3><table>
+        <tr><td class="btn"><span class="n">49</span> Wing 1 (top)</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle in-view — forward</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 1</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus all heads</span></td></tr>
+        <tr><td class="btn"><span class="n">50</span> Wing 2</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle in-view — back</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 2</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus left head</span></td></tr>
+        <tr><td class="btn"><span class="n">51</span> Wing 3</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Lock closest (any)</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 3</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus right head</span></td></tr>
+        <tr><td class="btn"><span class="n">52</span> Wing 4 (bottom)</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Lock closest attacker</span>
+          <span class="row"><span class="tag t-mining">M</span> Jettison volatile cargo</span>
+          <span class="row"><span class="tag t-salvage">S</span> Beam-axis toggle (H/V)</span></td></tr>
+      </table></div>
+
+      <div class="card"><h3>Right wing (momentary)</h3><table>
+        <tr><td class="btn"><span class="n">53</span> Wing 1 (top)</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle friendly — forward</span>
+          <span class="row"><span class="tag t-salvage">S</span> Fire LEFT beam</span></td></tr>
+        <tr><td class="btn"><span class="n">54</span> Wing 2</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle friendly — back</span>
+          <span class="row"><span class="tag t-salvage">S</span> Fire RIGHT beam</span></td></tr>
+        <tr><td class="btn"><span class="n">55</span> Wing 3</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Cycle pinned — back</span>
+          <span class="row"><span class="tag t-salvage">S</span> Gimbal reset</span></td></tr>
+        <tr><td class="btn"><span class="n">56</span> Wing 4 (bottom)</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Sub-target reset</span>
+          <span class="row"><span class="tag t-salvage">S</span> Cycle structural modes</span></td></tr>
+      </table></div>
+
+      <div class="card"><h3>3-position levers</h3><table>
+        <tr><td class="btn">“Slider” (L)<br>57 / 58 / 59</td><td class="fn unbound">Unbound — reserved (mixed-mode: 3 detents + analog axis)</td></tr>
+        <tr><td class="btn">“Dial” (R)<br>60 / 61 / 62</td><td class="fn unbound">Unbound — reserved (mixed-mode: 3 detents + analog axis)</td></tr>
+      </table></div>
+
+    </div>
+  </div>
+
+  <!-- ============================== MTQ THROTTLE ============================== -->
+  <div class="device">
+    <h2>MTQ Throttle <span>· js2 · throttle quadrant + modules</span></h2>
+    <div class="grid">
+
+      <div class="card"><h3>Keypad (momentary)</h3><table>
+        <tr><td class="btn"><span class="n">1</span> A1</td><td class="fn"><span class="tag t-util">A</span> Weapons power toggle</td></tr>
+        <tr><td class="btn"><span class="n">2</span> A2</td><td class="fn"><span class="tag t-util">A</span> Thruster power toggle</td></tr>
+        <tr><td class="btn"><span class="n">3</span> A3</td><td class="fn"><span class="tag t-util">A</span> Shield power toggle</td></tr>
+        <tr><td class="btn"><span class="n">4</span> A4</td><td class="fn"><span class="tag t-util">A</span> LAMP night-vision toggle</td></tr>
+        <tr><td class="btn"><span class="n">5</span> NAV</td><td class="fn"><span class="tag t-util">A</span> Master mode cycle (SCM/NAV)</td></tr>
+        <tr><td class="btn"><span class="n">6</span> HDG</td><td class="fn"><span class="tag t-util">A</span> Starmap</td></tr>
+        <tr><td class="btn"><span class="n">7</span> SPD</td><td class="fn"><span class="tag t-util">A</span> Quantum drive engage</td></tr>
+        <tr><td class="btn"><span class="n">8</span> ALT</td><td class="fn"><span class="tag t-util">A</span> Autoland</td></tr>
+        <tr><td class="btn"><span class="n">9</span> FD</td><td class="fn"><span class="tag t-util">A</span> Jump (inter-system)</td></tr>
+        <tr><td class="btn"><span class="n">10</span> AP</td><td class="fn"><span class="tag t-util">A</span> Request landing (ATC)</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Encoders (turn + press)</h3><table>
+        <tr><td class="btn"><span class="n">12</span> Upper CW</td><td class="fn"><span class="tag t-util">A</span> Speed limiter +</td></tr>
+        <tr><td class="btn"><span class="n">11</span> Upper CCW</td><td class="fn"><span class="tag t-util">A</span> Speed limiter −</td></tr>
+        <tr><td class="btn"><span class="n">13</span> Upper press</td><td class="fn"><span class="tag t-util">A</span> Speed limiter on/off</td></tr>
+        <tr><td class="btn"><span class="n">15</span> Lower CW</td><td class="fn"><span class="tag t-util">A</span> Accel/G cap +</td></tr>
+        <tr><td class="btn"><span class="n">14</span> Lower CCW</td><td class="fn"><span class="tag t-util">A</span> Accel/G cap −</td></tr>
+        <tr><td class="btn"><span class="n">16</span> Lower press</td><td class="fn"><span class="tag t-util">A</span> G-Safe toggle</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Mode knob (5 detents)</h3><table>
+        <tr><td class="btn"><span class="n">17</span> Pos 1 (CCW)</td><td class="fn"><span class="tag t-util">A</span> Guns mode</td></tr>
+        <tr><td class="btn"><span class="n">18</span> Pos 2</td><td class="fn"><span class="tag t-util">A</span> Missile mode</td></tr>
+        <tr><td class="btn"><span class="n">19</span> Pos 3</td><td class="fn"><span class="tag t-util">A</span> Scan mode</td></tr>
+        <tr><td class="btn"><span class="n">20</span> Pos 4</td><td class="fn"><span class="tag t-util">A</span> Mining mode</td></tr>
+        <tr><td class="btn"><span class="n">21</span> Pos 5 (CW)</td><td class="fn"><span class="tag t-util">A</span> Salvage mode</td></tr>
+      </table></div>
+
+      <div class="card"><h3>“WPN” hat — POWER PIPS</h3><table>
+        <tr><td class="btn"><span class="n">56</span> Up</td><td class="fn"><span class="tag t-util">A</span> Power → weapons +</td></tr>
+        <tr><td class="btn"><span class="n">55</span> Down</td><td class="fn"><span class="tag t-util">A</span> Power → shields +</td></tr>
+        <tr><td class="btn"><span class="n">54</span> Left</td><td class="fn"><span class="tag t-util">A</span> Power → engines +</td></tr>
+        <tr><td class="btn"><span class="n">53</span> Right</td><td class="fn"><span class="tag t-util">A</span> Power reset (balanced)</td></tr>
+        <tr><td class="btn"><span class="n">52</span> Press</td><td class="fn"><span class="tag t-util">A</span> Hold → shields to MAX</td></tr>
+      </table></div>
+
+      <div class="card"><h3>“COM” hat — STRAFE</h3><table>
+        <tr><td class="btn"><span class="n">61</span> Up</td><td class="fn"><span class="tag t-util">A</span> Strafe up</td></tr>
+        <tr><td class="btn"><span class="n">60</span> Down</td><td class="fn"><span class="tag t-util">A</span> Strafe down</td></tr>
+        <tr><td class="btn"><span class="n">58</span> Right</td><td class="fn"><span class="tag t-util">A</span> Strafe right</td></tr>
+        <tr><td class="btn"><span class="n">59</span> Left</td><td class="fn"><span class="tag t-util">A</span> Strafe left</td></tr>
+        <tr><td class="btn"><span class="n">57</span> Press</td><td class="fn"><span class="tag t-util">A</span> Decoupled mode toggle</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Throttle &amp; 3-pos switch</h3><table>
+        <tr><td class="btn">Lever axis</td><td class="fn"><span class="tag t-util">A</span> Forward throttle (RY axis)</td></tr>
+        <tr><td class="btn"><span class="n">34</span> Rear detent</td><td class="fn"><span class="tag t-util">A</span> Reverse / throttle −</td></tr>
+        <tr><td class="btn"><span class="n">63</span> Dial fwd</td><td class="fn"><span class="tag t-util">A</span> Zoom in</td></tr>
+        <tr><td class="btn"><span class="n">64</span> Dial back</td><td class="fn"><span class="tag t-util">A</span> Zoom out</td></tr>
+        <tr><td class="btn"><span class="n">50</span> Switch fwd-latch</td><td class="fn"><span class="tag t-util">A</span> VTOL on</td></tr>
+        <tr><td class="btn"><span class="n">49</span> Switch rest</td><td class="fn"><span class="tag t-util">A</span> VTOL off</td></tr>
+        <tr><td class="btn"><span class="n">51</span> Switch back (mom.)</td><td class="fn"><span class="tag t-util">A</span> Space brake (hold)</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Toggles &amp; rocker</h3><table>
+        <tr><td class="btn"><span class="n">25</span> Toggle A up</td><td class="fn"><span class="tag t-util">A</span> Unlock + open all doors</td></tr>
+        <tr><td class="btn"><span class="n">26</span> Toggle A down</td><td class="fn"><span class="tag t-util">A</span> Lock + close all doors</td></tr>
+        <tr><td class="btn"><span class="n">27</span> Toggle B up</td><td class="fn"><span class="tag t-util">A</span> Lights on</td></tr>
+        <tr><td class="btn"><span class="n">28</span> Toggle B down</td><td class="fn"><span class="tag t-util">A</span> Lights off</td></tr>
+        <tr><td class="btn"><span class="n">29</span> Gear lever up</td><td class="fn"><span class="tag t-util">A</span> Landing gear retract</td></tr>
+        <tr><td class="btn"><span class="n">30</span> Gear lever down</td><td class="fn"><span class="tag t-util">A</span> Landing gear deploy</td></tr>
+        <tr><td class="btn"><span class="n">24</span> Rocker right</td><td class="fn"><span class="tag t-util">A</span> Flight Ready / power ON</td></tr>
+        <tr><td class="btn"><span class="n">23</span> Rocker left</td><td class="fn"><span class="tag t-util">A</span> Master power OFF</td></tr>
+      </table></div>
+
+      <div class="card"><h3>Left module &amp; side sliders</h3><table>
+        <tr><td class="btn">Mini-stick X</td><td class="fn"><span class="tag t-util">A</span> Look left/right</td></tr>
+        <tr><td class="btn">Mini-stick Y</td><td class="fn"><span class="tag t-util">A</span> Look up/down</td></tr>
+        <tr><td class="btn"><span class="n">62</span> Mini-stick press</td><td class="fn"><span class="tag t-util">A</span> Cycle camera view</td></tr>
+        <tr><td class="btn"><span class="n">65</span> Face button</td><td class="fn"><span class="tag t-util">A</span> Afterburner / boost</td></tr>
+        <tr><td class="btn">FLAPS axis</td><td class="fn"><span class="tag t-mining">M</span> Mining laser power (absolute)</td></tr>
+        <tr><td class="btn">SPEEDBRAKE axis</td><td class="fn"><span class="tag t-salvage">S</span> Salvage beam spacing (absolute)</td></tr>
+      </table></div>
+
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Notes.</b> Operator mode (Guns / Missile / Scan / Mining / Salvage) is set on the MTQ mode knob (17–21); it decides which action a multi-mode button fires.
+    <b>Power management</b> (WPN hat pips) and <b>shield strength</b> work on every ship — the old directional shield-faceting was removed (it only worked on Size-3-shield ships).
+    On foot you use an Xbox controller, not this rig.
+    <b>Two bindings to confirm in-game:</b> the WPN-hat power pips (<code>v_engineering_assignment_*</code>) and Pin Target (<code>v_target_pin_selected</code>) — if either does nothing, its action-map needs adjusting.
+  </div>
+
+</div>
+</body>
+</html>
