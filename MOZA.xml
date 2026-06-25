@@ -8,7 +8,7 @@
   </CustomisationUIHeader>
 
   <options type="joystick" instance="1" Product="MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}">
-    <flight_move_pitch invert="0"/>
+    <flight_move_pitch invert="0"/>  <!-- MHG stick pitch axis (js1_y / v_pitch) - invert="0" = pull-back = nose-up. Set invert="1" to flip. -->
   </options>
   <options type="joystick" instance="2" Product="MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}">
     <flight_view_pitch invert="1"/>  <!-- Inverts camera-look PITCH (MTQ Left Module mini-stick Y axis / v_view_pitch). If pitch does NOT flip after a profile reload this element name is wrong - fall back to inverting js2_y in MOZA Pithouse (nothing else uses that axis). -->
@@ -32,6 +32,31 @@
     </action>
     <action name="v_power_set_off">
       <rebind input="js2_button23"/>  <!-- MTQ 3-pos rocker LEFT - master power OFF (discrete SET, always off, not a toggle) -->
+    </action>
+    <!-- POWER-PIP TRIANGLE on the AB6 base wings (8 momentary pushbuttons, finger-reachable for mid-fight power triage): LEFT wing 49-52 = offence/mobility (weapons + engines), RIGHT wing 53-56 = defence (shields) + reset/max. Tap toward shields when tanking, weapons when attacking; bottom-right = burst-tank. ACTIONMAP NOTE: v_engineering_assignment_* are placed here in spaceship_power (the catalogue groups them with the working v_power_* actions under "flight - power"); if a pip button does nothing in-game, a wrong action map is the only likely cause. -->
+    <action name="v_engineering_assignment_weapons_increase">
+      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 (top) - power to WEAPONS + (tap) -->
+    </action>
+    <action name="v_engineering_assignment_weapons_decrease">
+      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - power to WEAPONS - (tap) -->
+    </action>
+    <action name="v_engineering_assignment_engine_increase">
+      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - power to ENGINES + (tap) -->
+    </action>
+    <action name="v_engineering_assignment_engine_decrease">
+      <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 (bottom) - power to ENGINES - (tap) -->
+    </action>
+    <action name="v_engineering_assignment_shields_increase">
+      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 (top) - power to SHIELDS + (tap) -->
+    </action>
+    <action name="v_engineering_assignment_shields_decrease">
+      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - power to SHIELDS - (tap) -->
+    </action>
+    <action name="v_engineering_assignment_reset">
+      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - RESET power allocation to balanced/even -->
+    </action>
+    <action name="v_engineering_assignment_shields_max">
+      <rebind input="js1_button56"/>  <!-- AB6 RIGHT wing 4 (bottom) - HOLD to slam all power to SHIELDS (burst-tank an incoming hit; returns on release) -->
     </action>
   </actionmap>
 
@@ -70,18 +95,18 @@
   <!-- FLIGHT CONTROLS & MOVEMENT                                       -->
   <!-- ================================================================ -->
   <actionmap name="spaceship_movement">
-    <!-- Primary flight axes live on the MHG stick (js1), not the MTQ. -->
+    <!-- Primary flight axes on the MHG stick (js1). Pitch invert is set in the js1 <options> block at the top. -->
     <action name="v_pitch">
-      <rebind input="js1_y"/>  <!-- Pitch up/down -->
+      <rebind input="js1_y"/>  <!-- MHG stick Y axis - pitch (nose up/down; pull back = nose up) -->
     </action>
     <action name="v_roll">
-      <rebind input="js1_x"/>  <!-- Roll left/right -->
+      <rebind input="js1_x"/>  <!-- MHG stick X axis - roll (bank left/right) -->
     </action>
     <action name="v_yaw">
-      <rebind input="js1_rotz"/>  <!-- Yaw left/right (twist) -->
+      <rebind input="js1_rotz"/>  <!-- MHG stick TWIST (Z-rotation) - yaw (nose left/right) -->
     </action>
 
-    <!-- Strafe directions on the MTQ Right Module "COM" hat (the larger hat, 57-61). Moved off the MHG right hat (js1 12/13/14/15, now free for targeting). Hat CENTRE PRESS (57) = decoupling toggle, see Flight Control Assists below. -->
+    <!-- Strafe directions on the MTQ Right Module "COM" hat (the larger hat, 57-61). Moved off the MHG right hat (js1 12/13/14/15, now targeting). Hat CENTRE PRESS (57) = decoupling toggle, see Flight Control Assists below. -->
     <action name="v_strafe_up">
       <rebind input="js2_button61"/>  <!-- MTQ "COM" hat UP - strafe up (translate, no rotation) -->
     </action>
@@ -109,7 +134,7 @@
       <rebind input="js2_button65"/>  <!-- MTQ Left Module face button - afterburner / boost (depletable pool; also overrides proximity assist while held) -->
     </action>
     <action name="v_toggle_jump_request">
-      <rebind input="js2_button9"/>  <!-- MTQ keypad "FD" - engage inter-system JUMP-POINT travel (e.g. Stanton<->Pyro), NOT in-system quantum (that's "SPD"/7). Sits directly below the quantum key to form a travel column. Moved off js1_button56 (now free). -->
+      <rebind input="js2_button9"/>  <!-- MTQ keypad "FD" - engage inter-system JUMP-POINT travel (e.g. Stanton<->Pyro), NOT in-system quantum (that's "SPD"/7). Sits directly below the quantum key to form a travel column. Moved off js1_button56 (now AB6 power pip). -->
     </action>
 
     <!-- Master Mode (NAV vs SCM) -->
@@ -137,18 +162,18 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <!-- Decoupling toggle on the MTQ "COM" strafe-hat CENTRE PRESS (57) - co-located with the strafe directions (decoupled = pure Newtonian translation, the mode you enable to strafe freely while keeping guns on a target). Moved off AB6 left wing 1 (js1_button49, now free). Deliberately NOT on the 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake; 57 is a plain press, so decoupled survives braking. -->
+    <!-- Decoupling toggle on the MTQ "COM" strafe-hat CENTRE PRESS (57) - co-located with the strafe directions (decoupled = pure Newtonian translation, the mode you enable to strafe freely while keeping guns on a target). Moved off AB6 left wing 1 (js1_button49, now a power pip). Deliberately NOT on the 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake; 57 is a plain press, so decoupled survives braking. -->
     <action name="v_ifcs_vector_decoupling_toggle">
       <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - toggle coupled/decoupled flight -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
-      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now free). -->
+      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now a power pip). -->
     </action>
     <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now returned to LAMP); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
-      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" - request landing (hails ATC, opens hangar/pad/forcefields in range). Bottom-right of the ground-ops keypad cluster. Moved off js1_button53 (now free). Cargo-loading request (v_atc_loading_area_request) was REMOVED - never used. -->
+      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" - request landing (hails ATC, opens hangar/pad/forcefields in range). Bottom-right of the ground-ops keypad cluster. Moved off js1_button53 (now a power pip). Cargo-loading request (v_atc_loading_area_request) was REMOVED - never used. -->
     </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- MTQ toggle C (gear-shaped lever) UP - landing gear RETRACT (lever position mirrors gear state) -->
@@ -159,7 +184,7 @@
     <action name="v_autoland">
       <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" - autoland (autopilot lands on an ATC pad when gear is down and you're close). Gear toggle is now ONLY on the gear lever (29/30). -->
     </action>
-    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now free). -->
+    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now decoupling). -->
     <action name="v_vtol_on">
       <rebind input="js2_button50"/>  <!-- MTQ 3-pos switch FORWARD-LATCH - VTOL ON (flick forward, stays latched) -->
     </action>
@@ -189,7 +214,7 @@
   <!-- MTQ rotary mode-selector knob: 5 detents = buttons 17-21, physically engraved 1-5 (17 = pos1/full CCW ... 21 = pos5/full CW). Each detent directly SETS one operator mode. Maintained selector - the knob position may not match the actual operator mode after seat entry or another mode change; turn off-and-back onto a detent to re-assert it. Operator modes are separate from Master Mode (SCM/NAV, on js2_button5). -->
   <actionmap name="seat_general">
     <action name="v_toggle_missile_mode">
-      <rebind input="js1_button4"/>  <!-- MHG thumb button - quick gun<->missile mode flip (the MTQ knob detents 17/18 SET these explicitly) -->
+      <rebind input="js1_button4"/>  <!-- MHG upper thumb button - quick gun<->missile mode flip (knob detents 17/18 SET them explicitly; this same button = switch mining laser in Mining mode) -->
     </action>
     <action name="v_set_guns_mode">
       <rebind input="js2_button17"/>  <!-- MTQ mode knob detent 1 (full CCW) - Guns operator mode. Default park/rest position (combat-ready). -->
@@ -216,7 +241,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_targeting">
     <action name="v_target_lock_selected">
-      <rebind input="js1_button11"/>  <!-- Lock onto selected target -->
+      <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
   </actionmap>
 
@@ -225,19 +250,41 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_targeting_advanced">
     <action name="v_target_under_reticle">
-      <rebind input="js1_button5"/>  <!-- Target whatever is under your crosshair -->
+      <rebind input="js1_button5"/>  <!-- MHG lower-centre face button - lock whatever is under the crosshair ("target what I'm aiming at") -->
     </action>
     <action name="v_target_cycle_hostile_fwd">
-      <rebind input="js1_button8"/>  <!-- Cycle to next hostile target -->
+      <rebind input="js1_button8"/>  <!-- MHG left hat RIGHT - cycle to next hostile (also = fire salvage FRACTURE beam in Salvage mode) -->
     </action>
     <action name="v_target_cycle_hostile_back">
-      <rebind input="js1_button10"/>  <!-- Cycle to previous hostile target -->
+      <rebind input="js1_button10"/>  <!-- MHG left hat LEFT - cycle to previous hostile (also = fire salvage DISINTEGRATE beam in Salvage mode) -->
     </action>
     <action name="v_target_cycle_subitem_fwd">
-      <rebind input="js1_button12"/>  <!-- MHG right hat UP - cycle SUB-TARGETS/components of the locked ship (focus-fire thrusters/weapons/power plant). Moved off MTQ keypad (js2_button9). Right hat DOWN (14) reserved for sub-target BACK later. -->
+      <rebind input="js1_button12"/>  <!-- MHG right hat UP - cycle SUB-TARGETS forward (components: thrusters/weapons/power plant to focus-fire) -->
+    </action>
+    <action name="v_target_cycle_subitem_back">
+      <rebind input="js1_button14"/>  <!-- MHG right hat DOWN - cycle SUB-TARGETS back (completes the up/down pair with 12) -->
     </action>
     <action name="v_target_cycle_attacker_fwd">
-      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - cycle ATTACKERS (lock whoever is currently shooting you). Moved off MTQ keypad (js2_button10). Right hat LEFT (15) reserved for attacker BACK later. -->
+      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - cycle ATTACKERS forward (snap to whoever is shooting you) -->
+    </action>
+    <action name="v_target_cycle_attacker_back">
+      <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
+    </action>
+    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. ACTIONMAP NOTE: pin lives in spaceship_targeting_advanced with the cycle actions; if "pin" does nothing in-game it may belong to spaceship_targeting instead. -->
+    <action name="v_target_cycle_all_fwd">
+      <rebind input="js1_button25"/>  <!-- MHG coolie UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
+    </action>
+    <action name="v_target_cycle_all_back">
+      <rebind input="js1_button27"/>  <!-- MHG coolie DOWN - cycle ALL contacts back -->
+    </action>
+    <action name="v_target_cycle_hostile_reset">
+      <rebind input="js1_button26"/>  <!-- MHG coolie RIGHT - snap-lock the CLOSEST hostile (the best panic-target button in a furball) -->
+    </action>
+    <action name="v_target_cycle_pinned_fwd">
+      <rebind input="js1_button28"/>  <!-- MHG coolie LEFT - cycle PINNED targets forward -->
+    </action>
+    <action name="v_target_pin_selected">
+      <rebind input="js1_button29"/>  <!-- MHG coolie CENTER PRESS - pin the current target (cycle back to it later via coolie LEFT) -->
     </action>
   </actionmap>
 
@@ -246,19 +293,19 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_radar">
     <action name="v_invoke_ping">
-      <rebind input="js1_button20"/>  <!-- Radar ping - reveals nearby contacts -->
+      <rebind input="js1_button20"/>  <!-- MHG lower hat LEFT - active radar ping (reveals nearby contacts by cross-section; also reveals you) -->
     </action>
   </actionmap>
 
   <actionmap name="spaceship_scanning">
     <action name="v_scanning_trigger_scan">
-      <rebind input="js1_button18"/>  <!-- Hold to scan target/area -->
+      <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - HOLD to scan the target/area under the reticle (Scan operator mode). Same button = mining-mode toggle in Mining mode. -->
     </action>
     <action name="v_inc_scan_focus_level">
-      <rebind input="js1_button17"/>  <!-- Narrow scan angle (more focused) -->
+      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - narrow the scan cone (stronger/longer-range read) -->
     </action>
     <action name="v_dec_scan_focus_level">
-      <rebind input="js1_button19"/>  <!-- Widen scan angle (broader area) -->
+      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - widen the scan cone (broader sweep) -->
     </action>
   </actionmap>
 
@@ -267,34 +314,34 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_weapons">
     <action name="v_weapon_preset_fire_guns0">
-      <rebind input="js1_button1"/>  <!-- Fire weapon group 1 (the 0/1 suffix = weapon GROUP, not trigger stage) -->
+      <rebind input="js1_button1"/>  <!-- MHG main TRIGGER (stage 1) - fire weapon group 1 (0/1 suffix = weapon GROUP, not trigger stage). Same trigger = mining laser / salvage focused beam in those modes. -->
     </action>
     <action name="v_weapon_preset_fire_guns1">
-      <rebind input="js1_button6"/>  <!-- Fire weapon group 2 (a separate weapon group; here placed on the trigger 2nd stage) -->
+      <rebind input="js1_button6"/>  <!-- MHG trigger STAGE 2 (front pull) - fire weapon group 2. Same control = toggle salvage gimbal in Salvage mode. -->
     </action>
     <action name="v_weapon_preset_next">
-      <rebind input="js1_button22"/>  <!-- Next weapon group / next missile type in missile mode -->
+      <rebind input="js1_button22"/>  <!-- MHG upper rocker UP - next weapon group (also next missile type in missile mode / mining power + in Mining mode) -->
     </action>
     <action name="v_weapon_preset_prev">
-      <rebind input="js1_button23"/>  <!-- Previous weapon group / prev missile type in missile mode -->
+      <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - previous weapon group (also prev missile type / mining power -) -->
     </action>
     <action name="v_weapon_aim_type_cycle">
-      <rebind input="js1_button24"/>  <!-- Cycle aiming mode (fixed/gimbal/auto) -->
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal) -->
     </action>
     <action name="v_weapon_gimbals_state_toggle">
-      <rebind input="js1_button16"/>  <!-- Toggle gimbal lock - fixed vs auto-aim -->
+      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - toggle gimbal lock (locked = tighter convergence vs auto-aim) -->
     </action>
   </actionmap>
 
   <actionmap name="spaceship_missiles">
     <action name="v_weapon_toggle_launch_missile">
-      <rebind input="js1_button2"/>  <!-- Launch missile -->
+      <rebind input="js1_button2"/>  <!-- MHG top-left face button - launch missile (HOLD to build a stronger lock before release) -->
     </action>
     <action name="v_weapon_cycle_missile_fwd">
-      <rebind input="js1_button22"/>  <!-- Next missile type (shared with weapon preset in missile mode) -->
+      <rebind input="js1_button22"/>  <!-- MHG upper rocker UP - next missile type (shares 22 with weapon-preset-next; active operator mode decides) -->
     </action>
     <action name="v_weapon_cycle_missile_back">
-      <rebind input="js1_button23"/>  <!-- Previous missile type (shared with weapon preset in missile mode) -->
+      <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - prev missile type (shares 23 with weapon-preset-prev) -->
     </action>
   </actionmap>
 
@@ -303,10 +350,10 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_defensive">
     <action name="v_weapon_countermeasure_decoy_launch">
-      <rebind input="js1_button7"/>  <!-- Launch decoy countermeasure (vs missiles) -->
+      <rebind input="js1_button7"/>  <!-- MHG left hat UP - launch DECOY/flares (lure IR/cross-section seeker missiles) -->
     </action>
     <action name="v_weapon_countermeasure_noise_launch">
-      <rebind input="js1_button9"/>  <!-- Launch noise countermeasure (vs radar lock) -->
+      <rebind input="js1_button9"/>  <!-- MHG left hat DOWN - launch NOISE/chaff (break radar/scan locks) -->
     </action>
     <!-- Shield faceting on the MTQ Right Module "WPN" hat (the smaller hat, 52-56) - push the hat toward a threat to stack shields that way. Maps 1:1 - 56 up=front, 55 down=rear, 54 left=port, 53 right=starboard, 52 press=reset/equalize. Single-bubble-shield ships ignore the directional raises; the reset is harmless there. -->
     <action name="v_shield_raise_level_forward">
@@ -331,12 +378,12 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_view">
     <action name="v_view_cycle_fwd">
-      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29. -->
+      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = pin target). -->
     </action>
     <action name="v_view_freelook_mode">
-      <rebind input="js1_button3"/>  <!-- Hold to freelook (look around cockpit) -->
+      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD to freelook (look around the cockpit independent of ship facing) -->
     </action>
-    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now free). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
+    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">
       <rebind input="js2_x"/>  <!-- MTQ mini-stick X axis - look left/right -->
     </action>
@@ -357,7 +404,7 @@
       <rebind input="js2_button64"/>  <!-- MTQ throttle dial BACK/CCW - 3rd-person camera-distance zoom OUT (dead in testing, harmless) -->
     </action>
     <action name="v_ads_toggle">
-      <rebind input="js1_button21"/>  <!-- MHG lower hat press - toggle zoomed cockpit/"ADS" view (the reliable in-cockpit zoom) -->
+      <rebind input="js1_button21"/>  <!-- MHG lower hat CENTER PRESS - toggle zoomed cockpit/"ADS" view (the reliable in-cockpit zoom) -->
     </action>
   </actionmap>
 
@@ -368,23 +415,23 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_mining">
     <action name="v_toggle_mining_laser_fire">
-      <rebind input="js1_button1"/>  <!-- Mining laser fire (reuse trigger) -->
+      <rebind input="js1_button1"/>  <!-- MHG main trigger - fire mining laser (reuses the gun trigger; Mining mode only) -->
     </action>
     <action name="v_increase_mining_throttle">
-      <rebind input="js1_button22"/>  <!-- Increase mining laser power (reuse weapon-next rocker) -->
+      <rebind input="js1_button22"/>  <!-- MHG upper rocker UP - mining laser power + (superseded by the FLAPS axis when that's set) -->
     </action>
     <action name="v_decrease_mining_throttle">
-      <rebind input="js1_button23"/>  <!-- Decrease mining laser power (reuse weapon-prev rocker) -->
+      <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - mining laser power - -->
     </action>
     <!-- Mining laser power as an ABSOLUTE AXIS on the MTQ FLAPS slider (far-right, maintained lever) - hold power proportionally in the green fracture window instead of tapping the rocker. CONFIRMED in Golem: FLAPS = js2_slider2 (joy.cpl calls it "Slider", SC enumerates it as slider2 NOT slider1). Direction correct, NO invert: rest (up) = ~20% (the laser's minimum throttle floor, a game mechanic) -> FULL (down) = 100%. Supersedes the stepped +/- on js1_button22/23 when both are live. The slider's own detent buttons (36-40) are intentionally UNBOUND - the axis covers it. -->
     <action name="v_mining_throttle">
       <rebind input="js2_slider2"/>  <!-- MTQ FLAPS slider axis ("Slider") - absolute mining laser power -->
     </action>
     <action name="v_toggle_mining_laser_type">
-      <rebind input="js1_button4"/>  <!-- Toggle mining laser type/head (reuse missile/gun mode toggle) -->
+      <rebind input="js1_button4"/>  <!-- MHG upper thumb button - switch mining laser head/module (reuses the missile/gun mode toggle) -->
     </action>
     <action name="v_toggle_mining_mode">
-      <rebind input="js1_button18"/>  <!-- PLACEHOLDER: Mining Mode toggle (replaced the invalid v_toggle_mining_mode_fracture). NOTE: v_toggle_mining_mode really belongs to seat_general and button 18 is also the scan trigger - re-home to seat_general on a dedicated free button when wiring mining properly. -->
+      <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - PLACEHOLDER mining-mode toggle (replaced the invalid v_toggle_mining_mode_fracture). WRONG action map (belongs to seat_general) and 18 is also the scan trigger - re-home to seat_general on a free control when wiring mining properly. -->
     </action>
   </actionmap>
 
@@ -393,23 +440,25 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_salvage">
     <action name="v_salvage_toggle_fire_focused">
-      <rebind input="js1_button1"/>  <!-- Salvage focused beam fire (reuse trigger) -->
+      <rebind input="js1_button1"/>  <!-- MHG main trigger - fire focused salvage beam (reuses the gun trigger; Salvage mode only) -->
     </action>
     <action name="v_salvage_toggle_gimbal_mode">
-      <rebind input="js1_button6"/>  <!-- Toggle salvage gimbal mode (reuse trigger 2nd stage) -->
+      <rebind input="js1_button6"/>  <!-- MHG trigger stage 2 - toggle salvage gimbal mode -->
     </action>
     <action name="v_salvage_toggle_fire_disintegrate">
-      <rebind input="js1_button10"/>  <!-- Disintegrate beam - break down material (reuse cycle-hostile-back) -->
+      <rebind input="js1_button10"/>  <!-- MHG left hat LEFT - fire DISINTEGRATE beam (break down material) -->
     </action>
     <action name="v_salvage_toggle_fire_fracture">
-      <rebind input="js1_button8"/>  <!-- Fracture beam - crack structures into salvageable pieces (reuse cycle-hostile-fwd) -->
+      <rebind input="js1_button8"/>  <!-- MHG left hat RIGHT - fire FRACTURE beam (crack structures into salvageable pieces) -->
     </action>
     <action name="v_salvage_cycle_modifiers_focused">
-      <rebind input="js1_button11"/>  <!-- Cycle focused salvage modifier mode (reuse target lock) -->
+      <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - cycle focused salvage modifier (e.g. scraper vs tractor) -->
     </action>
     <!-- Salvage beam spacing as an ABSOLUTE AXIS on the MTQ SPEEDBRAKE slider (far-left, maintained lever) - set the gap to match the hull panel and leave it. CONFIRMED in Salvation: SPEEDBRAKE = js2_slider1 (joy.cpl calls it "Dial", SC enumerates it as slider1). Full lever travel = full spacing range, auto-mapped, no calibration/range needed; direction is preference. The slider's own detent buttons (31/43) are intentionally UNBOUND - the axis covers it. -->
     <action name="v_salvage_beam_spacing_abs">
       <rebind input="js2_slider1"/>  <!-- MTQ SPEEDBRAKE slider axis ("Dial") - absolute salvage beam spacing -->
     </action>
   </actionmap>
+
+  <!-- UNBOUND js1 hardware (intentional gaps): the two AB6 base levers are MIXED-MODE - each emits 3 detent buttons AND a continuous analog axis. Left "Slider" = detents 57 (top/100) / 58 / 59 (bottom/0); right "Dial" = detents 60 (top/full) / 61 / 62 (bottom/0). Their analog halves are the js1 slider-family axes (js1_slider1 / js1_slider2 - which lever is which needs joy.cpl confirmation, the same counter-intuitive mapping seen on the MTQ). LEFT UNBOUND for the combat profile: maintained set-and-hold levers suit neither momentary combat actions nor the power pips now on the wings (a held detent would fight the pip taps). Reserved for a future modal/analog use. The MHG grip is otherwise fully bound; no free grip buttons remain. -->
 </ActionMaps>

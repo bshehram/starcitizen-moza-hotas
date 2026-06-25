@@ -16,7 +16,7 @@ This document explains, in detail, **what every bound control does**, **how the 
 
 | Game device | Physical hardware | Button range | Axes used |
 | --- | --- | --- | --- |
-| **`js1`** (joystick instance 1) | **MOZA MHG** flight-stick grip mounted on the **MOZA AB6 FFB** base | Grip = **1–29**, Base = **49–62** | `js1_x` (roll), `js1_y` (pitch), `js1_rotz` (yaw / twist) |
+| **`js1`** (joystick instance 1) | **MOZA MHG** flight-stick grip mounted on the **MOZA AB6 FFB** base | Grip = **1–29**, Base = **49–62** | `js1_x` (roll), `js1_y` (pitch), `js1_rotz` (yaw / twist), plus `js1_slider1`/`js1_slider2` (the AB6 "Slider"/"Dial" lever analog halves — present but **unbound**) |
 | **`js2`** (joystick instance 2) | **MOZA MTQ** Throttle Panel (Mission Throttle Quadrant) | **1–65** (44–48 unused/absent) | `js2_roty` (main throttle), plus unused Dial/RX/Slider + module sticks |
 
 The MHG grip and the AB6 base report as **one** DirectInput device (`js1`): grip buttons are numbered 1–29, the base's own buttons continue at 49–62 (there is a 30–48 gap with no physical buttons). The MTQ throttle is a **separate** device (`js2`).
@@ -142,7 +142,9 @@ Button indices come directly from the MOZA configurator diagrams (`MOZA_AB6.png`
 | 54 | Right wing button 2 | 61 | Right "Dial" lever — middle |
 | 55 | Right wing button 3 | 62 | Right "Dial" lever — bottom |
 
-> The left "Slider" and right "Dial" are **3-position levers** — each position is its own button (57/58/59 and 60/61/62), not an analog axis.
+> **Wing buttons (49–56)** are plain **momentary pushbuttons** (physically labelled 1–4 per wing): 49–52 = **left** wing, 53–56 = **right** wing.
+>
+> ⚠ **Note (corrected):** The left **"Slider"** (57/58/59) and right **"Dial"** (60/61/62) are **mixed-mode levers**, *not* button-only as an earlier version of this doc claimed. Each emits **both** its 3 detent buttons (57 = top/100 … 59 = bottom/0; 60 = top/full … 62 = bottom/0) **and** a continuous **analog axis** — the js1 slider-family `js1_slider1` / `js1_slider2` (which lever maps to which needs `joy.cpl` confirmation, the same counter-intuitive name↔number mapping seen on the MTQ). Both are **maintained** (stay where you leave them), so they suit set-and-hold analog values, not momentary actions. They are currently **UNBOUND** in this combat profile (see §6 for why).
 
 ### 3.3 `js2` — MTQ throttle (1–65)
 
@@ -195,6 +197,16 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button2` | MTQ keypad A2 | `v_power_toggle_thrusters` → *Thruster Power - Toggle* | Cuts/restores power to propulsion. Off = can't manoeuvre, lower engine signature (cold running). |
 | `js2_button3` | MTQ keypad A3 | `v_power_toggle_shields` → *Shield Power - Toggle* | Cuts/restores shields. Re-enabling incurs a boot delay; shields are offline in NAV mode regardless. |
 | `js2_button23` | MTQ 3-pos rocker **left** | `v_power_set_off` → *Vehicle Power - Off* | Dedicated master power **OFF** (always off, not a toggle). |
+| `js1_button49` | AB6 left wing 1 (top) | `v_engineering_assignment_weapons_increase` → *Power Allocation - Weapons - Increase* | Tap power toward **weapons**. |
+| `js1_button50` | AB6 left wing 2 | `v_engineering_assignment_weapons_decrease` → *Power Allocation - Weapons - Decrease* | Tap power away from weapons. |
+| `js1_button51` | AB6 left wing 3 | `v_engineering_assignment_engine_increase` → *Power Allocation - Engines - Increase* | Tap power toward **engines**. |
+| `js1_button52` | AB6 left wing 4 (bottom) | `v_engineering_assignment_engine_decrease` → *Power Allocation - Engines - Decrease* | Tap power away from engines. |
+| `js1_button53` | AB6 right wing 1 (top) | `v_engineering_assignment_shields_increase` → *Power Allocation - Shields - Increase* | Tap power toward **shields**. |
+| `js1_button54` | AB6 right wing 2 | `v_engineering_assignment_shields_decrease` → *Power Allocation - Shields - Decrease* | Tap power away from shields. |
+| `js1_button55` | AB6 right wing 3 | `v_engineering_assignment_reset` → *Power Allocation - Reset All* | **Reset** to balanced/even. |
+| `js1_button56` | AB6 right wing 4 (bottom) | `v_engineering_assignment_shields_max` → *Power Allocation - Shields - Set to Max (Hold)* | **Hold** to slam all power to shields (burst-tank an incoming hit; returns on release). |
+
+> **Power-pip triangle (AB6 wings `js1_button49–56`):** the base's 8 momentary pushbuttons are the **mid-fight power-triage bank** — left wing = offence/mobility (weapons ±, engines ±), right wing = defence (shields ±, reset, hold-for-max). Shift power toward shields when tanking, weapons when attacking. **⚠ Action-map note:** `v_engineering_assignment_*` are placed in the **`spaceship_power`** action map (the starbinder catalogue groups them with the working `v_power_*` actions under "flight - power"); this is the most likely thing to need an in-game verify — if a pip button does nothing, the action map is the suspect.
 
 > **Master power rocker (`js2_button22/23/24`, bottom-centre 3-position):** **left (23)** = master power **OFF** (`v_power_set_off`); **right (24)** = Flight Ready / power **ON** (`v_flightready`, in `spaceship_general`); **centre (22)** = resting position, intentionally unbound. The keypad buttons A1–A3 toggle weapons / thrusters / shields power; A4 toggles LAMP night-vision (see Mode switching & LAMP).
 
@@ -273,8 +285,17 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button5` | MHG lower-center face button | `v_target_under_reticle` → *Lock target under reticle* | Locks whatever is under the crosshair — "target what I'm aiming at". |
 | `js1_button8` | MHG left hat → | `v_target_cycle_hostile_fwd` → *Cycle Lock - Hostiles Forward* | Cycles forward through hostiles only. |
 | `js1_button10` | MHG left hat ← | `v_target_cycle_hostile_back` → *Cycle Lock - Hostiles Back* | Cycles backward through hostiles only. |
-| `js1_button12` | MHG right hat ↑ | `v_target_cycle_subitem_fwd` → *Cycle Lock - Sub-Target - Forward* | Cycles **sub-targets** (components) of the locked ship — focus-fire thrusters/weapons/power plant to disable. Moved to the stick (off MTQ keypad 9). Right hat ↓ (14) reserved for a sub-target *back* cycle later. |
-| `js1_button13` | MHG right hat → | `v_target_cycle_attacker_fwd` → *Cycle Lock - Attackers - Forward* | Locks whoever is **currently attacking you** — snap to the active threat in a furball. Moved to the stick (off MTQ keypad 10). Right hat ← (15) reserved for an attacker *back* cycle later. |
+| `js1_button12` | MHG right hat ↑ | `v_target_cycle_subitem_fwd` → *Cycle Lock - Sub-Target - Forward* | Cycles **sub-targets** (components) of the locked ship — focus-fire thrusters/weapons/power plant to disable. Moved to the stick (off MTQ keypad 9). |
+| `js1_button14` | MHG right hat ↓ | `v_target_cycle_subitem_back` → *Cycle Lock - Sub-Target - Back* | Sub-target **back** — completes the ↑/↓ pair with button 12. |
+| `js1_button13` | MHG right hat → | `v_target_cycle_attacker_fwd` → *Cycle Lock - Attackers - Forward* | Locks whoever is **currently attacking you** — snap to the active threat in a furball. Moved to the stick (off MTQ keypad 10). |
+| `js1_button15` | MHG right hat ← | `v_target_cycle_attacker_back` → *Cycle Lock - Attackers - Back* | Attacker **back** — completes the →/← pair with button 13. |
+| `js1_button25` | MHG top coolie hat ↑ | `v_target_cycle_all_fwd` → *Cycle Lock - All - Forward* | Cycles **all** contacts in scanner range (not just hostiles) forward. |
+| `js1_button27` | MHG top coolie hat ↓ | `v_target_cycle_all_back` → *Cycle Lock - All - Back* | Cycles all contacts back. |
+| `js1_button26` | MHG top coolie hat → | `v_target_cycle_hostile_reset` → *Cycle Lock - Hostiles - Closest* | **Snap-lock the closest hostile** — the best panic-target button in a furball. |
+| `js1_button28` | MHG top coolie hat ← | `v_target_cycle_pinned_fwd` → *Cycle Lock - Pinned - Forward* | Cycles through **pinned** targets. |
+| `js1_button29` | MHG top coolie hat — **press** | `v_target_pin_selected` → *Pin Target* | **Pins** the current target so you can cycle back to it (coolie ←). |
+
+> **Targeting layout:** the **left hat** (lock + hostile cycle) and **right hat** (sub-target/attacker cycle ↑↓/→← + gimbal press) carry the core combat targeting; the freed **top coolie hat** adds an **acquisition cluster** — cycle-all, closest-hostile snap, and pin/cycle-pinned — complementing rather than duplicating the hats. **⚠ Action-map note:** `v_target_pin_selected` is placed in `spaceship_targeting_advanced` with the cycle actions; if "pin" doesn't bind in-game, try `spaceship_targeting` instead.
 
 ### Radar & scanning — `spaceship_radar`, `spaceship_scanning`
 
@@ -387,8 +408,10 @@ This is normal and intended — only one of these action maps is "live" at a tim
 2. **✅ Fixed — `fire_guns0` / `fire_guns1` comments corrected** — they're weapon **groups 1/2**, not trigger stages. The bindings themselves were always fine. *(See Weapons note.)*
 3. **✅ Fixed — `v_toggle_jump_request` comment clarified** as inter-system jump-point travel (distinct from in-system quantum, `v_toggle_qdrive_engagement`). Binding unchanged.
 4. **Doubled door bindings** (`js2_button25` = unlock+open, `js2_button26` = lock+close) fire two actions per press by design. Intended as "open up / seal up" buttons — just be aware both fire.
-5. **Unbound hardware you could still use:** **The entire AB6 wing bank is free** — all 8 buttons `js1_button49–56` — as flight/ship controls migrated onto the MTQ throttle (decoupled→57, G-Safe→16, ATC landing→js2_10, jump→js2_9, LAMP toggle→keypad A4; cargo-loading removed; **ESP + proximity-assist left unbound = enabled-by-default**). Also open: the **MHG right hat ↓/←** (`js1_button14/15` — ↑/→ now cycle sub-target/attacker, press 16 = gimbal), the **MHG top coolie hat** (`js1_button25/26/27/28/29`, was camera look/cycle), the AB6 **"Dial" lever** (60/61/62), and the **full AB6 "Slider"** (57/58/59 — 59 freed when LAMP-off was dropped). **MTQ (js2) is essentially full** — the throttle dial (63/64) does **cockpit zoom** (3rd-person FoV zoom isn't possible from a momentary dial — it needs a held modifier), plus a keypad spare or two. Good uses for the freed AB6 wing bank: power-allocation triage (`v_engineering_assignment_*`), shield-pip / MFD navigation, weapon-group management, or VOIP. *(MTQ otherwise fully bound: WPN hat = shield faceting, 3-pos switch = VTOL/space-brake, COM press = decoupled, A4 = LAMP toggle, both encoders + rotary knob, FLAPS/SPEEDBRAKE axes = mining/salvage.)*
-6. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
+5. **✅ js1 optimized (combat pass):** the previously-empty stick/base real estate is now filled — **AB6 wings (`js1_button49–56`) = power-pip triangle** (weapons/engines/shields ± + reset + hold-for-max), **MHG top coolie hat (25–29) = target-acquisition cluster** (cycle-all, closest-hostile snap, pin/cycle-pinned), and **MHG right hat ↓/← (14/15)** complete the sub-target/attacker *back* cycles. The MHG grip is now **fully bound** (1–29). *(Two action-map verifies to do in-game: the `v_engineering_assignment_*` pips and `v_target_pin_selected` — see §4 notes.)*
+6. **✅ Fixed — AB6 levers are mixed-mode, not button-only:** an earlier doc claimed the "Slider"/"Dial" levers (57–62) were 3-position button-only "not an analog axis." They are **mixed-mode** (3 detent buttons **plus** an analog axis, `js1_slider1`/`js1_slider2`). Corrected in §1 and §3.2.
+7. **Only remaining free js1 hardware = the two AB6 levers (57–62), deliberately unbound:** maintained set-and-hold levers suit neither momentary combat actions nor the wing power-pips (a held detent would fight the pip taps). Reserved for a future **modal/analog** use (e.g. a multi-role analog value) — confirm which axis is `js1_slider1` vs `js1_slider2` in `joy.cpl` first. **MTQ (js2)** remains essentially full (only the rocker centre 22, slider detents 31/36-40/43, and throttle-twin `js2_rotx` are intentional gaps).
+8. **Device-instance fragility:** see the warning in §1 — keep USB enumeration order stable so `js1`/`js2` don't swap.
 
 ---
 
@@ -436,4 +459,4 @@ The full implementation lives in [`refresh_keybinds_db.ps1`](refresh_keybinds_db
 
 ---
 
-*Last reviewed for Star Citizen Alpha 4.8 (2026-06-22). Update the version stamp and the catalogue file when you refresh the database.*
+*Last reviewed for Star Citizen Alpha 4.8 (2026-06-24). Update the version stamp and the catalogue file when you refresh the database.*
