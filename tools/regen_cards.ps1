@@ -1,55 +1,49 @@
 <#
-  regen_cards.ps1 - Regenerates the MOZA button-reference cards.
+  regen_cards.ps1 - the MOZA button-reference cards (split-diagram, print layout).
 
-  This script lives in tools/. It reads the manufacturer diagrams from
-  ../diagrams/ and writes the cards to ../cards/. Produces three landscape PNG
-  "cheat sheet" cards (and their self-contained SVG sources), one per device:
+  Produces the TWO reference cards, sized to fill a US-Letter sheet in LANDSCAPE
+  (11 x 8.5 in, aspect 1.294) for printing in hand:
 
-      cards/MOZA_AB6_ref.png / .svg   (js1 base buttons 49-62)
-      cards/MOZA_MHG_ref.png / .svg   (js1 grip buttons 1-29)
-      cards/MOZA_MTQ_ref.png / .svg   (js2 throttle buttons 1-65 + axes)
+      cards/MOZA_MHG_AB6_ref.png / .svg   (js1: MHG grip 1-29 + AB6 base 49-62)
+      cards/MOZA_MTQ_ref.png     / .svg   (js2: MTQ throttle 1-65 + axes)
 
-  Each card = the manufacturer button-number diagram (recolored to a white
-  background) on the left, plus a number -> function lookup table on the right.
+  LAYOUT (60 / 40)
+    The manufacturer diagrams are COMPOSITES - several views packed into one image
+    (MTQ = throttle panel + Right Module + Left Module; MHG = side profile + front
+    grip head; AB6 = base). Each composite is SPLIT into its sub-views (cropped from
+    the source PNG, see the crop rectangles below) and laid out in the LEFT ~60% of
+    the sheet as two stacked bands: the two small sub-views side by side on top, the
+    one big sub-view below. The button# -> function table fills the RIGHT ~40% in two
+    columns (labels are abbreviated to fit the narrow columns).
 
-  HOW IT WORKS
-    1. The numbered diagram comes straight from the manufacturer PNGs
-       (diagrams/MOZA_AB6.png / MOZA_MHG.png / MOZA_MTQ.png). Those already have every
-       button numbered with a leader line pointing at the physical control, so
-       the numbers are always placed correctly - we never hand-place them.
-       Recolor = grayscale + invert + a levels stretch (dark navy bg -> white,
-       faint light line-art -> crisp dark). A top strip is cropped to drop the
-       "Button Number" header.
-    2. The lookup table is the $AB6 / $MHG / $MTQ data arrays below. This is the
-       ONLY thing you edit when a binding changes - see "UPDATING" and CLAUDE.md.
-    3. Each card is emitted as an SVG (white bg, embedded recolored diagram as a
-       base64 PNG, table drawn as text/rects) and rendered to PNG at 2x with
-       headless Chrome/Edge.
+  PRINTING
+    Print "Fit to page" / 100%, landscape. Each card is already the page aspect, so
+    it fills the sheet edge to edge. Output is 2x (~330 DPI per card).
 
-  UPDATING AFTER A BINDING CHANGE
-    Change MOZA.xml, then edit the matching row in the $AB6 / $MHG / $MTQ array
-    here (Primary = function, Hint = where the control is, Variants = the
-    mining/salvage/missile alternates for the same physical button) and re-run
-    (from the project root):
+  EDITING
+    The $AB6 / $MHG_* / $MTQ_* data arrays below are the lookup tables - a hand-kept
+    VIEW of the bindings; source of truth is MOZA.xml. When a binding changes, edit
+    the matching row here (and MOZA.xml / CLAUDE.md), then re-run. Labels here are
+    deliberately terser than MOZA.xml to fit the 40% columns.
 
-        powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1
-
-    You only touch the manufacturer PNGs / crop values if MOZA ships a new device
-    diagram. Button numbers and leader lines need no edits - they ride along in
-    the diagram.
+  CROP RECTANGLES (x0,y0,x1,y1 in source-PNG pixels) - re-verify if MOZA ships new
+  device art (sources: AB6 890x691, MHG 1037x822, MTQ 1049x820):
+    MTQ main   60, 90,612,818     MTQ right 615, 72,1045,486   MTQ left 620,488,1045,818
+    MHG front 515, 90,985,575     MHG side  100,168, 460,770   AB6 base 250,110, 785,650
 
   REQUIREMENTS: Windows PowerShell + .NET System.Drawing, and Chrome or Edge.
+  RUN (from the project root):
+      powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1
 #>
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $root = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-$repo    = Split-Path -Parent $root     # the mappings/ project root (this script lives in tools/)
-$diagDir = Join-Path $repo 'diagrams'   # manufacturer source PNGs (input)
-$cardDir = Join-Path $repo 'cards'      # generated reference cards (output)
+$repo    = Split-Path -Parent $root
+$diagDir = Join-Path $repo 'diagrams'
+$cardDir = Join-Path $repo 'cards'
 
-# Locate a Chromium browser to rasterize the SVGs.
 $chrome = @(
   "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
   "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
@@ -59,7 +53,7 @@ $chrome = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $chrome) { throw "regen_cards: no Chrome/Edge found to render SVG -> PNG." }
 
-$MID = [char]0x00B7   # middle dot, by code-point so this .ps1 stays pure ASCII
+$MID = [char]0x00B7
 
 # ---- palette ----
 $C_TITLE='#0f1720'; $C_SUB='#5b6b7a'; $C_PRIM='#16202b'; $C_VARTXT='#5b6b7a'; $C_HINT='#8a96a2'
@@ -69,8 +63,9 @@ $C_MINE='#9a6a00'; $C_SALV='#0f6e6e'; $C_NOTE='#6b7681'
 
 function Esc($s){ if($null -eq $s){return ''}; ([string]$s) -replace '&','&amp;' -replace '<','&lt;' -replace '>','&gt;' }
 function V($tag,$text,$color){ @{ Tag=$tag; Text=$text; Color=$color } }
+function R2($n){ [math]::Round($n,1) }
 
-# Recolor a manufacturer diagram to white-bg line art + crop, return @{B64;W;H}.
+# Recolor a manufacturer diagram (or a sub-rect of one) to white-bg line art.
 #   grayscale+invert+levels:  out = -k*lum + k*(1-black),  k = 1/(white-black)
 function Get-Diagram($file,$black,$white,$cropTop,$cropL,$cropR,$cropBottom){
   $src = [System.Drawing.Bitmap]::FromFile((Join-Path $diagDir $file))
@@ -97,27 +92,78 @@ function Get-Diagram($file,$black,$white,$cropTop,$cropL,$cropR,$cropBottom){
   return @{ B64=$b64; W=$nw; H=$nh }
 }
 
-# Append one table row at (x,y). Returns the height it consumed.
-function Add-Row($sb,$x,$y,$colW,$row,$idx){
+# Crop a sub-rectangle [x0,y0,x1,y1] out of a source diagram and recolor it.
+function Get-SubDiagram($file,$sw,$sh,$x0,$y0,$x1,$y1){
+  Get-Diagram $file 0.45 0.85 $y0 $x0 ($sw-$x1) ($sh-$y1)
+}
+
+# Lay recolored sub-views into the left half of the card as a stack of fixed-height
+# BANDS (quadrants). Each band spans the zone width and gets height ~ $HFrac (equal
+# by default). A band holds one or more images placed side by side: each image owns
+# a cell = $Frac of the zone width (cells centred within the band), and is fit
+# (aspect-preserved) and centred in its cell. An optional caption sits under it.
+#   $rows = @( @{ HFrac=<opt>; Imgs=@( @{D=<diagram>; Frac=<0..1>; Caption=<opt>}, ... ) }, ... )
+# Used here as: band 1 = the two small views side by side; band 2 = the one big view.
+function Add-DiagramStack($sb,$rows,$zx,$zy,$zw,$zh,$rowGap,$F){
+  $capH = [math]::Round(20*$F)
+  $cellPad = [math]::Round(12*$F)
+  $n = $rows.Count
+  $avail = $zh - ($n-1)*$rowGap
+  $sumHF = 0.0
+  foreach($row in $rows){ $sumHF += $(if($row.HFrac){[double]$row.HFrac}else{1.0}) }
+  $y = $zy
+  foreach($row in $rows){
+    $hf = $(if($row.HFrac){[double]$row.HFrac}else{1.0})
+    $bandH = $avail * ($hf/$sumHF)
+    $sumFrac = 0.0; foreach($im in $row.Imgs){ $sumFrac += [double]$im.Frac }
+    $x = $zx + ($zw - $zw*$sumFrac)/2
+    foreach($im in $row.Imgs){
+      $cellW = $zw*[double]$im.Frac
+      $hasCap = [bool]$im.Caption
+      $areaH = if($hasCap){ $bandH - $capH } else { $bandH }
+      $d = $im.D
+      $scale = [math]::Min(($cellW-$cellPad)/$d.W, $areaH/$d.H)
+      $dw = $d.W*$scale; $dh = $d.H*$scale
+      $ix = $x + ($cellW-$dw)/2
+      $iy = $y + ($areaH-$dh)/2
+      [void]$sb.Append("<image xlink:href='data:image/png;base64,$($d.B64)' x='$(R2 $ix)' y='$(R2 $iy)' width='$(R2 $dw)' height='$(R2 $dh)'/>")
+      if($hasCap){
+        $cy = $iy + $dh + [math]::Round(17*$F)
+        [void]$sb.Append("<text x='$(R2 ($x+$cellW/2))' y='$(R2 $cy)' font-size='$([math]::Round(11*$F))' font-weight='600' text-anchor='middle' fill='$C_SUB' letter-spacing='0.4'>$(Esc $im.Caption)</text>")
+      }
+      $x += $cellW
+    }
+    $y += $bandH + $rowGap
+  }
+}
+
+# Append one table row at (x,y). $F = font/size scale. Returns the height consumed.
+function Add-Row($sb,$x,$y,$colW,$row,$idx,$F){
   $label = [string]$row.Label
   $unb = [bool]$row.Unbound
   $hasVar = ($null -ne $row.Variants -and $row.Variants.Count -gt 0)
-  $rowH = 27; if($hasVar){ $rowH += 16 }
-  if($idx % 2 -eq 1){ [void]$sb.Append("<rect x='$($x-6)' y='$y' width='$colW' height='$rowH' fill='$C_ROWALT'/>") }
-  $badgeW = 30; if($label.Length -gt 2){ $badgeW = 14 + $label.Length*7.5 }
-  $by = $y + 4
+  $rowH = [math]::Round(27*$F); if($hasVar){ $rowH = [math]::Round(44*$F) }
+  $pad = [math]::Round(6*$F)
+  if($idx % 2 -eq 1){ [void]$sb.Append("<rect x='$($x-$pad)' y='$y' width='$colW' height='$rowH' fill='$C_ROWALT'/>") }
+  $badgeH = [math]::Round(20*$F)
+  $badgeW = [math]::Round(30*$F); if($label.Length -gt 2){ $badgeW = [math]::Round((14+$label.Length*7.5)*$F) }
+  $by = $y + [math]::Round(4*$F)
   $bfill = if($unb){$C_BADGE_UNB}else{$C_BADGE}
   $btxt  = if($unb){'#5b6671'}else{'#ffffff'}
-  [void]$sb.Append("<rect x='$x' y='$by' width='$([math]::Round($badgeW,1))' height='20' rx='4' fill='$bfill'/>")
-  [void]$sb.Append("<text x='$([math]::Round($x+$badgeW/2,1))' y='$($by+14.5)' font-size='12' font-weight='700' text-anchor='middle' fill='$btxt'>$(Esc $label)</text>")
-  $tx = $x + $badgeW + 11
+  $bfont = [math]::Round(12*$F)
+  [void]$sb.Append("<rect x='$x' y='$by' width='$badgeW' height='$badgeH' rx='$([math]::Round(4*$F))' fill='$bfill'/>")
+  [void]$sb.Append("<text x='$(R2 ($x+$badgeW/2))' y='$(R2 ($by+$badgeH*0.72))' font-size='$bfont' font-weight='700' text-anchor='middle' fill='$btxt'>$(Esc $label)</text>")
+  $tx = $x + $badgeW + [math]::Round(11*$F)
   $ptxtcol = if($unb){$C_HINT}else{$C_PRIM}
   $pweight = if($unb){'400'}else{'600'}
-  [void]$sb.Append("<text x='$([math]::Round($tx,1))' y='$($y+18)' font-size='13'><tspan font-weight='$pweight' fill='$ptxtcol'>$(Esc $row.Primary)</tspan>")
-  if($row.Hint){ [void]$sb.Append("<tspan font-weight='400' font-size='11.5' fill='$C_HINT'>  ($(Esc $row.Hint))</tspan>") }
+  $pfont = [math]::Round(13*$F)
+  $hfont = [math]::Round(11.5*$F)
+  [void]$sb.Append("<text x='$(R2 $tx)' y='$($y+[math]::Round(18*$F))' font-size='$pfont'><tspan font-weight='$pweight' fill='$ptxtcol'>$(Esc $row.Primary)</tspan>")
+  if($row.Hint){ [void]$sb.Append("<tspan font-weight='400' font-size='$hfont' fill='$C_HINT'>  ($(Esc $row.Hint))</tspan>") }
   [void]$sb.Append("</text>")
   if($hasVar){
-    [void]$sb.Append("<text x='$([math]::Round($tx,1))' y='$($y+34)' font-size='10.5'>")
+    $vfont = [math]::Round(10.5*$F)
+    [void]$sb.Append("<text x='$(R2 $tx)' y='$($y+[math]::Round(35*$F))' font-size='$vfont'>")
     $first=$true
     foreach($v in $row.Variants){
       if(-not $first){ [void]$sb.Append("<tspan fill='#b6c0ca'>     </tspan>") }
@@ -129,99 +175,120 @@ function Add-Row($sb,$x,$y,$colW,$row,$idx){
   return $rowH
 }
 
-# Build one card SVG + render to PNG (2x).
+# Build one card SVG + render to PNG (2x). $cfg.F = font scale; $cfg.Stack = images.
 function New-Card($cfg){
   $sb = New-Object System.Text.StringBuilder
-  $CW=$cfg.CanvasW; $CH=$cfg.CanvasH
+  $CW=$cfg.CanvasW; $CH=$cfg.CanvasH; $F=$cfg.F; $M=34
   [void]$sb.Append("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='$CW' height='$CH' viewBox='0 0 $CW $CH' font-family='Segoe UI, Arial, sans-serif'>")
   [void]$sb.Append("<rect width='$CW' height='$CH' fill='#ffffff'/>")
-  [void]$sb.Append("<text x='34' y='46' font-size='29' font-weight='700' fill='$C_TITLE'>$(Esc $cfg.Title)</text>")
-  [void]$sb.Append("<text x='34' y='70' font-size='14' fill='$C_SUB'>$(Esc $cfg.Sub)</text>")
-  [void]$sb.Append("<line x1='34' y1='84' x2='$($CW-34)' y2='84' stroke='$C_RULE' stroke-width='1.5'/>")
-  $d = $cfg.Diagram
-  $dw = $cfg.DiagW; $dh = [int]($d.H * ($dw / $d.W))
-  [void]$sb.Append("<image xlink:href='data:image/png;base64,$($d.B64)' x='$($cfg.DiagX)' y='$($cfg.DiagY)' width='$dw' height='$dh'/>")
+  $titleFont=[math]::Round(19*$F); $titleY=[math]::Round(30*$F)
+  $subFont=[math]::Round(10.5*$F); $subY=[math]::Round(49*$F)
+  $ruleY=[math]::Round(60*$F)
+  [void]$sb.Append("<text x='$M' y='$titleY' font-size='$titleFont' font-weight='700' fill='$C_TITLE'>$(Esc $cfg.Title)</text>")
+  [void]$sb.Append("<text x='$M' y='$subY' font-size='$subFont' fill='$C_SUB'>$(Esc $cfg.Sub)</text>")
+  [void]$sb.Append("<line x1='$M' y1='$ruleY' x2='$($CW-$M)' y2='$ruleY' stroke='$C_RULE' stroke-width='1.5'/>")
+  $top = $ruleY + [math]::Round(18*$F)
+  if($cfg.Stack){
+    $st = $cfg.Stack
+    $zy = if($st.Y){ $st.Y } else { $top }
+    $zh = if($st.H){ $st.H } else { $CH - $zy - [math]::Round(46*$F) }
+    Add-DiagramStack $sb $st.Rows $st.X $zy $st.W $zh $st.Gap $F
+  }
   foreach($col in $cfg.Cols){
-    $cy = $col.Y; $i = 0
+    $cy = if($col.Y){$col.Y}else{$top}; $i = 0
     foreach($r in $col.Rows){
       if($r.Header){
-        [void]$sb.Append("<text x='$($col.X)' y='$($cy+14)' font-size='12' font-weight='700' fill='$C_SUB' letter-spacing='0.6'>$(Esc $r.Header)</text>")
-        [void]$sb.Append("<line x1='$($col.X)' y1='$($cy+21)' x2='$($col.X+$col.W-12)' y2='$($cy+21)' stroke='$C_RULE' stroke-width='1'/>")
-        $cy += 30; $i=0; continue
+        [void]$sb.Append("<text x='$($col.X)' y='$($cy+[math]::Round(14*$F))' font-size='$([math]::Round(12*$F))' font-weight='700' fill='$C_SUB' letter-spacing='0.6'>$(Esc $r.Header)</text>")
+        [void]$sb.Append("<line x1='$($col.X)' y1='$($cy+[math]::Round(21*$F))' x2='$($col.X+$col.W-12)' y2='$($cy+[math]::Round(21*$F))' stroke='$C_RULE' stroke-width='1'/>")
+        $cy += [math]::Round(31*$F); $i=0; continue
       }
-      $rh = Add-Row $sb $col.X $cy $col.W $r $i
+      $rh = Add-Row $sb $col.X $cy $col.W $r $i $F
       $cy += $rh; $i++
     }
   }
-  if($cfg.Legend){ [void]$sb.Append("<text x='34' y='$($CH-18)' font-size='11.5' fill='$C_NOTE'>$(Esc $cfg.Legend)</text>") }
+  if($cfg.Legend){ [void]$sb.Append("<text x='$M' y='$($CH-[math]::Round(14*$F))' font-size='$([math]::Round(9*$F))' fill='$C_NOTE'>$(Esc $cfg.Legend)</text>") }
   [void]$sb.Append("</svg>")
   $svgPath = Join-Path $cardDir ($cfg.Name + ".svg")
   [IO.File]::WriteAllText($svgPath, $sb.ToString(), (New-Object System.Text.UTF8Encoding($false)))
   $pngPath = Join-Path $cardDir ($cfg.Name + ".png")
-  $uri = "file:///" + ($svgPath -replace '\\','/')
-  # Start-Process (not the call operator) so Chrome's stderr "NNN bytes written"
-  # message doesn't get escalated to a terminating NativeCommandError on PS 5.1.
+  # Render to a SPACE-FREE temp path, then move into cards/. Chrome's --screenshot=
+  # and the file:// URL must not contain literal spaces: Start-Process (PS 5.1)
+  # doesn't quote array args, so "...\Program Files\..." splits and Chrome reports
+  # "Multiple targets are not supported in headless mode". %20-encode the URL via
+  # [Uri].AbsoluteUri; keep the screenshot + --user-data-dir under $env:TEMP (no
+  # spaces). The isolated user-data-dir also avoids colliding with a running Chrome.
+  $uri = ([Uri]$svgPath).AbsoluteUri
+  $tmpPng = Join-Path $env:TEMP ($cfg.Name + ".png")
+  $udd = Join-Path $env:TEMP ("cardrender_" + $cfg.Name)
+  if(Test-Path $tmpPng){ Remove-Item $tmpPng -Force }
   $argv = @('--headless=new','--disable-gpu','--no-sandbox','--hide-scrollbars',
-            "--screenshot=$pngPath","--window-size=$CW,$CH",'--force-device-scale-factor=2',$uri)
+            "--user-data-dir=$udd","--screenshot=$tmpPng","--window-size=$CW,$CH",
+            '--force-device-scale-factor=2',$uri)
   $errF = [IO.Path]::GetTempFileName(); $outF = [IO.Path]::GetTempFileName()
   Start-Process -FilePath $chrome -ArgumentList $argv -Wait -NoNewWindow -RedirectStandardError $errF -RedirectStandardOutput $outF | Out-Null
   try { [IO.File]::Delete($errF); [IO.File]::Delete($outF) } catch {}
-  if(Test-Path $pngPath){ $o=[System.Drawing.Image]::FromFile($pngPath); Write-Host ("  {0,-16} {1}x{2}" -f ($cfg.Name+'.png'), $o.Width, $o.Height); $o.Dispose() }
-  else { throw "regen_cards: render failed for $($cfg.Name)." }
+  try { Remove-Item $udd -Recurse -Force -ErrorAction SilentlyContinue } catch {}
+  if(Test-Path $tmpPng){
+    Move-Item $tmpPng $pngPath -Force
+    $o=[System.Drawing.Image]::FromFile($pngPath); Write-Host ("  {0,-26} {1}x{2}" -f ($cfg.Name+'.png'), $o.Width, $o.Height); $o.Dispose()
+  } else { throw "regen_cards: render failed for $($cfg.Name)." }
 }
 
-# ================================================================ recolor diagrams
-# levels: black=0.45 white=0.85 (tuned for the MOZA navy diagrams).
-# crop:  top strip removes the "Button Number" header; 8px off the bottom.
-Write-Host "Recoloring manufacturer diagrams..."
-$DIAG_AB6 = Get-Diagram 'MOZA_AB6.png' 0.45 0.85 72 0 0 8
-$DIAG_MHG = Get-Diagram 'MOZA_MHG.png' 0.45 0.85 52 0 0 8
-$DIAG_MTQ = Get-Diagram 'MOZA_MTQ.png' 0.45 0.85 64 0 0 8
+# ================================================================ split + recolor sub-views
+Write-Host "Cropping + recoloring diagram sub-views..."
+$SUB_MTQ_MAIN  = Get-SubDiagram 'MOZA_MTQ.png' 1049 820  60  90 612 818
+$SUB_MTQ_RIGHT = Get-SubDiagram 'MOZA_MTQ.png' 1049 820 615  72 1045 486
+$SUB_MTQ_LEFT  = Get-SubDiagram 'MOZA_MTQ.png' 1049 820 620 488 1045 818
+$SUB_MHG_FRONT = Get-SubDiagram 'MOZA_MHG.png' 1037 822 515  90 985 575
+$SUB_MHG_SIDE  = Get-SubDiagram 'MOZA_MHG.png' 1037 822 100 168 460 770
+$SUB_AB6_BASE  = Get-SubDiagram 'MOZA_AB6.png'  890 691 250 110 785 650
 
 # ================================================================ AB6 (js1 49-62)
+# NOTE: variant/primary labels here are deliberately terse (vs MOZA.xml / CLAUDE.md)
+# so they fit the narrow 40%-width legend columns - same bindings, shorter wording.
 $AB6 = @(
-  @{Header='BASE BUTTONS  -  role changes with operator mode'},
-  @{Label='49';Primary='Target: cycle in-view forward';Variants=@((V 'Mine:' 'mining module 1' $C_MINE),(V 'Salv:' 'focus all heads' $C_SALV))},
-  @{Label='50';Primary='Target: cycle in-view back';Variants=@((V 'Mine:' 'mining module 2' $C_MINE),(V 'Salv:' 'focus left head' $C_SALV))},
-  @{Label='51';Primary='Target: lock closest (any)';Variants=@((V 'Mine:' 'mining module 3' $C_MINE),(V 'Salv:' 'focus right head' $C_SALV))},
-  @{Label='52';Primary='Target: lock closest attacker';Variants=@((V 'Mine:' 'jettison volatile cargo' $C_MINE),(V 'Salv:' 'toggle beam axis H/V' $C_SALV))},
-  @{Label='53';Primary='Target: cycle friendly forward';Variants=@((V 'Salv:' 'toggle-fire left beam' $C_SALV))},
-  @{Label='54';Primary='Target: cycle friendly back';Variants=@((V 'Salv:' 'toggle-fire right beam' $C_SALV))},
-  @{Label='55';Primary='Target: cycle pinned back';Variants=@((V 'Salv:' 'reset salvage gimbal' $C_SALV))},
-  @{Label='56';Primary='Target: reset sub-target';Variants=@((V 'Salv:' 'cycle structural modes' $C_SALV))},
-  @{Label='57-59';Primary='Left "Slider" lever';Hint='unbound - analog, reserved';Unbound=$true},
-  @{Label='60-62';Primary='Right "Dial" lever';Hint='unbound - analog, reserved';Unbound=$true}
+  @{Header='AB6 BASE 49-62'},
+  @{Label='49';Primary='Target: cycle in-view fwd';Variants=@((V 'Mine:' 'module 1' $C_MINE),(V 'Salv:' 'focus all' $C_SALV))},
+  @{Label='50';Primary='Target: cycle in-view back';Variants=@((V 'Mine:' 'module 2' $C_MINE),(V 'Salv:' 'focus left' $C_SALV))},
+  @{Label='51';Primary='Target: lock closest (any)';Variants=@((V 'Mine:' 'module 3' $C_MINE),(V 'Salv:' 'focus right' $C_SALV))},
+  @{Label='52';Primary='Target: lock closest attacker';Variants=@((V 'Mine:' 'jettison cargo' $C_MINE),(V 'Salv:' 'beam axis H/V' $C_SALV))},
+  @{Label='53';Primary='Target: cycle friendly fwd';Variants=@((V 'Salv:' 'fire left beam' $C_SALV))},
+  @{Label='54';Primary='Target: cycle friendly back';Variants=@((V 'Salv:' 'fire right beam' $C_SALV))},
+  @{Label='55';Primary='Target: cycle pinned back';Variants=@((V 'Salv:' 'reset gimbal' $C_SALV))},
+  @{Label='56';Primary='Target: reset sub-target';Variants=@((V 'Salv:' 'structural modes' $C_SALV))},
+  @{Label='57-59';Primary='Left "Slider" lever';Hint='unbound - reserved';Unbound=$true},
+  @{Label='60-62';Primary='Right "Dial" lever';Hint='unbound - reserved';Unbound=$true}
 )
 
 # ================================================================ MHG (js1 1-29)
 $MHG_L = @(
-  @{Header='GRIP BUTTONS 1-15'},
-  @{Label='1';Primary='Fire Guns - Group 1';Variants=@((V 'Mine:' 'fire mining laser' $C_MINE),(V 'Salv:' 'fire focused beam' $C_SALV))},
+  @{Header='GRIP 1-15'},
+  @{Label='1';Primary='Fire Guns - Group 1';Variants=@((V 'Mine:' 'fire laser' $C_MINE),(V 'Salv:' 'focused beam' $C_SALV))},
   @{Label='2';Primary='Launch missiles'},
   @{Label='3';Primary='Freelook (hold)'},
-  @{Label='4';Primary='Missile-mode toggle';Variants=@((V 'Mine:' 'switch mining laser' $C_MINE))},
+  @{Label='4';Primary='Missile-mode toggle';Variants=@((V 'Mine:' 'switch laser' $C_MINE))},
   @{Label='5';Primary='Lock target under reticle'},
-  @{Label='6';Primary='Fire Guns - Group 2';Variants=@((V 'Salv:' 'toggle salvage gimbal' $C_SALV))},
+  @{Label='6';Primary='Fire Guns - Group 2';Variants=@((V 'Salv:' 'salvage gimbal' $C_SALV))},
   @{Label='7';Primary='Countermeasure: decoy (flares)'},
-  @{Label='8';Primary='Cycle hostiles forward';Variants=@((V 'Salv:' 'fire fracture beam' $C_SALV))},
+  @{Label='8';Primary='Cycle hostiles forward';Variants=@((V 'Salv:' 'fracture beam' $C_SALV))},
   @{Label='9';Primary='Countermeasure: noise (chaff)'},
-  @{Label='10';Primary='Cycle hostiles back';Variants=@((V 'Salv:' 'fire disintegrate beam' $C_SALV))},
-  @{Label='11';Primary='Lock selected target';Variants=@((V 'Salv:' 'cycle focused modifiers' $C_SALV))},
+  @{Label='10';Primary='Cycle hostiles back';Variants=@((V 'Salv:' 'disintegrate' $C_SALV))},
+  @{Label='11';Primary='Lock selected target';Variants=@((V 'Salv:' 'cycle modifiers' $C_SALV))},
   @{Label='12';Primary='Cycle sub-target forward'},
   @{Label='13';Primary='Cycle attackers forward'},
   @{Label='14';Primary='Cycle sub-target back'},
   @{Label='15';Primary='Cycle attackers back'}
 )
 $MHG_R = @(
-  @{Header='GRIP BUTTONS 16-29'},
+  @{Header='GRIP 16-29'},
   @{Label='16';Primary='Gimbal lock toggle'},
   @{Label='17';Primary='Scan angle - narrow'},
   @{Label='18';Primary='Activate scanning (hold)'},
   @{Label='19';Primary='Scan angle - widen'},
   @{Label='20';Primary='Radar ping'},
   @{Label='21';Primary='ADS / cockpit zoom toggle'},
-  @{Label='22';Primary='Weapon preset - next';Variants=@((V 'Msl:' 'type next' $C_NOTE),(V 'Mine:' 'power +' $C_MINE),(V 'Salv:' 'spacing +' $C_SALV))},
-  @{Label='23';Primary='Weapon preset - prev';Variants=@((V 'Msl:' 'type prev' $C_NOTE),(V 'Mine:' 'power -' $C_MINE),(V 'Salv:' 'spacing -' $C_SALV))},
+  @{Label='22';Primary='Weapon preset - next';Variants=@((V 'Msl:' 'type +' $C_NOTE),(V 'Mine:' 'pwr +' $C_MINE),(V 'Salv:' 'gap +' $C_SALV))},
+  @{Label='23';Primary='Weapon preset - prev';Variants=@((V 'Msl:' 'type -' $C_NOTE),(V 'Mine:' 'pwr -' $C_MINE),(V 'Salv:' 'gap -' $C_SALV))},
   @{Label='24';Primary='Weapon aim-type cycle'},
   @{Label='25';Primary='Cycle all contacts forward'},
   @{Label='26';Primary='Snap-lock closest hostile'},
@@ -232,23 +299,23 @@ $MHG_R = @(
 
 # ================================================================ MTQ (js2 1-65 + axes)
 $MTQ_L = @(
-  @{Header='KEYPAD  /  ENCODERS  /  MODE KNOB  /  ROCKER  /  TOGGLES'},
+  @{Header='PANEL BUTTONS 1-30'},
   @{Label='1';Primary='Weapons power toggle';Hint='keypad A1'},
   @{Label='2';Primary='Thruster power toggle';Hint='A2'},
   @{Label='3';Primary='Shield power toggle';Hint='A3'},
   @{Label='4';Primary='LAMP night-vision toggle';Hint='A4'},
-  @{Label='5';Primary='Master mode cycle SCM / NAV';Hint='NAV key'},
+  @{Label='5';Primary='Master mode SCM / NAV';Hint='NAV key'},
   @{Label='6';Primary='Starmap';Hint='HDG key'},
   @{Label='7';Primary='Engage quantum drive';Hint='SPD key'},
   @{Label='8';Primary='Autoland';Hint='ALT key'},
   @{Label='9';Primary='Jump - inter-system';Hint='FD key'},
   @{Label='10';Primary='Request landing / ATC';Hint='AP key'},
-  @{Label='11';Primary='Speed limiter -';Hint='upper encoder CCW'},
-  @{Label='12';Primary='Speed limiter +';Hint='upper encoder CW'},
-  @{Label='13';Primary='Speed limiter on / off';Hint='upper encoder press'},
-  @{Label='14';Primary='Accel / G limiter -';Hint='lower encoder CCW'},
-  @{Label='15';Primary='Accel / G limiter +';Hint='lower encoder CW'},
-  @{Label='16';Primary='G-force safety toggle';Hint='lower encoder press'},
+  @{Label='11';Primary='Speed limiter -';Hint='upper enc CCW'},
+  @{Label='12';Primary='Speed limiter +';Hint='upper enc CW'},
+  @{Label='13';Primary='Speed limiter on / off';Hint='upper enc press'},
+  @{Label='14';Primary='Accel / G limiter -';Hint='lower enc CCW'},
+  @{Label='15';Primary='Accel / G limiter +';Hint='lower enc CW'},
+  @{Label='16';Primary='G-force safety toggle';Hint='lower enc press'},
   @{Label='17';Primary='Guns mode';Hint='knob detent 1'},
   @{Label='18';Primary='Missile mode';Hint='knob detent 2'},
   @{Label='19';Primary='Scan mode';Hint='knob detent 3'},
@@ -265,9 +332,9 @@ $MTQ_L = @(
   @{Label='30';Primary='Landing gear deploy';Hint='gear lever down'}
 )
 $MTQ_R = @(
-  @{Header='THROTTLE  /  FLIGHT  /  POWER  /  VIEW'},
+  @{Header='BUTTONS 34-65'},
   @{Label='34';Primary='Throttle reverse / decrease';Hint='rear detent'},
-  @{Label='31-43';Primary='FLAPS / Speedbrake / throttle detents';Hint='unbound - analog axes used instead';Unbound=$true},
+  @{Label='31-43';Primary='unbound (analog axes)';Unbound=$true},
   @{Label='49';Primary='VTOL off';Hint='3-pos switch rest'},
   @{Label='50';Primary='VTOL on';Hint='3-pos switch fwd-latch'},
   @{Label='51';Primary='Space brake';Hint='3-pos switch back'},
@@ -275,7 +342,7 @@ $MTQ_R = @(
   @{Label='55';Primary='Power to shields';Hint='WPN hat down'},
   @{Label='54';Primary='Power to engines';Hint='WPN hat left'},
   @{Label='53';Primary='Power allocation reset';Hint='WPN hat right'},
-  @{Label='52';Primary='Power to shields MAX (hold)';Hint='WPN hat press'},
+  @{Label='52';Primary='Power to shields MAX';Hint='WPN hat hold'},
   @{Label='61';Primary='Strafe up';Hint='COM hat up'},
   @{Label='60';Primary='Strafe down';Hint='COM hat down'},
   @{Label='59';Primary='Strafe left';Hint='COM hat left'},
@@ -284,33 +351,58 @@ $MTQ_R = @(
   @{Label='62';Primary='Cycle camera view';Hint='mini-stick press'},
   @{Label='63';Primary='Zoom in - cockpit';Hint='throttle dial fwd'},
   @{Label='64';Primary='Zoom out - cockpit';Hint='throttle dial back'},
-  @{Label='65';Primary='Boost / afterburner';Hint='Left Module button'},
+  @{Label='65';Primary='Boost / afterburner';Hint='L-Module button'},
   @{Header='AXES'},
   @{Label='RY';Primary='Main throttle - forward';Hint='throttle lever'},
-  @{Label='Slider';Primary='Mining laser power';Hint='FLAPS lever, Mining mode'},
-  @{Label='Dial';Primary='Salvage beam spacing';Hint='Speedbrake lever, Salvage mode'},
+  @{Label='Slider';Primary='Mining laser power';Hint='FLAPS, Mining'},
+  @{Label='Dial';Primary='Salvage beam spacing';Hint='S-brake, Salvage'},
   @{Label='X / Y';Primary='Camera look (yaw / pitch)';Hint='mini-stick'},
-  @{Label='RX';Primary='Throttle twin';Hint='unbound - unused';Unbound=$true}
+  @{Label='RX';Primary='Throttle twin';Hint='unbound';Unbound=$true}
 )
 
 # ================================================================ render
-Write-Host "Rendering cards (2x via $([IO.Path]::GetFileName($chrome)))..."
-New-Card @{ Name='MOZA_AB6_ref'; Title='MOZA AB6 FFB Base  -  Button Reference';
-  Sub="js1 base, buttons 49-62  $MID  left wing 49-52, right wing 53-56  $MID  the same 8 buttons change job with the operator mode";
-  Diagram=$DIAG_AB6; DiagW=840; DiagX=30; DiagY=104; CanvasW=1500; CanvasH=740;
-  Cols=@( @{X=905; Y=120; W=560; Rows=$AB6} );
-  Legend="Combat = targeting bank   $MID   Mine: = Mining mode   $MID   Salv: = Salvage mode.  Operator mode is selected on the MTQ rotary knob.  The two levers also drive analog axes (mining laser power / salvage beam spacing) reported on the throttle device." }
+# Layout: LEFT ~60% of the sheet = images (two stacked quadrant bands - the two
+# small views side by side on top, the one big view below); RIGHT ~40% = the
+# lookup table in two columns. CanvasW:CanvasH = 11:8.5 (1.294) fills a Letter
+# sheet in landscape. $F is dialled down so the narrow 40% table still fits.
+# Geometry: image zone x=24..1064 (W=1040); table columns start at x=1090.
+Write-Host "Rendering print cards (2x via $([IO.Path]::GetFileName($chrome)))..."
 
-New-Card @{ Name='MOZA_MHG_ref'; Title='MOZA MHG Grip  -  Button Reference';
-  Sub="js1 grip, buttons 1-29  $MID  mounted on the AB6 base  $MID  trigger / hats / rocker reused per operator mode";
-  Diagram=$DIAG_MHG; DiagW=900; DiagX=26; DiagY=102; CanvasW=1960; CanvasH=812;
-  Cols=@( @{X=965; Y=118; W=470; Rows=$MHG_L}, @{X=1465; Y=118; W=470; Rows=$MHG_R} );
-  Legend="Combat (default)   $MID   Msl: = Missile mode   $MID   Mine: = Mining mode   $MID   Salv: = Salvage mode.  One physical control does a different job per operator mode (set on the MTQ knob); only one is ever live at a time." }
+# --- Card 1: MHG grip + AB6 base (js1), combined ---
+# Top band: the two grip views side by side (larger). Bottom band: the AB6 base
+# (smaller - far fewer buttons). Base Frac kept below the grips' so it reads smaller.
+$MHG_AB6_COL2 = $MHG_R + $AB6
+New-Card @{ Name='MOZA_MHG_AB6_ref'; F=1.18; CanvasW=1860; CanvasH=1437;
+  Title='MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)';
+  Sub="MHG grip 1-29 mounted on the AB6 base 49-62  $MID  trigger / hats / rocker / wings reused per operator mode";
+  Stack=@{ X=24; W=1040; Gap=26; Rows=@(
+    @{ Imgs=@(
+        @{D=$SUB_MHG_FRONT; Frac=0.50; Caption='MHG grip - front (hats & buttons)'},
+        @{D=$SUB_MHG_SIDE;  Frac=0.38; Caption='MHG grip - side'}
+    )},
+    @{ Imgs=@(
+        @{D=$SUB_AB6_BASE;  Frac=0.42; Caption='AB6 base - wings & levers'}
+    )}
+  )};
+  Cols=@( @{X=1090; W=370; Rows=$MHG_L}, @{X=1475; W=365; Rows=$MHG_AB6_COL2} );
+  Legend="Combat (default)  $MID  Msl: Missile  $MID  Mine: Mining  $MID  Salv: Salvage.  One control = a different job per operator mode (set on the MTQ knob); AB6 wings 49-56 are targeting in combat, module/salvage banks in those modes." }
 
-New-Card @{ Name='MOZA_MTQ_ref'; Title='MOZA MTQ Throttle Panel  -  Button Reference';
-  Sub="js2 throttle, buttons 1-65 + axes  $MID  buttons 44-48 are absent on the device";
-  Diagram=$DIAG_MTQ; DiagW=950; DiagX=26; DiagY=100; CanvasW=2000; CanvasH=1000;
-  Cols=@( @{X=1010; Y=112; W=445; Rows=$MTQ_L}, @{X=1470; Y=112; W=505; Rows=$MTQ_R} );
-  Legend="Throttle forward = axis (RY); reverse = rear-detent button 34.  The FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage modes - their click detents (31-43) are left unbound." }
+# --- Card 2: MTQ throttle (js2) ---
+# Top band: the two module views side by side. Bottom band: the throttle panel
+# (the big, button-dense view) below them.
+New-Card @{ Name='MOZA_MTQ_ref'; F=1.15; CanvasW=1860; CanvasH=1437;
+  Title='MOZA MTQ Throttle Panel  -  Button Reference  (js2)';
+  Sub="throttle 1-65 + axes  $MID  buttons 44-48 are absent on the device";
+  Stack=@{ X=24; W=1040; Gap=26; Rows=@(
+    @{ Imgs=@(
+        @{D=$SUB_MTQ_RIGHT; Frac=0.46},
+        @{D=$SUB_MTQ_LEFT;  Frac=0.46}
+    )},
+    @{ Imgs=@(
+        @{D=$SUB_MTQ_MAIN;  Frac=0.62; Caption='Throttle panel'}
+    )}
+  )};
+  Cols=@( @{X=1090; W=370; Rows=$MTQ_L}, @{X=1475; W=365; Rows=$MTQ_R} );
+  Legend="Throttle forward = axis (RY); reverse = rear-detent button 34.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage modes; their click detents (31-43) are unbound." }
 
-Write-Host "Done -> MOZA_AB6_ref, MOZA_MHG_ref, MOZA_MTQ_ref (.png + .svg) in $cardDir"
+Write-Host "Done -> MOZA_MHG_AB6_ref, MOZA_MTQ_ref (.png + .svg) in $cardDir"
