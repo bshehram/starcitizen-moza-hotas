@@ -153,8 +153,8 @@ Released under the [MIT License](LICENSE) — © 2026 Basit Shehram.
 
 Everything here is **original work** — the `MOZA.xml` profile, the `CLAUDE.md` reference, the
 reference cards, the regeneration scripts, and the HTML binding sheet were all authored for this
-repo. **No `joystick-diagrams` / "JD" tooling — or any other third-party profile generator — is
-used anywhere**; the cards are built solely by the in-repo `tools/regen_cards.ps1`.
+repo. **No third-party profile generator is used anywhere**; the cards are built solely by the
+in-repo `tools/regen_cards.ps1`.
 
 Two third-party *inputs* are **not** covered by the MIT license and remain their owners' property:
 
