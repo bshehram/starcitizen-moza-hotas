@@ -375,39 +375,25 @@
     <action name="v_view_pitch">
       <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
-    <!-- Throttle dial (63/64) = "shotgun" of EVERY vehicle zoom action, so whichever one does something in a ship wins.
-         Multiple actions per button is fine - they all fire on the click (like the doubled door binds). Forward/63 = all
-         zoom-IN; back/64 = all zoom-OUT. Known: v_view_dynamic_zoom_rel zooms the COCKPIT (works); v_view_zoom (3rd-person
-         camera-distance) is dead in testing but harmless. The on-foot zoom trio (zoom_/spectate_/pc_) is excluded - can't
-         fire from a pilot seat. ALSO re-trying view_fov (Advanced Camera FoV) WITH its modifier view_enable_camview_mode
-         bound to the SAME two buttons (below), on the theory that one click both "holds" the modifier and fires the FoV
-         step. Long shot: the modifier normally must be HELD (kb F4) while pressing FoV, and a momentary click fires both
-         at the same instant, so the timing may not register - and activating the camview modifier could even interfere
-         with the dynamic zoom that DOES work. Harmless to try; pull it if it misbehaves. -->
+    <!-- Throttle dial (63/64) = vehicle zoom: forward/63 = zoom-IN, back/64 = zoom-OUT, both actions firing per click.
+         v_view_dynamic_zoom_rel zooms the COCKPIT (works); v_view_zoom (3rd-person camera-distance) is dead in testing
+         but harmless. On-foot zoom trio excluded (can't fire from a seat).
+         3rd-person FoV zoom (the kb "HOLD F4 + tap NumPad +/-" combo) is NOT achievable from this dial and the attempt
+         was removed: view_fov needs the camview modifier HELD, but a momentary dial click can't hold anything - stacking
+         view_fov + view_enable_camview_mode on the same click did nothing (confirmed in-ship). The only way to drive that
+         combo off the dial would be a MOZA Pithouse keyboard MACRO ("F4 down, NumPad+ tap, F4 up" per click) - a hardware
+         remap outside this SC profile. Otherwise: dial = cockpit zoom; 3rd-person FoV zoom stays on the keyboard. -->
     <action name="v_view_dynamic_zoom_rel_in">
       <rebind input="js2_button63"/>  <!-- Dynamic FOV zoom IN (works in cockpit) - dial forward/CW -->
     </action>
     <action name="v_view_zoom_in">
       <rebind input="js2_button63"/>  <!-- 3rd-person camera-distance zoom IN (dead in testing, harmless) - dial forward/CW -->
     </action>
-    <action name="view_fov_in">
-      <rebind input="js2_button63"/>  <!-- Advanced Camera: Increase FoV - dial forward/CW (paired with the camview modifier below) -->
-    </action>
     <action name="v_view_dynamic_zoom_rel_out">
       <rebind input="js2_button64"/>  <!-- Dynamic FOV zoom OUT (works in cockpit) - dial back/CCW -->
     </action>
     <action name="v_view_zoom_out">
       <rebind input="js2_button64"/>  <!-- 3rd-person camera-distance zoom OUT - dial back/CCW -->
-    </action>
-    <action name="view_fov_out">
-      <rebind input="js2_button64"/>  <!-- Advanced Camera: Decrease FoV - dial back/CCW -->
-    </action>
-    <!-- Camview modifier on BOTH dial directions, so a click holds it while the FoV step fires (the experiment). One
-         action, two inputs (two rebinds); if SC only honors one, FoV would work in just one direction - the dynamic
-         cockpit zoom still covers both regardless. -->
-    <action name="view_enable_camview_mode">
-      <rebind input="js2_button63"/>
-      <rebind input="js2_button64"/>
     </action>
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
