@@ -156,15 +156,12 @@
     <action name="v_ifcs_vector_decoupling_toggle">
       <rebind input="js2_button57"/>  <!-- Toggle coupled/decoupled - MTQ "COM" strafe-hat CENTER PRESS -->
     </action>
-    <action name="v_ifcs_toggle_esp">
-      <rebind input="js2_button4"/>  <!-- Toggle ESP (aim-assist input dampening) - MTQ keypad "A4". Moved off the throttle dial (a wheel re-toggles ESP on every click as you roll - janky); A4 was vacated by the LAMP toggle (removed - LAMP now rides the lights switch) -->
-    </action>
     <action name="v_ifcs_toggle_gforce_safety">
       <rebind input="js2_button16"/>  <!-- Toggle G-Safe (MTQ lower encoder CENTER PRESS). Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the G-safety that governs it. MOVED here from js1_button51 (AB6 left wing 3), which is now FREE -->
     </action>
-    <!-- Proximity assist toggle REMOVED: v_ifcs_proximity_assist_toggle is a valid action name but a confirmed NO-OP in
-         4.x (tested in the 315p and Anvil F8C - the prox indicator never changed, while ESP toggled fine on the same
-         dial/button). Left unbound; proximity assist stays at its default (on), which the user is fine with. -->
+    <!-- ESP and Proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default (in the
+         SC settings) and never turns them off. v_ifcs_toggle_esp was on keypad A4 - now returned to the LAMP toggle;
+         v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x (tested in the 315p + Anvil F8C). -->
 
     <!-- Landing & Air Traffic Control -->
     <action name="v_atc_request">
@@ -234,16 +231,8 @@
     <action name="v_set_salvage_mode">
       <rebind input="js2_button21"/>  <!-- Detent 5 (full CW) = Salvage operator mode (salvage-capable ships) -->
     </action>
-    <!-- LAMP (canopy night-vision) now rides the LIGHTS toggle (MTQ toggle B): the "on" throw (27) turns lights AND LAMP
-         on, the "off" throw (28) turns lights AND LAMP off - one switch for "go dark / see in the dark". v_lights_on/off
-         live in the lights_controller map on these same buttons; both maps are active in-seat, so 27/28 each fire both
-         actions (same pattern as the doubled door binds). The old discrete LAMP toggle on A4 was removed (A4 = ESP now),
-         and LAMP off moved off AB6 left slider (js1_button59, now FREE). -->
-    <action name="v_light_amplification_on">
-      <rebind input="js2_button27"/>  <!-- LAMP ON - paired with Lights ON (MTQ toggle B, UP throw) -->
-    </action>
-    <action name="v_light_amplification_off">
-      <rebind input="js2_button28"/>  <!-- LAMP OFF - paired with Lights OFF (MTQ toggle B, DOWN throw) -->
+    <action name="v_light_amplification_toggle">
+      <rebind input="js2_button4"/>  <!-- LAMP toggle - canopy night-vision (MTQ keypad "A4"). Back on A4 after ESP was unbound (ESP is now left enabled-by-default instead). The earlier LAMP-on/off pairing on the lights switch was dropped - 27/28 are lights-only again. -->
     </action>
   </actionmap>
 
@@ -387,23 +376,38 @@
       <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
     <!-- Throttle dial (63/64) = "shotgun" of EVERY vehicle zoom action, so whichever one does something in a ship wins.
-         Forward/63 = both vehicle zoom-IN actions; back/64 = both zoom-OUT. Two actions per button in the same map is
-         fine (both fire, like the doubled door binds). Known: v_view_dynamic_zoom_rel zooms the COCKPIT (works);
-         v_view_zoom is the 3rd-person camera-distance one (dead in testing) but harmless. The other three "zoom" pairs
-         on keyboard (zoom_in / spectate_zoom_in / pc_zoom_in) are ON-FOOT / spectator / interaction actions - they can't
-         fire from a pilot seat, so they're excluded (rig is vehicle-only; on foot = Xbox). FoV zoom (view_fov) was
-         dropped: it needs the camview modifier (kb F4) HELD, so a bare dial click does nothing. -->
+         Multiple actions per button is fine - they all fire on the click (like the doubled door binds). Forward/63 = all
+         zoom-IN; back/64 = all zoom-OUT. Known: v_view_dynamic_zoom_rel zooms the COCKPIT (works); v_view_zoom (3rd-person
+         camera-distance) is dead in testing but harmless. The on-foot zoom trio (zoom_/spectate_/pc_) is excluded - can't
+         fire from a pilot seat. ALSO re-trying view_fov (Advanced Camera FoV) WITH its modifier view_enable_camview_mode
+         bound to the SAME two buttons (below), on the theory that one click both "holds" the modifier and fires the FoV
+         step. Long shot: the modifier normally must be HELD (kb F4) while pressing FoV, and a momentary click fires both
+         at the same instant, so the timing may not register - and activating the camview modifier could even interfere
+         with the dynamic zoom that DOES work. Harmless to try; pull it if it misbehaves. -->
     <action name="v_view_dynamic_zoom_rel_in">
       <rebind input="js2_button63"/>  <!-- Dynamic FOV zoom IN (works in cockpit) - dial forward/CW -->
     </action>
     <action name="v_view_zoom_in">
       <rebind input="js2_button63"/>  <!-- 3rd-person camera-distance zoom IN (dead in testing, harmless) - dial forward/CW -->
     </action>
+    <action name="view_fov_in">
+      <rebind input="js2_button63"/>  <!-- Advanced Camera: Increase FoV - dial forward/CW (paired with the camview modifier below) -->
+    </action>
     <action name="v_view_dynamic_zoom_rel_out">
       <rebind input="js2_button64"/>  <!-- Dynamic FOV zoom OUT (works in cockpit) - dial back/CCW -->
     </action>
     <action name="v_view_zoom_out">
       <rebind input="js2_button64"/>  <!-- 3rd-person camera-distance zoom OUT - dial back/CCW -->
+    </action>
+    <action name="view_fov_out">
+      <rebind input="js2_button64"/>  <!-- Advanced Camera: Decrease FoV - dial back/CCW -->
+    </action>
+    <!-- Camview modifier on BOTH dial directions, so a click holds it while the FoV step fires (the experiment). One
+         action, two inputs (two rebinds); if SC only honors one, FoV would work in just one direction - the dynamic
+         cockpit zoom still covers both regardless. -->
+    <action name="view_enable_camview_mode">
+      <rebind input="js2_button63"/>
+      <rebind input="js2_button64"/>
     </action>
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
