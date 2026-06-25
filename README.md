@@ -8,14 +8,18 @@
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
 
-A complete, hand-tuned Star Citizen control-mapping profile for a **MOZA flight setup** —
-MHG grip on an AB6 FFB base, plus an MTQ throttle quadrant. The whole rig drives flight,
-combat, mining, and salvage from physical controls, with every binding documented and
-verified in-game.
+This is my hand-tuned Star Citizen control-mapping profile for a **MOZA flight setup**: an MHG
+grip on an AB6 FFB base, plus an MTQ throttle quadrant. The whole rig drives flight, combat,
+mining, and salvage from physical controls, and I've documented and verified every binding
+in-game.
 
 > **All you actually need from this repo is [`MOZA.xml`](MOZA.xml).** Everything else is
-> documentation, reference art, and the scripts that regenerate it. See
+> documentation, reference art, and the scripts that regenerate it. Jump to
 > [Installing](#installing) for the two ways to put it in place.
+
+**Folder docs** — each subfolder has its own README with the detail for what lives there:
+[`diagrams/`](diagrams/README.md) · [`cards/`](cards/README.md) ·
+[`reference/`](reference/README.md) · [`tools/`](tools/README.md).
 
 ---
 
@@ -26,17 +30,16 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | | Requirement | Why |
 | --- | --- | --- |
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
-| 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. Different hardware → the device GUIDs won't match and bindings land nowhere. |
+| 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
 | 🚀 | **Star Citizen** (captured against **Alpha 4.8**) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
 | ⚙️ | **MOZA Cockpit / Pithouse** configurator | A couple of device-side settings are assumed on — notably **"Detent Button Mapping" ON** (so the throttle rear detent emits button 34 for reverse) and **mixed-mode** on the AB6/MTQ levers (so the sliders emit an analog axis). |
 
-> **Don't have this exact rig?** You can still read the bindings as a starting point and
-> rebind to your own devices — but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so
-> it won't load cleanly onto other hardware without editing.
+> **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
+> to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
+> load cleanly onto other hardware without editing.
 
-**Only needed to regenerate the docs/cards** (not to *use* the profile): Windows PowerShell
-with .NET `System.Drawing`, **Chrome or Edge** (headless SVG→PNG), and internet access for the
-keybind-database refresh. Details in [`CLAUDE.md` §7–8](CLAUDE.md).
+Regenerating the docs and cards (not needed just to *use* the profile) takes Windows PowerShell
+with .NET `System.Drawing`, Chrome or Edge, and internet access. See [`tools/`](tools/README.md).
 
 ---
 
@@ -48,12 +51,14 @@ Star Citizen loads control profiles from:
 …\StarCitizen\LIVE\user\client\0\controls\mappings\
 ```
 
+The game does **not** load profiles automatically — you apply them yourself (see below).
+
 **Option A — just the file (minimal).** Copy [`MOZA.xml`](MOZA.xml) into that folder. That's it.
 
-**Option B — the whole repo as your mappings folder (what the author does).** Clone this repo
-*into* the mappings folder. The game only reads `MOZA.xml` at the root and **ignores
-subfolders**, so the diagrams, cards, and tools come along harmlessly and you get the reference
-material right where you fly:
+**Option B — the whole repo as your mappings folder (what I do).** Clone this repo *into* the
+mappings folder. The game only reads `MOZA.xml` at the root and **ignores subfolders**, so the
+diagrams, cards, and tools come along harmlessly and I get the reference material right where I
+fly:
 
 ```powershell
 cd "…\StarCitizen\LIVE\user\client\0\controls\mappings\"
@@ -64,9 +69,10 @@ git clone https://github.com/bshehram/starcitizen-moza-hotas.git
 **Then load it in-game**, either way:
 
 - **Options → Keybindings → Control Profiles → Load**, or
-- open the console (`` ` ``) and run `pp_rebindkeys MOZA.xml`.
+- open the console (`` ` ``) and run `pp_rebindkeys MOZA.xml` (the file name, no path).
 
-Full instructions and the XML-format walkthrough are in [`CLAUDE.md` §2](CLAUDE.md).
+> **Tip:** save your profile under a custom name before loading it, so a game patch that resets
+> defaults can't overwrite your work.
 
 ---
 
@@ -77,15 +83,30 @@ Full instructions and the XML-format walkthrough are in [`CLAUDE.md` §2](CLAUDE
 | `js1` | **MOZA MHG** grip on **MOZA AB6 FFB** base (one DirectInput device) | grip 1–29, base 49–62 | roll / pitch / yaw twist + 2 lever axes |
 | `js2` | **MOZA MTQ** Throttle Panel | 1–65 | throttle + camera mini-stick + 2 side sliders |
 
-**Vehicle-only by design** — on foot the author plays on an Xbox controller, so this profile
-binds only seat/vehicle contexts. See [`CLAUDE.md` §1](CLAUDE.md) for the full hardware map
-and the device-instance caveat (keep USB enumeration order stable so `js1`/`js2` don't swap).
+The MHG grip and the AB6 base report as **one** DirectInput device (`js1`): grip buttons are
+1–29, the base's buttons continue at 49–62 (there's a 30–48 gap with no physical buttons). The
+MTQ throttle is a **separate** device (`js2`). The full physical-control → button-number maps
+live in [`diagrams/`](diagrams/README.md).
+
+Product GUIDs as written in the profile:
+
+- `js1` → `MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}`
+- `js2` → `MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}`
+
+> **⚑ Vehicle-only by design.** On foot I play on an Xbox controller, so this profile binds
+> only seat/vehicle contexts — there are no on-foot (`player` / `spectator`) bindings.
+
+> **⚠ Device-instance fragility.** `js1`/`js2` are assigned by the order the game enumerates USB
+> devices. If Windows re-enumerates them (port change, hub, reconnect order) the two sticks can
+> **swap**, and every binding points at the wrong device. If that happens, re-plug in the
+> original order, or swap the `instance="1"`/`instance="2"` Product lines in the XML.
 
 ---
 
 ## Reference cards
 
 Printable US-Letter cheat sheets (one per device), generated from the manufacturer diagrams.
+Full detail and how to print in [`cards/`](cards/README.md).
 
 | `js1` — MHG grip + AB6 base | `js2` — MTQ throttle |
 | --- | --- |
@@ -96,52 +117,63 @@ Printable US-Letter cheat sheets (one per device), generated from the manufactur
 ## Repo layout
 
 ```
-MOZA.xml            ← the profile the game loads — THE ONLY FILE YOU NEED (keep in root)
-CLAUDE.md           ← the full reference: every binding explained, format docs, how-tos
-diagrams/           ← manufacturer button-number maps (source art)
-cards/              ← generated printable cheat sheets (PNG + editable SVG)
-reference/          ← starbinder action catalogue (v4.8) + an HTML binding sheet
-tools/              ← regeneration scripts (run from the project root)
+MOZA.xml            the profile the game loads — THE ONLY FILE YOU NEED (keep in root)
+README.md           this file
+LICENSE             MIT license
+diagrams/           manufacturer button-number maps (source art) + button-index tables
+cards/              generated printable cheat sheets (PNG + editable SVG)
+reference/          starbinder action catalogue (v4.8) + an HTML binding sheet
+tools/              regeneration scripts (run from the project root)
 ```
+
+Each folder above has its own README with the details:
+[`diagrams/`](diagrams/README.md) · [`cards/`](cards/README.md) ·
+[`reference/`](reference/README.md) · [`tools/`](tools/README.md). (You'll also see `CLAUDE.md`
+files scattered through the repo — those are working notes for the Claude AI assistant and aren't
+needed by human readers.)
+
+---
 
 ## Tooling
 
-Both scripts are PowerShell, run from the project root:
+Both scripts are PowerShell, run from the project root. Full usage, requirements, and gotchas are
+in [`tools/`](tools/README.md).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # refresh the action catalogue for a new SC patch
 powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards after a binding change
 ```
 
-See [`CLAUDE.md` §7–8](CLAUDE.md) for what each does and when to run it.
-
 ---
 
 ## Status
 
-- **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean);
-  121 `<action>`/`<rebind>` pairs across 17 action maps, no action bound to two different inputs.
-  Buttons that appear in several maps (trigger, rocker, hats, AB6 wings) are intentional
-  **operator-mode reuse** — only one of those maps is live at a time. See [`CLAUDE.md` §5](CLAUDE.md).
-- **Internally tested — in-game verified.** Bindings were validated in live Star Citizen (Alpha 4.8),
-  including the mining-laser and salvage-spacing slider axes confirmed in a Golem and a Salvation.
-  Action labels/descriptions were cross-checked against the
-  [starbinder](https://starbinder.space/) master catalogue.
+- **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
+  121 `<action>`/`<rebind>` pairs across 17 action maps, with no action bound to two different
+  inputs. Buttons that appear in several maps (the trigger, rocker, hats, AB6 wings) are
+  intentional **operator-mode reuse** — only one of those maps is live at a time, depending on
+  whether the seat is in flight, mining, or salvage mode.
+- **Internally tested — in-game verified.** I validated the bindings in live Star Citizen
+  (Alpha 4.8), including the mining-laser and salvage-spacing slider axes, which I confirmed in a
+  Golem and a Salvation. I cross-checked the action labels and descriptions against the
+  [starbinder](https://starbinder.space/) master catalogue, captured in
+  [`reference/`](reference/README.md).
 
-> Badges are self-reported (this is a personal config repo, not a CI'd codebase). The XML
-> "passing" claim is reproducible locally with the `xmllint` command above; "tested" means
-> hands-on in the game, documented binding-by-binding in `CLAUDE.md`.
+> Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
+> "passing" claim is reproducible locally with the `xmllint` command above, and "tested" means
+> hands-on in the game.
 
 ---
 
 ## Contributing
 
-Solo-maintained, but **PRs are welcome and will be reviewed** — corrections, bindings for other
-MOZA layouts, newer-patch updates, or improvements to the docs/cards. Please:
+I maintain this solo, but **PRs are welcome and I'll review them** — corrections, bindings for
+other MOZA layouts, newer-patch updates, or improvements to the docs and cards. Please:
 
 - keep [`MOZA.xml`](MOZA.xml) loading cleanly (run `xmllint --noout MOZA.xml`), and
-- if you change a binding, update its inline comment, the matching row in [`CLAUDE.md` §4](CLAUDE.md),
-  and the card tables in `tools/regen_cards.ps1` (the cards aren't auto-derived from the XML — see [`CLAUDE.md` §8.3](CLAUDE.md)).
+- if you change a binding, update its inline comment in the XML and the card tables in
+  `tools/regen_cards.ps1` (the cards aren't auto-derived from the XML — see
+  [`tools/`](tools/README.md)).
 
 Open an issue first if it's a big change, so we don't duplicate effort.
 
@@ -151,10 +183,10 @@ Open an issue first if it's a big change, so we don't duplicate effort.
 
 Released under the [MIT License](LICENSE) — © 2026 Basit Shehram.
 
-Everything here is **original work** — the `MOZA.xml` profile, the `CLAUDE.md` reference, the
-reference cards, the regeneration scripts, and the HTML binding sheet were all authored for this
-repo. **No third-party profile generator is used anywhere**; the cards are built solely by the
-in-repo `tools/regen_cards.ps1`.
+Everything here is **original work**: I built the `MOZA.xml` profile, the reference cards, the
+regeneration scripts, the HTML binding sheet, and all the documentation for this repo. **No
+third-party profile generator is used anywhere** — the cards are built solely by the in-repo
+`tools/regen_cards.ps1`.
 
 Two third-party *inputs* are **not** covered by the MIT license and remain their owners' property:
 
