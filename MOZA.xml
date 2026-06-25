@@ -386,16 +386,24 @@
     <action name="v_view_pitch">
       <rebind input="js2_y"/>  <!-- Look up/down (mini-stick Y axis) -->
     </action>
-    <!-- Throttle dial (63/64) = Advanced Camera FoV zoom (EXPERIMENTAL). view_fov_in/out are "advanced camera controls"
-         in the DB - they may require HOLDING the camview modifier (view_enable_camview_mode) to take effect, in which
-         case a bare dial roll does nothing. Action map is also a best guess (placed in spaceship_view). If it doesn't
-         zoom in normal flight, this is a dead end and the dial just goes unused. (Prior attempts: v_view_zoom_in/out =
-         dead everywhere; v_view_dynamic_zoom_rel = worked in cockpit only; on-foot zoom_in/out = wrong context, removed.) -->
-    <action name="view_fov_in">
-      <rebind input="js2_button63"/>  <!-- Advanced Camera: Increase FoV / zoom IN - throttle dial forward/CW click -->
+    <!-- Throttle dial (63/64) = "shotgun" of EVERY vehicle zoom action, so whichever one does something in a ship wins.
+         Forward/63 = both vehicle zoom-IN actions; back/64 = both zoom-OUT. Two actions per button in the same map is
+         fine (both fire, like the doubled door binds). Known: v_view_dynamic_zoom_rel zooms the COCKPIT (works);
+         v_view_zoom is the 3rd-person camera-distance one (dead in testing) but harmless. The other three "zoom" pairs
+         on keyboard (zoom_in / spectate_zoom_in / pc_zoom_in) are ON-FOOT / spectator / interaction actions - they can't
+         fire from a pilot seat, so they're excluded (rig is vehicle-only; on foot = Xbox). FoV zoom (view_fov) was
+         dropped: it needs the camview modifier (kb F4) HELD, so a bare dial click does nothing. -->
+    <action name="v_view_dynamic_zoom_rel_in">
+      <rebind input="js2_button63"/>  <!-- Dynamic FOV zoom IN (works in cockpit) - dial forward/CW -->
     </action>
-    <action name="view_fov_out">
-      <rebind input="js2_button64"/>  <!-- Advanced Camera: Decrease FoV / zoom OUT - throttle dial back/CCW click -->
+    <action name="v_view_zoom_in">
+      <rebind input="js2_button63"/>  <!-- 3rd-person camera-distance zoom IN (dead in testing, harmless) - dial forward/CW -->
+    </action>
+    <action name="v_view_dynamic_zoom_rel_out">
+      <rebind input="js2_button64"/>  <!-- Dynamic FOV zoom OUT (works in cockpit) - dial back/CCW -->
+    </action>
+    <action name="v_view_zoom_out">
+      <rebind input="js2_button64"/>  <!-- 3rd-person camera-distance zoom OUT - dial back/CCW -->
     </action>
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- Toggle zoomed cockpit view (binoculars) -->
@@ -403,8 +411,8 @@
   </actionmap>
 
   <!-- On-foot zoom maps (player / spectator / player_choice) were removed - the rig is vehicle-only (see CLAUDE.md S1),
-       and those zoom actions don't apply in a vehicle anyway. The throttle dial now carries an EXPERIMENTAL view_fov
-       binding (see spaceship_view above). -->
+       and those zoom actions can't fire in a vehicle anyway. The throttle dial now shotguns both VEHICLE zoom actions
+       (see spaceship_view above). -->
 
   <!-- ================================================================ -->
   <!-- MINING CONTROLS (mode-specific duplicates)                       -->
