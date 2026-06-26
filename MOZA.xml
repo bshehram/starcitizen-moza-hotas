@@ -381,8 +381,8 @@
     <action name="v_view_cycle_fwd">
       <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = pin target). -->
     </action>
-    <action name="v_view_freelook_mode">
-      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD to freelook (look around the cockpit independent of ship facing) -->
+    <action name="v_view_look_behind">
+      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera (hold is v_view_look_behind's native behavior, so no activationMode is set). REPLACED v_view_freelook_mode: freelook detached the view from ship facing, and because this button sits under the pinky an unconscious hold felt like losing control. Look-behind keeps FULL stick/flight control (only the camera swings rear) and snaps back on release - so even a parked pinky no longer kills control. Look-around is still fully covered by the MTQ mini-stick (js2_x/js2_y), so dropping freelook costs nothing. -->
     </action>
     <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">

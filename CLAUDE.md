@@ -125,7 +125,7 @@ Format: **`<device><axis|button>`**
 
 `activationMode` controls how the press is interpreted. Used in this profile:
 
-- **`hold`** - the action is active only while the control is held (used here for the look/freelook view controls so the camera pans while held and re-centres on release).
+- **`hold`** - the action is active only while the control is held. **No binding sets it explicitly** - `v_view_look_behind` (MHG pinky button) already behaves this way natively (rear view while held, snaps back on release), so its binding is left bare. Add `activationMode="hold"` only if a control's default ever proves wrong.
 
 Other modes the game supports (not all used here): `press` (fire once on press), `tap`, `double_tap`, `delayed_press`, `hold_toggle`. A `<rebind>` can also carry `multiTap="2"` (require N taps) and other attributes - only add these if you know you need them.
 
@@ -378,7 +378,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
 | `js2_button62` | MTQ Left Module mini-stick - **press** | `v_view_cycle_fwd` → *Cycle camera view* | Cycle cockpit ↔ external/chase views. Moved off the MHG coolie press (`js1_button29`). |
-| `js1_button3` | MHG lower side button | `v_view_freelook_mode` → *Freelook* | **Hold** to look around the cockpit independently of ship facing. |
+| `js1_button3` | MHG lower side button | `v_view_look_behind` → *Look behind* | **Hold** for a rear-view camera (check your six). Keeps full stick/flight control - only the camera swings rear - and snaps back on release. **Replaced `v_view_freelook_mode`:** freelook detached the view from ship facing, and because this button sits under the pinky an unconscious hold felt like losing control. Look-around is already fully covered by the MTQ mini-stick (`js2_x`/`js2_y`), so dropping dedicated freelook costs nothing. |
 | `js2_x` | MTQ Left Module mini-stick - **X axis** | `v_view_yaw` → *Look left/right* | Analog camera yaw. Stick centers at 32767 = neutral (no off-center calibration needed). |
 | `js2_y` | MTQ Left Module mini-stick - **Y axis** | `v_view_pitch` → *Look up/down* | Analog camera pitch. Add `invert` in `<options>` if it feels reversed. Both moved off the MHG top coolie hat (25/26/27/28, now free). |
 | `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom) - the reliable in-cockpit zoom. |

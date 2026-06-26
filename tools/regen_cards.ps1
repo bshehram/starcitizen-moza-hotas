@@ -268,7 +268,7 @@ $MHG_L = @(
   @{Header='GRIP 1-15'},
   @{Label='1';Primary='Fire Guns - Group 1';Variants=@((V 'Mine:' 'fire laser' $C_MINE),(V 'Salv:' 'focused beam' $C_SALV))},
   @{Label='2';Primary='Launch missiles'},
-  @{Label='3';Primary='Freelook (hold)'},
+  @{Label='3';Primary='Look behind (hold)'},
   @{Label='4';Primary='Missile-mode toggle';Variants=@((V 'Mine:' 'switch laser' $C_MINE))},
   @{Label='5';Primary='Lock target under reticle'},
   @{Label='6';Primary='Fire Guns - Group 2';Variants=@((V 'Salv:' 'salvage gimbal' $C_SALV))},
