@@ -7,9 +7,7 @@
     <categories />
   </CustomisationUIHeader>
 
-  <options type="joystick" instance="1" Product="MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}">
-    <flight_move_pitch invert="0"/>  <!-- MHG stick pitch axis (js1_y / v_pitch) - invert="0" = pull-back = nose-up. Set invert="1" to flip. -->
-  </options>
+  <options type="joystick" instance="1" Product="MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}"/>  <!-- js1 pitch left at default (non-inverted = pull-back/nose-up); removed the no-op invert="0". To flip pitch later, add a child element here: <flight_move_pitch invert="1"/> -->
   <options type="joystick" instance="2" Product="MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}">
     <flight_view_pitch invert="1"/>  <!-- Inverts camera-look PITCH (MTQ Left Module mini-stick Y axis / v_view_pitch). If pitch does NOT flip after a profile reload this element name is wrong - fall back to inverting js2_y in MOZA Pithouse (nothing else uses that axis). -->
   </options>
@@ -225,6 +223,9 @@
     <action name="v_light_amplification_toggle">
       <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" - LAMP canopy night-vision toggle (LAMP-equipped ships). Back on A4 after ESP was unbound; the earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only again). -->
     </action>
+    <action name="v_view_look_behind">
+      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera. MUST live in seat_general, NOT spaceship_view: despite the v_view_ prefix, CIG files look-behind under "seats & operator modes" (catalogue confirms), and the first attempt in spaceship_view silently did nothing. REPLACED v_view_freelook_mode (which genuinely IS a spaceship_view action - hence the map swap): freelook detached the view from ship facing, and an unconscious pinky-hold felt like losing control. Look-behind keeps FULL stick/flight control (camera swings rear, snaps back on release). Bare binding - hold is the action's native behavior; add activationMode="hold" only if it doesn't behave as hold. -->
+    </action>
   </actionmap>
 
   <!-- ================================================================ -->
@@ -381,28 +382,21 @@
     <action name="v_view_cycle_fwd">
       <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = pin target). -->
     </action>
-    <action name="v_view_look_behind">
-      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera (hold is v_view_look_behind's native behavior, so no activationMode is set). REPLACED v_view_freelook_mode: freelook detached the view from ship facing, and because this button sits under the pinky an unconscious hold felt like losing control. Look-behind keeps FULL stick/flight control (only the camera swings rear) and snaps back on release - so even a parked pinky no longer kills control. Look-around is still fully covered by the MTQ mini-stick (js2_x/js2_y), so dropping freelook costs nothing. -->
-    </action>
-    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
+    <action name="view_restore_defaults">
+      <rebind input="js2_button62"/>  <!-- SAME button as the view-cycle above (intentional same-button shotgun) - "Reset Current View". CONFIRMED in-game: resets the COCKPIT / first-person view to default on every press, so the cockpit always recentres on a view change (a bonus over plain cycling). It does NOT recentre the EXTERNAL 3rd-person orbit camera - that camera isn't affected by this reset (SC limitation; pan it back with the MTQ mini-stick instead). Action map spaceship_view is correct (it fires). Note the "view_" prefix (NO v_), a different family from v_view_*. -->
+    </action>    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">
       <rebind input="js2_x"/>  <!-- MTQ mini-stick X axis - look left/right -->
     </action>
     <action name="v_view_pitch">
       <rebind input="js2_y"/>  <!-- MTQ mini-stick Y axis - look up/down (inverted in <options>) -->
     </action>
-    <!-- MTQ throttle-lever thumb dial (incremental encoder: each click pulses 63 fwd/CW or 64 back/CCW - momentary, no hold). Shotguns BOTH vehicle zoom actions per click: dynamic_zoom_rel works in the COCKPIT, view_zoom (3rd-person camera-distance) is dead in testing but harmless. 3rd-person FoV zoom is NOT achievable here - it needs a HELD modifier (kb F4) and a momentary click can't hold (view_fov+camview stacked on one click did nothing); use the keyboard or a Pithouse "hold F4 + tap NumPad +/-" macro for that. On-foot/spectator zoom pairs excluded (can't fire from a pilot seat). -->
+    <!-- MTQ throttle-lever thumb dial (incremental encoder: each click pulses 63 fwd/CW or 64 back/CCW - momentary, no hold). Drives dynamic FOV zoom, which works in the COCKPIT. (Removed the v_view_zoom_in/out 3rd-person camera-distance pair that used to ride along here per click - confirmed dead in testing.) 3rd-person FoV zoom is NOT achievable here anyway - it needs a HELD modifier (kb F4) and a momentary click can't hold; use the keyboard or a Pithouse "hold F4 + tap NumPad +/-" macro for that. -->
     <action name="v_view_dynamic_zoom_rel_in">
       <rebind input="js2_button63"/>  <!-- MTQ throttle dial FWD/CW - dynamic FOV zoom IN (works in cockpit) -->
     </action>
-    <action name="v_view_zoom_in">
-      <rebind input="js2_button63"/>  <!-- MTQ throttle dial FWD/CW - 3rd-person camera-distance zoom IN (dead in testing, harmless) -->
-    </action>
     <action name="v_view_dynamic_zoom_rel_out">
       <rebind input="js2_button64"/>  <!-- MTQ throttle dial BACK/CCW - dynamic FOV zoom OUT (works in cockpit) -->
-    </action>
-    <action name="v_view_zoom_out">
-      <rebind input="js2_button64"/>  <!-- MTQ throttle dial BACK/CCW - 3rd-person camera-distance zoom OUT (dead in testing, harmless) -->
     </action>
     <action name="v_ads_toggle">
       <rebind input="js1_button21"/>  <!-- MHG lower hat CENTER PRESS - toggle zoomed cockpit/"ADS" view (the reliable in-cockpit zoom) -->
@@ -505,5 +499,5 @@
   </actionmap>
 
   <!-- ONLY REMAINING UNBOUND js1 hardware = the two AB6 base levers (intentional): each is MIXED-MODE - 3 detent buttons AND a continuous analog axis. Left "Slider" = detents 57 (top/100) / 58 / 59 (bottom/0); right "Dial" = detents 60 (top/full) / 61 / 62 (bottom/0); analog halves are js1_slider1 / js1_slider2 (which lever is which needs joy.cpl confirmation, same counter-intuitive mapping as the MTQ). Reserved for a future modal/analog use - maintained set-and-hold levers suit neither momentary combat actions nor analog values combat doesn't need. Everything else on js1 is now bound: MHG grip 1-29 fully bound; AB6 wings 49-56 are the multi-mode bank (targeting in combat / mining / salvage). -->
-  <!-- DUPE/REUSE POLICY: a physical button carrying several actions is fine ONLY when they sit in operator-gated maps that are never simultaneously active - guns/missiles/mining/salvage/targeting are gated by operator mode, so the trigger, rocker, hats and AB6 wings each do one thing per mode. spaceship_power/defensive/movement/view/general are ALWAYS active, so their controls (WPN-hat power pips, left-hat countermeasures, MTQ throttle/strafe/encoders) are NOT reused for mining/salvage. No action is bound to two different inputs. Intentional same-map "shotguns": MTQ doors (25/26) and zoom dial (63/64). -->
+  <!-- DUPE/REUSE POLICY: a physical button carrying several actions is fine ONLY when they sit in operator-gated maps that are never simultaneously active - guns/missiles/mining/salvage/targeting are gated by operator mode, so the trigger, rocker, hats and AB6 wings each do one thing per mode. spaceship_power/defensive/movement/view/general are ALWAYS active, so their controls (WPN-hat power pips, left-hat countermeasures, MTQ throttle/strafe/encoders) are NOT reused for mining/salvage. No action is bound to two different inputs. Intentional same-map "shotgun": MTQ doors (25/26) = unlock+open / lock+close. (The zoom dial 63/64 is no longer a shotgun - its dead 3rd-person view_zoom pair was removed, so each click now fires one action.) -->
 </ActionMaps>

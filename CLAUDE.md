@@ -255,7 +255,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js1_y` | MHG pitch axis | `v_pitch` → *Pitch* | Nose up/down. Pull back = nose up (inverted by default; `invert` set in `<options>`). Usually the fastest rotation axis. |
+| `js1_y` | MHG pitch axis | `v_pitch` → *Pitch* | Nose up/down. Pull back = nose up (the non-inverted default; no `invert` is set now - add `<flight_move_pitch invert="1"/>` in the js1 `<options>` to flip). Usually the fastest rotation axis. |
 | `js1_x` | MHG roll axis | `v_roll` → *Roll* | Bank left/right. Roll-onto-target + pitch is the core aiming technique. |
 | `js1_rotz` | MHG twist | `v_yaw` → *Yaw* | Nose left/right via grip twist. Usually the slowest axis. |
 | `js2_button61` | MTQ "COM" hat ↑ | `v_strafe_up` → *Strafe up* | Translate straight up (no rotation). Digital thrust. |
@@ -300,6 +300,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button20` | MTQ mode knob - detent 4 | `v_set_mining_mode` → *Mining Mode On* | Selects the **Mining** operator mode (mining-capable ships only). |
 | `js2_button21` | MTQ mode knob - detent 5 (full CW) | `v_set_salvage_mode` → *Salvage Mode On* | Selects the **Salvage** operator mode (salvage-capable ships only). |
 | `js2_button4` | MTQ keypad **"A4"** | `v_light_amplification_toggle` → *LAMP Toggle* | Toggles canopy night-vision (Light Amplification). LAMP-equipped ships only. Back on A4 after **ESP was unbound** - ESP and proximity assist are now both left **enabled-by-default** (in settings) and never toggled. The earlier LAMP-on/off pairing with the lights switch (27/28) was dropped - 27/28 are lights-only again. |
+| `js1_button3` | MHG lower side button (pinky) | `v_view_look_behind` → *Look behind* | **Hold** for a rear-view camera (check your six); keeps full stick/flight control (only the camera swings rear) and snaps back on release. **⚠ Lives in `seat_general`, not `spaceship_view`** - despite the `v_view_` prefix, CIG files look-behind under "seats & operator modes" (the catalogue confirms; a first attempt in `spaceship_view` silently did nothing). **Confirmed working in cockpit view.** Replaced `v_view_freelook_mode` (a genuine `spaceship_view` action), which detached the view and felt like losing control when this pinky button was held unconsciously. *Cockpit-only:* SC has no 3rd-person look-behind action - in external view, orbit the camera with the MTQ mini-stick instead. |
 
 > ⚠ **Note:** These five sit on the **rotary mode-selector knob** (detents 17–21), each directly **setting** one operator mode (`v_set_*_mode` are discrete activators, not "sub-modes" of a cycle). Operator modes are separate from Master Modes (SCM/NAV, cycled on `js2_button5`). Because the knob is a **maintained selector**, its physical position may not match the actual operator mode after seat entry or another mode change - turn off-and-back onto a detent to re-assert it. **Flight** and **Quantum** operator modes are intentionally *not* on the knob: Guns mode covers combat-flight, and quantum travel is handled by NAV master mode + QD-engage (`js2_button7`), so dedicated detents for them were redundant.
 
@@ -377,13 +378,12 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js2_button62` | MTQ Left Module mini-stick - **press** | `v_view_cycle_fwd` → *Cycle camera view* | Cycle cockpit ↔ external/chase views. Moved off the MHG coolie press (`js1_button29`). |
-| `js1_button3` | MHG lower side button | `v_view_look_behind` → *Look behind* | **Hold** for a rear-view camera (check your six). Keeps full stick/flight control - only the camera swings rear - and snaps back on release. **Replaced `v_view_freelook_mode`:** freelook detached the view from ship facing, and because this button sits under the pinky an unconscious hold felt like losing control. Look-around is already fully covered by the MTQ mini-stick (`js2_x`/`js2_y`), so dropping dedicated freelook costs nothing. |
+| `js2_button62` | MTQ Left Module mini-stick - **press** | `v_view_cycle_fwd` (+ `view_restore_defaults`) → *Cycle camera view / Reset Current View* | Cycle cockpit ↔ external/chase views. **The same press also fires `view_restore_defaults`** (intentional same-button shotgun): **confirmed in-game** it resets the **cockpit / first-person view** to default on every press, so the cockpit always recentres on a view change. It does **not** recentre the **external 3rd-person** orbit camera (SC limitation - that camera isn't affected by this reset; pan it back with the mini-stick). Moved off the MHG coolie press (`js1_button29`). |
 | `js2_x` | MTQ Left Module mini-stick - **X axis** | `v_view_yaw` → *Look left/right* | Analog camera yaw. Stick centers at 32767 = neutral (no off-center calibration needed). |
 | `js2_y` | MTQ Left Module mini-stick - **Y axis** | `v_view_pitch` → *Look up/down* | Analog camera pitch. Add `invert` in `<options>` if it feels reversed. Both moved off the MHG top coolie hat (25/26/27/28, now free). |
 | `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom) - the reliable in-cockpit zoom. |
-| `js2_button63` | MTQ throttle dial - fwd/CW click | `v_view_dynamic_zoom_rel_in` + `v_view_zoom_in` | Zoom **in** - dynamic zoom works in the **cockpit**; 3rd-person `v_view_zoom_in` is dead but harmless. **No 3rd-person FoV zoom** - that needs a *held* modifier (kb F4), which a momentary dial click can't do (the `view_fov`+camview attempt was removed). |
-| `js2_button64` | MTQ throttle dial - back/CCW click | `v_view_dynamic_zoom_rel_out` + `v_view_zoom_out` | Zoom **out** - same. For 3rd-person FoV zoom, use the keyboard (F4 + NumPad±) or a MOZA Pithouse macro emitting that combo per click. |
+| `js2_button63` | MTQ throttle dial - fwd/CW click | `v_view_dynamic_zoom_rel_in` → *Dynamic zoom in* | Zoom **in** - dynamic FOV zoom, works in the **cockpit**. (Dropped the dead 3rd-person `v_view_zoom_in` that used to fire alongside it.) No 3rd-person FoV zoom here - that needs a *held* modifier (kb F4) a dial click can't do; use the keyboard or a Pithouse macro. |
+| `js2_button64` | MTQ throttle dial - back/CCW click | `v_view_dynamic_zoom_rel_out` → *Dynamic zoom out* | Zoom **out** - same; dropped the dead 3rd-person `v_view_zoom_out`. For 3rd-person FoV zoom, use the keyboard (F4 + NumPad±) or a Pithouse macro. |
 
 ### Mining - `spaceship_mining`
 
