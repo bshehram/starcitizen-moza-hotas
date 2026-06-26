@@ -19,6 +19,12 @@ The two PowerShell regeneration scripts. The human-facing usage, requirements, a
 - **`refresh_keybinds_db.ps1` rebuilds the catalogue in [`../reference/`](../reference/CLAUDE.md)**
   by re-downloading starbinder data. After it runs, update the version stamp in
   [`../CLAUDE.md`](../CLAUDE.md). Full recipe and data-file URLs in [`../CLAUDE.md` §7](../CLAUDE.md).
+- **`validate_actionmaps.ps1` checks actionmap placement.** It diffs [`../MOZA.xml`](../MOZA.xml)
+  against the game's normalized export (`…\Profiles\default\actionmaps.xml`). The game **drops**
+  wrong-map actions, so a `MISMATCH` — or an unexplained `NOT-IN-EXPORT` on a non-default action —
+  means a binding is in the wrong actionmap. Reads local files only (no internet). Why this is the
+  authoritative local source, and the load-then-check workflow, are in [`../CLAUDE.md` §10](../CLAUDE.md).
+  Note the catalogue's keyword *category* is **not** the actionmap — don't infer one from the other.
 
 ## Where the detail lives
 

@@ -11,6 +11,10 @@ Neither file is needed to *use* the profile; they're for understanding and maint
 | `STARBINDER_KEYBINDS_DATABASE_v4.8.md` | **Master action catalogue.** Every bindable SC action that *exists* (≈714 of them) with its official in-game label and description, grouped by category. Sourced from the public [starbinder](https://starbinder.space/) keybind database. **Patch-versioned** — the `v4.8` in the name is the SC version it was captured from. I use this to verify that the action names (`v_*`) in [`../MOZA.xml`](../MOZA.xml) are real and labelled correctly. |
 | `MOZA_BINDINGS.html` | **Self-contained printable binding sheet.** A single-file HTML page (inline CSS, no assets) listing this profile's bindings organized **by device**, with color-coded tags for combat / mining / salvage / utility. Open it in any browser and print to US-Letter. A text companion to the visual cards in [`../cards/`](../cards/README.md). |
 
+> **The catalogue lists labels, not actionmaps.** Which *actionmap* an action must be bound under
+> is a separate question it can't answer — get that from the game's own local profile files. The
+> check script for it lives in [`../tools/`](../tools/README.md).
+
 ## Refreshing the catalogue
 
 The catalogue is specific to an SC patch, so I regenerate it when a new version ships. The

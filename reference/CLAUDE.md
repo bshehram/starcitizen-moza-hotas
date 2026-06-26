@@ -15,6 +15,11 @@ editing or relying on these files.
 - **Use this catalogue to validate edits to [`../MOZA.xml`](../MOZA.xml).** It's the authoritative
   list of real action names (`v_*`) and their official labels/descriptions — check a name here
   before adding or correcting a binding.
+- **The catalogue does NOT give the actionmap.** It groups actions by their first *keyword* (a
+  category like "camera - advanced camera controls"), which is **not** the SC actionmap an action
+  must be bound under. Inferring an actionmap from the category is how bindings end up silently
+  dropped. For the correct actionmap, use the game's local profile export / `defaultProfile.xml` and
+  [`../tools/validate_actionmaps.ps1`](../tools/CLAUDE.md) — see [`../CLAUDE.md` §10](../CLAUDE.md).
 - **`MOZA_BINDINGS.html` is hand-authored**, not script-generated. Edit it directly if you change
   bindings, the same way you'd update the cards.
 

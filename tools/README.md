@@ -10,6 +10,7 @@ Both are written to be **run from the project root** (one level up), not from in
 | --- | --- |
 | `regen_cards.ps1` | **Rebuilds the reference cards.** Takes the manufacturer art in [`../diagrams/`](../diagrams/README.md) plus binding tables embedded in the script, recolors/crops the diagrams, composites them with the lookup table in SVG, and rasterizes to PNG via headless Chrome/Edge. Writes all four files in [`../cards/`](../cards/README.md). Re-run after any binding change. |
 | `refresh_keybinds_db.ps1` | **Regenerates the action catalogue.** Re-downloads the public [starbinder](https://starbinder.space/) keybind data, auto-detects the current SC version, and rewrites the versioned catalogue in [`../reference/`](../reference/README.md), deleting the previous snapshot. Run when a new SC patch ships. |
+| `validate_actionmaps.ps1` | **Checks every binding is in the right actionmap.** Diffs [`../MOZA.xml`](../MOZA.xml) against the game's own normalized export (`…\Profiles\default\actionmaps.xml`) and flags any action the game files under a different map (`MISMATCH`) or drops outright (`NOT-IN-EXPORT`). Load the profile in-game first so the export is current. (The action catalogue groups actions by *category*, which is **not** the actionmap, so it can't answer this.) |
 
 ## Running
 
@@ -18,6 +19,7 @@ From the project root:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards
 powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # refresh the action catalogue for a new patch
+powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # check every binding is in the right actionmap (load MOZA.xml in-game first)
 ```
 
 ## Requirements
@@ -25,6 +27,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # ref
 - **`regen_cards.ps1`** needs Windows PowerShell with .NET `System.Drawing` and **Chrome or
   Edge** (auto-detected, used headless to rasterize SVG → PNG at 2×, ≈330 DPI).
 - **`refresh_keybinds_db.ps1`** needs internet access — plain HTTPS GETs, no auth or API key.
+- **`validate_actionmaps.ps1`** needs only Windows PowerShell — it reads two local XML files (no
+  internet, no extra deps). Load `MOZA.xml` in-game first so the game's export reflects it; pass
+  `-Profile <path>` to point at a different export.
 
 ## Gotchas
 

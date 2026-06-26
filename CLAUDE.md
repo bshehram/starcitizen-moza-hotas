@@ -332,7 +332,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 > **AB6 wings are a multi-mode bank:** in combat they're the secondary target-acquisition rows above; in **Mining**/**Salvage** operator mode the same 8 buttons become those modes' control banks (see *Mining*/*Salvage*). Safe because targeting maps go inactive in mining/salvage (same gating that lets the left hat be hostile-cycle in combat and salvage-beams in salvage).
 
-> **Targeting layout:** the **left hat** (lock + hostile cycle) and **right hat** (sub-target/attacker cycle ↑↓/→← + gimbal press) carry the core combat targeting; the freed **top coolie hat** adds an **acquisition cluster** - cycle-all, closest-hostile snap, and pin/cycle-pinned - complementing rather than duplicating the hats. **⚠ Action-map note:** `v_target_pin_selected` is placed in `spaceship_targeting_advanced` with the cycle actions; if "pin" doesn't bind in-game, try `spaceship_targeting` instead.
+> **Targeting layout:** the **left hat** (lock + hostile cycle) and **right hat** (sub-target/attacker cycle ↑↓/→← + gimbal press) carry the core combat targeting; the freed **top coolie hat** adds an **acquisition cluster** - cycle-all, closest-hostile snap, and pin/cycle-pinned - complementing rather than duplicating the hats. **✅ Action-map (resolved):** `v_target_pin_selected` now lives in `spaceship_targeting` (alongside `v_target_lock_selected`), **not** `spaceship_targeting_advanced` - the game's own exported `actionmaps.xml` *drops* pin from the *advanced* map (so pinning did nothing there), confirming it belongs with the basic lock action (see §10).
 
 ### Radar & scanning - `spaceship_radar`, `spaceship_scanning`
 
@@ -378,7 +378,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js2_button62` | MTQ Left Module mini-stick - **press** | `v_view_cycle_fwd` (+ `view_restore_defaults`) → *Cycle camera view / Reset Current View* | Cycle cockpit ↔ external/chase views. **The same press also fires `view_restore_defaults`** (intentional same-button shotgun): **confirmed in-game** it resets the **cockpit / first-person view** to default on every press, so the cockpit always recentres on a view change. It does **not** recentre the **external 3rd-person** orbit camera (SC limitation - that camera isn't affected by this reset; pan it back with the mini-stick). Moved off the MHG coolie press (`js1_button29`). |
+| `js2_button62` | MTQ Left Module mini-stick - **press** | `v_view_cycle_fwd` → *Cycle camera view* | Cycle cockpit ↔ external/chase views. **⚠ Cleanup:** the `view_restore_defaults` that used to be shotgunned on this press was **removed** - the game *drops* it from `spaceship_view` (it did nothing), and the cockpit recentre-on-cycle is `v_view_cycle_fwd`'s own behaviour. (It's only accepted in `view_director_mode` = the cinematic/Director camera, unused in this combat profile.) Moved off the MHG coolie press (`js1_button29`). |
 | `js2_x` | MTQ Left Module mini-stick - **X axis** | `v_view_yaw` → *Look left/right* | Analog camera yaw. Stick centers at 32767 = neutral (no off-center calibration needed). |
 | `js2_y` | MTQ Left Module mini-stick - **Y axis** | `v_view_pitch` → *Look up/down* | Analog camera pitch. Add `invert` in `<options>` if it feels reversed. Both moved off the MHG top coolie hat (25/26/27/28, now free). |
 | `js1_button21` | MHG lower hat center press | `v_ads_toggle` → *Vehicle ADS (Toggle)* | Cockpit zoom/"ADS" view (in-ship binoculars-style zoom) - the reliable in-cockpit zoom. |
@@ -458,6 +458,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 6. **✅ Fixed - AB6 levers are mixed-mode, not button-only:** an earlier doc claimed the "Slider"/"Dial" levers (57–62) were 3-position button-only "not an analog axis." They are **mixed-mode** (3 detent buttons **plus** an analog axis, `js1_slider1`/`js1_slider2`). Corrected in §1 and §3.2.
 7. **Only remaining free js1 hardware = the two AB6 levers (57–62), deliberately unbound:** maintained set-and-hold levers suit neither momentary combat actions nor the wing power-pips (a held detent would fight the pip taps). Reserved for a future **modal/analog** use (e.g. a multi-role analog value) - confirm which axis is `js1_slider1` vs `js1_slider2` in `joy.cpl` first. **MTQ (js2)** remains essentially full (only the rocker centre 22, slider detents 31/36-40/43, and throttle-twin `js2_rotx` are intentional gaps).
 8. **Device-instance fragility:** see the warning in §1 - keep USB enumeration order stable so `js1`/`js2` don't swap.
+9. **✅ Actionmap-correctness review (vs the game's own export):** validated every binding against `…\Profiles\default\actionmaps.xml` (the game's normalized export) using [`tools/validate_actionmaps.ps1`](tools/validate_actionmaps.ps1) - the game **drops** any action placed in the wrong map, so its export is an authoritative oracle (and the catalogue's *keyword category* is **not** the actionmap). Two issues fixed: **`v_target_pin_selected`** moved `spaceship_targeting_advanced`→**`spaceship_targeting`** (the game dropped pin from the *advanced* map, so pinning a target did nothing), and **`view_restore_defaults` removed** (it sat in `spaceship_view`, where the game drops it - it was dead; the cockpit recentre-on-cycle is `v_view_cycle_fwd`'s own behaviour). Every other bound action sits in the actionmap the game files it under. Authoritative local sources + the re-check workflow are in **§10**. *(A separate experiment - driving advanced-camera FoV from the throttle dial - was abandoned: `view_enable_camview_mode` engages the sticky cinematic/Director camera, the wrong tool for in-flight zoom; the dial's existing `v_view_dynamic_zoom_rel_*` cockpit zoom is the ceiling.)*
 
 ---
 
@@ -564,6 +565,62 @@ The mode-tag colours are fixed: **`Mine:`** = amber `$C_MINE`, **`Salv:`** = tea
 - **Star Citizen wiki - Controls:** <https://starcitizen.tools/Guide:Controls>
 - **Master Modes / IFCS:** <https://starcitizen.tools/Flight_system>
 - **ESP (Enhanced Stick Precision):** <https://starcitizen.tools/ESP>
+
+---
+
+## 10. Authoritative actionmaps - local sources & validation
+
+Every `<action>` in `MOZA.xml` must sit inside the **actionmap CIG defined for it**. Put it in the
+wrong map and the game **silently drops the binding** - no error, it just does nothing. (This bit a
+camera experiment: `view_fov_*` / `view_enable_camview_mode` placed in `spaceship_view` did nothing -
+they belong to `view_director_mode`, not `spaceship_view`.)
+
+> **⚠ The starbinder catalogue does NOT tell you the actionmap.**
+> [`reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md`](reference/STARBINDER_KEYBINDS_DATABASE_v4.8.md)
+> groups actions by their first **keyword** - a *category* label (e.g. "camera - advanced camera
+> controls"), which is **not** the SC actionmap name. Use it to confirm an action **exists** and to read
+> its label; never infer the actionmap from its category.
+
+### 10.1 Where the authoritative mapping lives (local-first)
+
+| Source | What it gives | Notes |
+| --- | --- | --- |
+| **Game export** `…\StarCitizen\LIVE\user\client\0\Profiles\default\actionmaps.xml` | The game's **normalized copy of the currently-loaded profile** - every *accepted* binding filed under its **true** actionmap. | **Everyday oracle.** Current patch, already on disk, written by the game. Lists only **non-default, accepted** bindings (see 10.2). |
+| **`Data.p4k` → `Data\Libs\Config\defaultProfile.xml`** | The **complete** action→actionmap catalogue (every action, bound or not). | Ground truth, but packed in the ~150 GB `Data.p4k`; extract the one entry with **unp4k** (<https://github.com/dolkensp/unp4k>). Use only when the game export can't answer (e.g. an unbound action). |
+
+> The old an3k "All Keybindings" gist is **3.0 (2017)** and predates half of these bindings
+> (engineering pips, salvage, master modes, `v_target_pin_selected`). **Prefer the local files above.**
+
+### 10.2 Why the game export doubles as a validator
+
+When you load a profile (Options → Keybindings → Load, or `pp_rebindkeys MOZA.xml`), the game rewrites
+that export. Two behaviours make it a free correctness check:
+
+1. It files each **accepted** action under the actionmap it really belongs to.
+2. It **drops** any action whose actionmap is wrong, or whose binding it otherwise rejects.
+
+So an action **missing** from the export after a load is either:
+
+- a **default** (the game omits bindings equal to SC defaults - e.g. `v_pitch`=`js1_y`, trigger→fire) - **benign**, or
+- **dropped** (wrong map / rejected binding) - **a bug to fix**.
+
+An action present under a **different** actionmap than `MOZA.xml` uses is an outright **mismatch**.
+
+### 10.3 Run the check
+
+[`tools/validate_actionmaps.ps1`](tools/validate_actionmaps.ps1) diffs `MOZA.xml` against that export
+and reports `OK` / `MISMATCH` / `NOT-IN-EXPORT` per action (non-zero exit on any mismatch):
+
+```powershell
+# 1) load MOZA.xml in-game (Keybindings > Load, or console: pp_rebindkeys MOZA.xml) so the game rewrites the export
+# 2) from the project root:
+powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1
+```
+
+Workflow when adding/moving a binding: edit `MOZA.xml` → load it in-game → run the script → any
+`MISMATCH` (or an unexplained `NOT-IN-EXPORT` on a *non-default* action) means it's in the wrong
+actionmap; find the right one in the game export (or `defaultProfile.xml`) and move it. This is the
+exact check that caught `v_target_pin_selected` and `view_restore_defaults`.
 
 ---
 

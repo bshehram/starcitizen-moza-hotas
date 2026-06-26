@@ -235,6 +235,9 @@
     <action name="v_target_lock_selected">
       <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
+    <action name="v_target_pin_selected">
+      <rebind input="js1_button29"/>  <!-- MHG coolie CENTER PRESS - pin the current target (cycle back to it later via coolie LEFT). MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
+    </action>
   </actionmap>
 
   <!-- ================================================================ -->
@@ -262,7 +265,7 @@
     <action name="v_target_cycle_attacker_back">
       <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
     </action>
-    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. ACTIONMAP NOTE: pin lives in spaceship_targeting_advanced with the cycle actions; if "pin" does nothing in-game it may belong to spaceship_targeting instead. -->
+    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. NOTE: the coolie CENTER PRESS (v_target_pin_selected) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
     <action name="v_target_cycle_all_fwd">
       <rebind input="js1_button25"/>  <!-- MHG coolie UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
     </action>
@@ -275,9 +278,7 @@
     <action name="v_target_cycle_pinned_fwd">
       <rebind input="js1_button28"/>  <!-- MHG coolie LEFT - cycle PINNED targets forward -->
     </action>
-    <action name="v_target_pin_selected">
-      <rebind input="js1_button29"/>  <!-- MHG coolie CENTER PRESS - pin the current target (cycle back to it later via coolie LEFT) -->
-    </action>
+    <!-- v_target_pin_selected (MHG coolie CENTER PRESS, js1_button29) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
     <!-- AB6 base wings (8 momentary pushbuttons) - in COMBAT a secondary target-acquisition bank (all cycle actions, distinct from the hats); the SAME buttons become the Mining/Salvage control banks in those operator modes (see spaceship_mining / spaceship_salvage). Multi-mode reuse is double-fire-safe because targeting maps go inactive in mining/salvage modes (proven by the left hat's hostile-cycle vs salvage-beam reuse). -->
     <action name="v_target_cycle_in_view_fwd">
       <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - cycle targets IN VIEW forward (forward-arc contacts) -->
@@ -382,9 +383,8 @@
     <action name="v_view_cycle_fwd">
       <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = pin target). -->
     </action>
-    <action name="view_restore_defaults">
-      <rebind input="js2_button62"/>  <!-- SAME button as the view-cycle above (intentional same-button shotgun) - "Reset Current View". CONFIRMED in-game: resets the COCKPIT / first-person view to default on every press, so the cockpit always recentres on a view change (a bonus over plain cycling). It does NOT recentre the EXTERNAL 3rd-person orbit camera - that camera isn't affected by this reset (SC limitation; pan it back with the MTQ mini-stick instead). Action map spaceship_view is correct (it fires). Note the "view_" prefix (NO v_), a different family from v_view_*. -->
-    </action>    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
+    <!-- view_restore_defaults was REMOVED from here (it shared js2_button62): the game DROPS it from spaceship_view, so it did nothing - the cockpit recentre-on-view-cycle is v_view_cycle_fwd's own behaviour. It is only accepted in the view_director_mode actionmap (the cinematic/Director camera), which this combat profile doesn't use. -->
+    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">
       <rebind input="js2_x"/>  <!-- MTQ mini-stick X axis - look left/right -->
     </action>

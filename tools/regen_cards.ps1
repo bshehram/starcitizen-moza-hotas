@@ -351,7 +351,7 @@ $MTQ_R = @(
   @{Label='59';Primary='Strafe left';Hint='COM hat left'},
   @{Label='58';Primary='Strafe right';Hint='COM hat right'},
   @{Label='57';Primary='Decoupled mode toggle';Hint='COM hat press'},
-  @{Label='62';Primary='Cycle view + reset view';Hint='mini-stick press'},
+  @{Label='62';Primary='Cycle camera view';Hint='mini-stick press'},
   @{Label='63';Primary='Zoom in - cockpit';Hint='throttle dial fwd'},
   @{Label='64';Primary='Zoom out - cockpit';Hint='throttle dial back'},
   @{Label='65';Primary='Boost / afterburner';Hint='L-Module button'},

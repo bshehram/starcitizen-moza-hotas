@@ -3,7 +3,7 @@
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
 [![Internally tested](https://img.shields.io/badge/internally_tested-in--game_verified-brightgreen)](#status)
 [![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.8-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-121_across_17_maps-informational)](MOZA.xml)
+[![Bindings](https://img.shields.io/badge/bindings-119_across_17_maps-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
@@ -142,6 +142,7 @@ in [`tools/`](tools/README.md).
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # refresh the action catalogue for a new SC patch
 powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards after a binding change
+powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # check every binding sits in the actionmap the game files it under
 ```
 
 ---
@@ -149,7 +150,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # reb
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  121 `<action>`/`<rebind>` pairs across 17 action maps, with no action bound to two different
+  119 `<action>`/`<rebind>` pairs across 17 action maps, with no action bound to two different
   inputs. Buttons that appear in several maps (the trigger, rocker, hats, AB6 wings) are
   intentional **operator-mode reuse** — only one of those maps is live at a time, depending on
   whether the seat is in flight, mining, or salvage mode.
