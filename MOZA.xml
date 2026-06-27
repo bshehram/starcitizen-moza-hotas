@@ -162,7 +162,7 @@
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
-      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" - request landing (hails ATC, opens hangar/pad/forcefields in range). Bottom-right of the ground-ops keypad cluster. Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). Cargo-loading request (v_atc_loading_area_request) was REMOVED - never used. -->
+      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). Cargo-loading request (v_atc_loading_area_request) was REMOVED - never used. -->
     </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- MTQ toggle C (gear-shaped lever) UP - landing gear RETRACT (lever position mirrors gear state) -->
@@ -171,7 +171,7 @@
       <rebind input="js2_button30"/>  <!-- MTQ toggle C (gear-shaped lever) DOWN - landing gear DEPLOY (lever down = gear down, aircraft convention) -->
     </action>
     <action name="v_autoland">
-      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" - autoland (autopilot lands on an ATC pad when gear is down and you're close). Gear toggle is now ONLY on the gear lever (29/30). -->
+      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" (right-col bottom) - autoland (autopilot lands on an ATC pad when gear is down and you're close). Swapped with v_atc_request (now on "ALT"/8). Gear toggle is now ONLY on the gear lever (29/30). -->
     </action>
     <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now decoupling). -->
     <action name="v_vtol_on">
