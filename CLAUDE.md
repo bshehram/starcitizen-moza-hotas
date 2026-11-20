@@ -304,7 +304,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button58` | MTQ "COM" hat → | `v_strafe_right` → *Strafe right (abs.)* | Translate right without yawing. |
 | `js2_button59` | MTQ "COM" hat ← | `v_strafe_left` → *Strafe left (abs.)* | Translate left without yawing. |
 | `js2_roty` | MTQ throttle lever (RY) | `v_strafe_forward` → *Throttle - Increase* | Main forward throttle axis. Behaviour (absolute vs relative) depends on the cruise/throttle-mode toggle below. |
-| `js2_rotz` | MTQ throttle lever **behind the idle detent** (RZ, the reverse-thrust axis) | `v_strafe_back` → *Throttle - Decrease* | **Proportional reverse** - nothing at the idle detent, more the further back you pull, full at the rear stop. Needs MOZA's *Reverse Thrust* detent mode and both calibrations (§1.1). Replaced the rear-detent button `js2_button34` on 2026-11-20, which could only command full reverse. **Not yet flown:** if reverse is stuck on at idle, SC is reading the axis the other way round - add `<flight_strafe_backward invert="1"/>` to the js2 `<options>` block. |
+| `js2_rotz` | MTQ throttle lever **behind the idle detent** (RZ, the reverse-thrust axis) | `v_strafe_back` → *Throttle - Decrease* | **Proportional reverse** - nothing at the idle detent, more the further back you pull, full at the rear stop. Needs MOZA's *Reverse Thrust* detent mode and both calibrations (§1.1). Replaced the rear-detent button `js2_button34` on 2026-11-20, which could only command full reverse. **Flown once** (2026-11-20, Avenger Titan): the user reported reverse "working fine", no invert needed. If it is ever stuck on at idle, SC is reading the axis the other way round - add `<flight_strafe_backward invert="1"/>` to the js2 `<options>` block. |
 | `js2_button51` | MTQ Right Module switch - **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake; springs back to rest (49) = `v_vtol_off`, an idempotent SET that's harmless to re-fire on every brake release. Rest (49) = VTOL off, forward-latch (50) = VTOL on (see VTOL rows below). |
 | `js2_button65` | MTQ Left Module face button | `v_afterburner` → *Boost* | Boost - burst of extra acceleration from a depletable pool; also overrides proximity assist while held. |
 | `js2_button9` | MTQ keypad **"FD"** (mid-bottom) | `v_toggle_jump_request` → *Jump Drive - Request Jump* | Engages **inter-system jump-point** travel (e.g. Stanton↔Pyro) - distinct from in-system quantum. Sits **directly below the quantum key** (7) → travel column. Moved off `js1_button56` (AB6 right wing 4, now free). |
@@ -477,7 +477,7 @@ These reuse MHG controls; active only in **Salvage** operator mode.
 
 ### Cleared game defaults - `spaceship_movement`, `player_choice`, `vehicle_general`, `vehicle_driver`
 
-These ten entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which removes a stock joystick binding that would otherwise stay live on `js1` underneath this profile (the mechanism is in §2.5). All ten were identified from the 4.10 `defaultProfile.xml` with `tools/gamedata.py check` on 2026-11-20; none has been flight-tested yet, so confirm them after the next in-game load (§10.3).
+These ten entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which removes a stock joystick binding that would otherwise stay live on `js1` underneath this profile (the mechanism is in §2.5). All ten were identified from the 4.10 `defaultProfile.xml` with `tools/gamedata.py check` on 2026-11-20; the game accepted all ten on the first 4.10.3 load (each is listed as `js1_ ` in its export, §10.3). Their in-flight effect has not been checked one by one.
 
 | Cleared action → In-game label | Actionmap | Stock `js1` input | What that input is on this rig | Why it is cleared |
 | --- | --- | --- | --- | --- |
@@ -541,7 +541,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 14. **Open - shield faces on the two big ships.** The Liberator and C2 carry Size 3 shields (confirmed in the game files), the only ships in the fleet where `v_shield_raise_level_*` could do anything. They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit only if face management turns out to matter when flying the Liberator.
 15. **Open - Golem OX tractor beam.** The OX has a deployable tractor turret and, in the game files, a *salvage* controller, so its tractor may run through Salvage operator mode (trigger = *Toggle Fire Focused*). `tractor_beam_vehicle_increase/decrease_distance` (in `spaceship_salvage`) are unbound on the rig - mouse wheel / gamepad shoulders only. Check in-ship which mode drives it before binding; the MHG right hat ↑/↓ (12/14) is the natural spot if targeting is inactive in that mode.
 
-16. **✅ Reverse throttle is now proportional (2026-11-20).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); how SC reads it is **not yet flown** - the invert fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
+16. **✅ Reverse throttle is now proportional (2026-11-20).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
 
 ---
 
@@ -733,9 +733,11 @@ actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → `
 export check is what caught `v_target_pin_selected` and `view_restore_defaults`; the game-data check is
 what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 
-> **State on 2026-11-20:** step 1 passes (131 entries OK, 0 unknown, 0 wrong-map). Step 2 has **not**
-> been run for this build yet - the export on disk is from 2026-08-23, before the 4.10 update and
-> before the new clears and binds. Load the profile in 4.10.3 and run it.
+> **State on 2026-11-20:** both steps pass. Step 1: 131 entries OK, 0 unknown, 0 wrong-map. Step 2,
+> after `MOZA.xml` was loaded in a 4.10.3 session: 128 OK, 0 mismatch, and the only 3 `NOT-IN-EXPORT`
+> are the known stock-equal bindings (`v_pitch`, mining-laser fire, salvage focused fire). The export
+> lists all 10 clears as `js1_ `, `v_strafe_back` on `js2_rotz`, and *Request Cargo Loading* with its
+> `delayed_press` mode. That session enumerated AB6 = joystick 1, MTQ = 2, Razer keyboard = 3.
 
 ---
 

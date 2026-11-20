@@ -165,9 +165,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # reb
   catalogue in [`reference/`](reference/README.md) is generated from the same file.
 - **In-game testing.** The core layout was flown and verified in Alpha 4.8 (June 2026),
   including the mining-laser and salvage-spacing slider axes, confirmed in a Golem and a
-  Salvation. The November 2026 additions — the 10 cleared defaults, *Docking* on the AP key and
-  *Request Cargo Loading* on the ALT key — are validated against the game data but have not been
-  flown yet.
+  Salvation. The November 2026 changes — the 10 cleared defaults, *Docking* on the AP key,
+  *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
+  the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
+  cargo loading have not been exercised yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
