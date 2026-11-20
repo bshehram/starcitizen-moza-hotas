@@ -32,7 +32,7 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
 | 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
 | 🚀 | **Star Citizen** (validated against **Alpha 4.10.3**, build `4.10.201.48085`) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
-| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's **idle / cutoff detent buttons enabled** (so the throttle rear detent emits button 34 for reverse), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
+| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** and calibrated (so the travel behind the idle detent is a proportional reverse axis), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
 
 > **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't

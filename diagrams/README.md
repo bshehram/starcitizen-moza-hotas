@@ -74,7 +74,7 @@ stay where you leave them) and are currently **unbound** in this combat profile.
 | 6 | Keypad **"HDG"** | 30 | Lower-strip **toggle C** (gear lever), down |
 | 7 | Keypad **"SPD"** | 36–40 | **FLAPS slider** (mixed buttons+axis): 40 rest "0" … 36 "FULL" |
 | 8 | Keypad **"ALT"** | 31 / 43 | **SPEEDBRAKE slider** (mixed buttons+axis): 43 rest "DOWN", 31 "ARMED" |
-| 9 | Keypad **"FD"** | 34 | Main-throttle reverse detent |
+| 9 | Keypad **"FD"** | 34 | Main-throttle rear-detent button (sent only in MOZA's *Button* detent mode; unbound) |
 | 10 | Keypad **"AP"** | 49/50/51 | Right Module **3-pos switch**: 49 rest, 50 latched-fwd, 51 momentary-back |
 | 11 | Upper encoder, CCW/left | 52–56 | Right Module **"WPN" hat**: 56↑ 55↓ 53→ 54← 52=press |
 | 12 | Upper encoder, CW/right | 57–61 | Right Module **"COM" hat**: 61↑ 60↓ 58→ 59← 57=press |

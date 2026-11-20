@@ -335,8 +335,7 @@ $MTQ_L = @(
   @{Label='30';Primary='Landing gear deploy';Hint='gear lever down'}
 )
 $MTQ_R = @(
-  @{Header='BUTTONS 34-65'},
-  @{Label='34';Primary='Throttle reverse / decrease';Hint='rear detent'},
+  @{Header='BUTTONS 31-65'},
   @{Label='31-43';Primary='unbound (analog axes)';Unbound=$true},
   @{Label='49';Primary='VTOL off';Hint='3-pos switch rest'},
   @{Label='50';Primary='VTOL on';Hint='3-pos switch fwd-latch'},
@@ -357,10 +356,11 @@ $MTQ_R = @(
   @{Label='65';Primary='Boost / afterburner';Hint='L-Module button'},
   @{Header='AXES'},
   @{Label='RY';Primary='Main throttle - forward';Hint='throttle lever'},
+  @{Label='RZ';Primary='Throttle - reverse';Hint='behind idle detent'},
   @{Label='Slider';Primary='Mining laser power';Hint='FLAPS, Mining'},
   @{Label='Dial';Primary='Salvage beam spacing';Hint='S-brake, Salvage'},
   @{Label='X / Y';Primary='Camera look (yaw / pitch)';Hint='mini-stick'},
-  @{Label='RX';Primary='Throttle twin';Hint='unbound';Unbound=$true}
+  @{Label='RX / Z';Primary='Throttle twins';Hint='unbound';Unbound=$true}
 )
 
 # ================================================================ render
@@ -406,6 +406,6 @@ New-Card @{ Name='MOZA_MTQ_ref'; F=1.15; CanvasW=1860; CanvasH=1437;
     )}
   )};
   Cols=@( @{X=1090; W=370; Rows=$MTQ_L}, @{X=1475; W=365; Rows=$MTQ_R} );
-  Legend="Throttle forward = axis (RY); reverse = rear-detent button 34.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage modes; their click detents (31-43) are unbound." }
+  Legend="Throttle forward = axis RY; reverse = axis RZ, the travel behind the idle detent (MOZA Reverse Thrust mode).  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage modes; detent buttons 31-43 are unbound." }
 
 Write-Host "Done -> MOZA_MHG_AB6_ref, MOZA_MTQ_ref (.png + .svg) in $cardDir"
