@@ -109,7 +109,7 @@
       <rebind input="js2_button59"/>  <!-- MTQ "COM" hat LEFT - strafe left -->
     </action>
 
-    <!-- Throttle reverse is BINARY by necessity (fully investigated): the MTQ throttle is a unidirectional 0-65535 axis idling at ~12%, never goes negative, and Pithouse cannot recenter it; SC locks neutral to axis-CENTRE (32767) with only center-symmetric options - so a full-range v_strafe_longitudinal would read idle as deep reverse. Hence forward = axis (js2_roty), reverse = rear-detent button (js2_button34). Requires MOZA "Detent Button Mapping" ON so the rear detent emits button 34. -->
+    <!-- Throttle reverse is BINARY by necessity (fully investigated): the MTQ throttle is a unidirectional 0-65535 axis idling at ~12%, never goes negative, and Pithouse cannot recenter it; SC locks neutral to axis-CENTRE (32767) with only center-symmetric options - so a full-range v_strafe_longitudinal would read idle as deep reverse. Hence forward = axis (js2_roty), reverse = rear-detent button (js2_button34). Requires the MTQ's idle/cutoff detent buttons to be ENABLED in MOZA Cockpit (MTQ > Settings > Throttle Detent Settings; older software called it "Detent Button Mapping") so the rear detent emits button 34. -->
     <action name="v_strafe_forward">
       <rebind input="js2_roty"/>  <!-- MTQ main throttle lever axis (RY) - forward throttle, idle at bottom = 0 thrust. Its synced twin js2_rotx (RX) is intentionally left UNBOUND. -->
     </action>
@@ -162,7 +162,10 @@
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
-      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). Cargo-loading request (v_atc_loading_area_request) was REMOVED - never used. -->
+      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - TAP = request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). HOLD on this same key = request cargo loading (next action). -->
+    </action>
+    <action name="v_atc_loading_area_request">
+      <rebind input="js2_button8" activationMode="delayed_press"/>  <!-- MTQ keypad "ALT" HOLD (~0.25 s) - request CARGO LOADING (C2 / Golem OX hauling). Re-added 2026-11 for the cargo fleet after being removed as unused. activationMode IS needed here: the action's stock mode is "tap", the same as v_atc_request on this key, so without it one press would fire both requests; delayed_press makes it hold-only while a tap stays "request landing". -->
     </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- MTQ toggle C (gear-shaped lever) UP - landing gear RETRACT (lever position mirrors gear state) -->
@@ -171,7 +174,11 @@
       <rebind input="js2_button30"/>  <!-- MTQ toggle C (gear-shaped lever) DOWN - landing gear DEPLOY (lever down = gear down, aircraft convention) -->
     </action>
     <action name="v_autoland">
-      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" (right-col bottom) - autoland (autopilot lands on an ATC pad when gear is down and you're close). Swapped with v_atc_request (now on "ALT"/8). Gear toggle is now ONLY on the gear lever (29/30). -->
+      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" (right-col bottom) - HOLD (~0.25 s; the action's stock mode is delayed_press) = autoland (autopilot lands on an ATC pad when gear is down and you're close). Swapped with v_atc_request (now on "ALT"/8). Gear toggle is now ONLY on the gear lever (29/30). A quick TAP of this key = docking initiate/undock (v_toggle_docking_request in spaceship_docking). -->
+    </action>
+    <!-- CLEARED GAME DEFAULT (not a binding): the game's stock joystick layout puts "Landing System (Toggle)" on joystick button 12, and stock joystick binds land on js1 and stay live under this profile unless overridden. js1_button12 is the MHG right hat UP (sub-target cycle), so without this clear every sub-target tap also toggled the landing gear and left the gear lever (29/30) out of sync. Found by tools/gamedata.py check against the 4.10 defaultProfile.xml. -->
+    <action name="v_toggle_landing_system">
+      <rebind input="js1_ "/>  <!-- clears the stock js1_button12 gear toggle - gear stays on the gear lever only -->
     </action>
     <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now decoupling). -->
     <action name="v_vtol_on">
@@ -194,6 +201,13 @@
   <actionmap name="spaceship_hud">
     <action name="v_starmap">
       <rebind input="js2_button6"/>  <!-- MTQ keypad "HDG" - open the starmap (mobiGlas) to pick a quantum destination. "HDG"/heading label = loose nav match. -->
+    </action>
+  </actionmap>
+
+  <!-- Docking for ships with a docking collar (the Anvil Liberator has one in the 4.10 game files). Shares the MTQ "AP" key with autoland with no extra attributes: this action's stock mode is "tap" and v_autoland's is "delayed_press", so a quick tap docks/undocks and a hold autolands. Does nothing on ships that cannot dock. -->
+  <actionmap name="spaceship_docking">
+    <action name="v_toggle_docking_request">
+      <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" TAP - Docking (Initiate) / (Cancel) / (Undock) at a docking port -->
     </action>
   </actionmap>
 
@@ -265,7 +279,7 @@
     <action name="v_target_cycle_attacker_back">
       <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
     </action>
-    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. NOTE: the coolie CENTER PRESS (v_target_pin_selected) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
+    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. DEVICE SETTING REQUIRED: this "hat" is the MHG's top mini-stick, and it only emits buttons 25-29 while MOZA Cockpit has it in BUTTON MAPPING mode (MHG > Grip Settings; in Axis Mode it sends two analog axes and no buttons, and these five bindings go dead). Keep "Press stick to switch mode" OFF so the pin press (29) can't flip the mode. NOTE: the coolie CENTER PRESS (v_target_pin_selected) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
     <action name="v_target_cycle_all_fwd">
       <rebind input="js1_button25"/>  <!-- MHG coolie UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
     </action>
@@ -317,7 +331,7 @@
 
   <actionmap name="spaceship_scanning">
     <action name="v_scanning_trigger_scan">
-      <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - HOLD to scan the target/area under the reticle (Scan operator mode). Same button = mining-mode toggle in Mining mode. -->
+      <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - HOLD to scan the target/area under the reticle (Scan operator mode) -->
     </action>
     <action name="v_inc_scan_focus_level">
       <rebind input="js1_button17"/>  <!-- MHG lower hat UP - narrow the scan cone (stronger/longer-range read) -->
@@ -404,6 +418,49 @@
   </actionmap>
 
   <!-- On-foot zoom maps (player/spectator/player_choice) were removed - the rig is vehicle-only (CLAUDE.md S1) and those actions can't fire from a seat anyway. -->
+
+  <!-- ================================================================ -->
+  <!-- CLEARED GAME DEFAULTS (interaction)                              -->
+  <!-- ================================================================ -->
+  <!-- Not a binding - a CLEAR. The game's stock joystick layout puts "Interaction Mode" (hold) on joystick button 6, which on this rig is the MHG trigger STAGE 2 (fire guns group 2 / salvage gimbal toggle), so a full trigger pull also held interaction mode. The rig is vehicle-only and interaction is done on the Xbox controller / keyboard, so the stock bind is removed. This is the ONLY player_choice entry and it binds nothing - do not add real on-foot bindings here. -->
+  <actionmap name="player_choice">
+    <action name="pc_interaction_mode">
+      <rebind input="js1_ "/>  <!-- clears the stock js1_button6 interaction-mode hold off the trigger's second stage -->
+    </action>
+  </actionmap>
+
+  <!-- ================================================================ -->
+  <!-- CLEARED GAME DEFAULTS (ground vehicles)                          -->
+  <!-- ================================================================ -->
+  <!-- Not bindings - CLEARS. Ground vehicles (the Ursa Medivac) are driven on the Xbox controller, same as on foot. The game's stock joystick layout would otherwise stay live on js1 in a ground vehicle: stick X = steer AND camera yaw, stick Y = pitch AND camera pitch, the AB6 lever axis js1_slider1 = drive forward/back (a parked maintained lever makes the rover creep or fight the controller), left hat UP = brake, left hat RIGHT = boost + horn. These eight clears make the MOZA rig inert while driving. Turret aim (turret_movement, stick X/Y) is left at its stock binding on purpose. To drive on the MOZA instead, replace these clears with real binds. -->
+  <actionmap name="vehicle_general">
+    <action name="v_horn">
+      <rebind input="js1_ "/>  <!-- clears stock js1_button8 (MHG left hat RIGHT) -->
+    </action>
+    <action name="v_view_yaw">
+      <rebind input="js1_ "/>  <!-- clears stock js1_x camera yaw (ground-vehicle copy; the ship copy lives in spaceship_view on the MTQ mini-stick) -->
+    </action>
+    <action name="v_view_pitch">
+      <rebind input="js1_ "/>  <!-- clears stock js1_y camera pitch (ground-vehicle copy) -->
+    </action>
+  </actionmap>
+  <actionmap name="vehicle_driver">
+    <action name="v_move">
+      <rebind input="js1_ "/>  <!-- clears stock js1_slider1 drive forward/back (an AB6 base lever axis) -->
+    </action>
+    <action name="v_yaw">
+      <rebind input="js1_ "/>  <!-- clears stock js1_x steering (ground-vehicle copy; ship yaw in spaceship_movement is untouched) -->
+    </action>
+    <action name="v_pitch">
+      <rebind input="js1_ "/>  <!-- clears stock js1_y pitch (ground-vehicle copy; ship pitch in spaceship_movement is untouched) -->
+    </action>
+    <action name="v_brake">
+      <rebind input="js1_ "/>  <!-- clears stock js1_button7 (MHG left hat UP) -->
+    </action>
+    <action name="v_boost">
+      <rebind input="js1_ "/>  <!-- clears stock js1_button8 (MHG left hat RIGHT) -->
+    </action>
+  </actionmap>
 
   <!-- ================================================================ -->
   <!-- MINING CONTROLS (mode-specific duplicates)                       -->

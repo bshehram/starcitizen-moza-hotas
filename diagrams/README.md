@@ -14,7 +14,7 @@ button-index tables in text, so you can look up a number without opening the ima
 | File | Device | What it shows |
 | --- | --- | --- |
 | `MOZA_MHG.png` | MHG grip (part of `js1`) | The flight-stick grip: trigger, thumb buttons, hats, and coolie. Buttons **1–29**. |
-| `MOZA_AB6.png` | AB6 FFB base (part of `js1`) | The base: wing pushbuttons and the two mixed-mode levers. Buttons **49–62**. (Grip + base report as one DirectInput device, `js1`.) |
+| `MOZA_AB6.png` | AB6 FFB base (part of `js1`) | The base: wing pushbuttons and the two levers. Buttons **49–62**. (Grip + base report as one DirectInput device, `js1`.) |
 | `MOZA_MTQ.png` | MTQ Throttle Panel (`js2`) | The throttle quadrant: keypad, encoders, mode knob, toggles, side sliders, and the two modules. Buttons **1–65** plus the axes. |
 
 ---
@@ -39,6 +39,11 @@ button-index tables in text, so you can look up a number without opening the ima
 | 14 | Right hat, down | 29 | Top coolie hat, center press |
 | 15 | Right hat, left | | |
 
+The "top coolie hat" (25–29) is the round mini-stick at the top-centre of the grip head. It
+reports as these five buttons only while MOZA Cockpit has it in **Button Mapping** mode (MHG →
+Grip Settings); in **Axis Mode** it reports two analog axes and no buttons, and the diagram in
+MOZA Cockpit stops showing 25–29. This profile needs Button Mapping.
+
 ## `js1` — AB6 base (49–62)
 
 | # | Physical control | # | Physical control |
@@ -52,10 +57,10 @@ button-index tables in text, so you can look up a number without opening the ima
 | 55 | Right wing button 3 | 62 | Right "Dial" lever, bottom |
 
 Wing buttons (49–56) are plain momentary pushbuttons: 49–52 = **left** wing, 53–56 = **right**
-wing. The left **"Slider"** (57–59) and right **"Dial"** (60–62) are mixed-mode levers: each
-emits both its 3 detent buttons *and* a continuous analog axis (`js1_slider1` / `js1_slider2`).
-Both are maintained (they stay where you leave them) and are currently **unbound** in this combat
-profile.
+wing. The left **"Slider"** (57–59) and right **"Dial"** (60–62) are levers with 3 detent
+buttons each; MOZA Cockpit's per-lever *Slider Axis Mode* decides whether a lever also emits a
+continuous analog axis (`js1_slider1` / `js1_slider2`) or buttons only. Both are maintained (they
+stay where you leave them) and are currently **unbound** in this combat profile.
 
 ## `js2` — MTQ throttle (1–65)
 

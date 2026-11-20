@@ -1,12 +1,34 @@
 # `tools/` — working notes for Claude
 
-The two PowerShell regeneration scripts. The human-facing usage, requirements, and gotchas are in
+The regeneration and validation scripts. The human-facing usage, requirements, and gotchas are in
 [`README.md`](README.md); this file is the working guidance for editing or running them.
 
 ## What you need to know
 
-- **Run both from the project root**, not from inside `tools/` — the paths inside assume the root
-  as the working directory.
+- **Run everything from the project root**, not from inside `tools/` — the PowerShell scripts
+  assume the root as the working directory.
+- **`gamedata.py` is the ground-truth reader.** It pulls `Data\Libs\Config\defaultProfile.xml`
+  and the English `global.ini` straight out of `Data.p4k` (read-only, ~1 s) — the game's own list
+  of every action, its **actionmap**, and its default bindings for the build that is installed.
+  - `python tools/gamedata.py check` — run this **first** after any edit to
+    [`../MOZA.xml`](../MOZA.xml) and after every game patch. `UNKNOWN` = the action name no longer
+    exists; `WRONG-MAP` = the game will silently drop it; `GHOST` = a stock joystick binding
+    (they land on `js1`) the profile neither rebinds nor clears. A ghost on an input the profile
+    also uses double-fires wherever both maps are active — judge each one by whether the two
+    contexts can be live together; many (spectator, menus, turret aim) are harmless or wanted.
+  - `python tools/gamedata.py catalogue` — rewrites the catalogue in
+    [`../reference/`](../reference/CLAUDE.md) and removes the previous snapshot. After it runs,
+    update the version stamp in [`../CLAUDE.md`](../CLAUDE.md).
+  - Needs Python 3 plus `zstandard` (or Python 3.14+, which has zstd built in). The system Python
+    on this machine did not have `zstandard` when the tool was written — if the import fails, ask
+    before installing into the user's Python, or run it from a scratch venv.
+  - It reads only plain-zstd entries. If CIG ever encrypts those two files it exits with a clear
+    message; a community extractor such as unp4k is the fallback (see [`../CLAUDE.md` §10](../CLAUDE.md)).
+- **`validate_actionmaps.ps1` is the post-load proof.** It diffs [`../MOZA.xml`](../MOZA.xml)
+  against the game's normalized export (`…\Profiles\default\actionmaps.xml`). The game **drops**
+  wrong-map actions, so a `MISMATCH` — or an unexplained `NOT-IN-EXPORT` on a non-default action —
+  means the running game did not keep a binding. Reads local files only. It can only be as fresh
+  as the last time the profile was loaded in-game, so check the export's timestamp.
 - **`regen_cards.ps1` rebuilds [`../cards/`](../cards/CLAUDE.md)** from the art in
   [`../diagrams/`](../diagrams/CLAUDE.md) plus binding tables embedded in the script. Key rules:
   - The cards are **not auto-derived from [`../MOZA.xml`](../MOZA.xml)**. When a binding changes,
@@ -16,17 +38,9 @@ The two PowerShell regeneration scripts. The human-facing usage, requirements, a
   - The headless-Chrome render has several traps (paths with spaces, stderr "bytes written"
     escalating to an error, `--window-size` tokenization). They're already worked around — read
     [`../CLAUDE.md` §8.4](../CLAUDE.md) before touching that code.
-- **`refresh_keybinds_db.ps1` rebuilds the catalogue in [`../reference/`](../reference/CLAUDE.md)**
-  by re-downloading starbinder data. After it runs, update the version stamp in
-  [`../CLAUDE.md`](../CLAUDE.md). Full recipe and data-file URLs in [`../CLAUDE.md` §7](../CLAUDE.md).
-- **`validate_actionmaps.ps1` checks actionmap placement.** It diffs [`../MOZA.xml`](../MOZA.xml)
-  against the game's normalized export (`…\Profiles\default\actionmaps.xml`). The game **drops**
-  wrong-map actions, so a `MISMATCH` — or an unexplained `NOT-IN-EXPORT` on a non-default action —
-  means a binding is in the wrong actionmap. Reads local files only (no internet). Why this is the
-  authoritative local source, and the load-then-check workflow, are in [`../CLAUDE.md` §10](../CLAUDE.md).
-  Note the catalogue's keyword *category* is **not** the actionmap — don't infer one from the other.
 
 ## Where the detail lives
 
 - Card generator internals and layout knobs: [`../CLAUDE.md` §8](../CLAUDE.md).
-- Catalogue refresh recipe: [`../CLAUDE.md` §7](../CLAUDE.md).
+- Catalogue refresh and why the source changed from starbinder to the game files: [`../CLAUDE.md` §7](../CLAUDE.md).
+- Actionmap correctness and the two-step check workflow: [`../CLAUDE.md` §10](../CLAUDE.md).

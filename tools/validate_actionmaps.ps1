@@ -4,11 +4,11 @@
 
   WHY THIS EXISTS
   ----------------
-  The starbinder catalogue (reference/STARBINDER_KEYBINDS_DATABASE_v*.md) groups actions by their
-  first "keyword" - that is a CATEGORY, not the SC actionmap. Inferring an actionmap from that
-  category is how camera bindings ended up in the wrong map and silently did nothing. The only
-  authoritative action -> actionmap source is CIG's defaultProfile.xml (inside Data.p4k), but the
-  game also writes a normalized copy of whatever profile is currently loaded to:
+  An action bound under the wrong actionmap is silently dropped by the game - that is how camera
+  bindings once ended up doing nothing. tools/gamedata.py check catches that BEFORE you launch, by
+  reading CIG's defaultProfile.xml out of Data.p4k. This script is the other half: proof that the
+  RUNNING game kept each binding. The game writes a normalized copy of whatever profile is
+  currently loaded to:
 
      ...\StarCitizen\LIVE\user\client\0\Profiles\default\actionmaps.xml
 
@@ -68,14 +68,24 @@ $ok = 0
 $mismatch = @()
 $notInExport = @()
 
+# Every (actionmap, action) pair MOZA.xml declares. Some action names exist in more than one
+# actionmap (a ship copy and a ground-vehicle copy of v_yaw, v_view_yaw, ...), so an export entry
+# under another map is only a MISMATCH if MOZA.xml does not itself declare that other copy.
+$mozaPairs = @{}
+foreach ($m in Get-Maps $mx) { foreach ($a in $m.action) { $mozaPairs["$($m.name)|$($a.name)"] = $true } }
+
 foreach ($m in Get-Maps $mx) {
   foreach ($a in $m.action) {
     $mozaMap = $m.name
-    if ($auth.ContainsKey($a.name)) {
-      if ($auth[$a.name] -contains $mozaMap) { $ok++ }
-      else { $mismatch += [pscustomobject]@{ Action = $a.name; Moza = $mozaMap; Auth = ($auth[$a.name] -join ',') } }
-    } else {
+    if (-not $auth.ContainsKey($a.name)) {
       $notInExport += [pscustomobject]@{ Action = $a.name; Moza = $mozaMap }
+    } elseif ($auth[$a.name] -contains $mozaMap) {
+      $ok++
+    } else {
+      $name = $a.name
+      $unclaimed = @($auth[$name] | Where-Object { -not $mozaPairs.ContainsKey("$_|$name") })
+      if ($unclaimed.Count) { $mismatch += [pscustomobject]@{ Action = $name; Moza = $mozaMap; Auth = ($unclaimed -join ',') } }
+      else { $notInExport += [pscustomobject]@{ Action = $name; Moza = $mozaMap } }
     }
   }
 }

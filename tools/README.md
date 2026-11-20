@@ -1,38 +1,51 @@
-# `tools/` — regeneration scripts
+# `tools/` — regeneration and validation scripts
 
-The PowerShell scripts that rebuild the generated parts of this repo: the **reference cards** and
-the **keybind action catalogue**. Neither is needed to *use* the profile — only to maintain it.
-Both are written to be **run from the project root** (one level up), not from inside this folder.
+The scripts that rebuild the generated parts of this repo — the **reference cards** and the
+**keybind action catalogue** — and check the profile against the game. None is needed to *use*
+the profile, only to maintain it. All are written to be **run from the project root** (one level
+up), not from inside this folder.
 
 ## Files
 
 | File | What it does |
 | --- | --- |
+| `gamedata.py` | **Reads the game's own control definitions out of `Data.p4k`** (read-only, about a second). `check` pre-flights [`../MOZA.xml`](../MOZA.xml) against the installed build: unknown action names, actions in the wrong actionmap, and game-default joystick bindings the profile doesn't override. `catalogue` regenerates the action catalogue in [`../reference/`](../reference/README.md). Run both when a new SC patch ships. |
+| `validate_actionmaps.ps1` | **Confirms the game accepted the profile.** Diffs [`../MOZA.xml`](../MOZA.xml) against the game's own normalized export (`…\Profiles\default\actionmaps.xml`) and flags any action the game files under a different map (`MISMATCH`) or drops outright (`NOT-IN-EXPORT`). Load the profile in-game first so the export is current. |
 | `regen_cards.ps1` | **Rebuilds the reference cards.** Takes the manufacturer art in [`../diagrams/`](../diagrams/README.md) plus binding tables embedded in the script, recolors/crops the diagrams, composites them with the lookup table in SVG, and rasterizes to PNG via headless Chrome/Edge. Writes all four files in [`../cards/`](../cards/README.md). Re-run after any binding change. |
-| `refresh_keybinds_db.ps1` | **Regenerates the action catalogue.** Re-downloads the public [starbinder](https://starbinder.space/) keybind data, auto-detects the current SC version, and rewrites the versioned catalogue in [`../reference/`](../reference/README.md), deleting the previous snapshot. Run when a new SC patch ships. |
-| `validate_actionmaps.ps1` | **Checks every binding is in the right actionmap.** Diffs [`../MOZA.xml`](../MOZA.xml) against the game's own normalized export (`…\Profiles\default\actionmaps.xml`) and flags any action the game files under a different map (`MISMATCH`) or drops outright (`NOT-IN-EXPORT`). Load the profile in-game first so the export is current. (The action catalogue groups actions by *category*, which is **not** the actionmap, so it can't answer this.) |
 
 ## Running
 
 From the project root:
 
 ```powershell
+python tools\gamedata.py check                                             # pre-flight MOZA.xml against the installed game build
+python tools\gamedata.py catalogue                                         # regenerate the action catalogue for the installed build
+powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # after loading MOZA.xml in-game: did the game keep every binding?
 powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards
-powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # refresh the action catalogue for a new patch
-powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # check every binding is in the right actionmap (load MOZA.xml in-game first)
 ```
+
+`gamedata.py check` and `validate_actionmaps.ps1` answer different questions. The first works
+before you ever start the game and knows about **every** action in the build; the second is the
+proof that the running game really kept each binding.
 
 ## Requirements
 
-- **`regen_cards.ps1`** needs Windows PowerShell with .NET `System.Drawing` and **Chrome or
-  Edge** (auto-detected, used headless to rasterize SVG → PNG at 2×, ≈330 DPI).
-- **`refresh_keybinds_db.ps1`** needs internet access — plain HTTPS GETs, no auth or API key.
+- **`gamedata.py`** needs **Python 3** and a zstd decoder: Python 3.14+ has one built in; on
+  older Pythons run `python -m pip install zstandard` once. It needs no internet — it reads
+  `Data.p4k` from this install (pass `--p4k <path>` for another one, e.g. PTU).
 - **`validate_actionmaps.ps1`** needs only Windows PowerShell — it reads two local XML files (no
   internet, no extra deps). Load `MOZA.xml` in-game first so the game's export reflects it; pass
   `-Profile <path>` to point at a different export.
+- **`regen_cards.ps1`** needs Windows PowerShell with .NET `System.Drawing` and **Chrome or
+  Edge** (auto-detected, used headless to rasterize SVG → PNG at 2×, ≈330 DPI).
 
 ## Gotchas
 
+- **Game-default joystick bindings stay live under a custom profile.** The game's stock layout
+  binds a number of actions to "joystick button N", and those land on joystick 1 (`js1`) unless
+  the profile rebinds or clears that action. `gamedata.py check` lists them as `GHOST`; the ones
+  that share a button with something the profile binds fire **both** actions. Clear an unwanted
+  one with `<rebind input="js1_ "/>`.
 - **Cards are not auto-derived from [`../MOZA.xml`](../MOZA.xml).** The function text lives in
   hand-maintained tables inside `regen_cards.ps1`, so when I change a binding I edit the matching
   row there too. The XML is the source of truth; the card tables are a view of it.

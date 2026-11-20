@@ -8,28 +8,29 @@ Neither file is needed to *use* the profile; they're for understanding and maint
 
 | File | What it is |
 | --- | --- |
-| `STARBINDER_KEYBINDS_DATABASE_v4.8.md` | **Master action catalogue.** Every bindable SC action that *exists* (≈714 of them) with its official in-game label and description, grouped by category. Sourced from the public [starbinder](https://starbinder.space/) keybind database. **Patch-versioned** — the `v4.8` in the name is the SC version it was captured from. I use this to verify that the action names (`v_*`) in [`../MOZA.xml`](../MOZA.xml) are real and labelled correctly. |
+| `SC_KEYBINDS_DATABASE_v4.10.md` | **Master action catalogue.** Every action the game build defines (1,104 entries across 50 actionmaps), grouped by its **actionmap**, with the official in-game label, description, and the game's default keyboard / joystick / gamepad bindings. Generated from the game's own `defaultProfile.xml` and English `global.ini` inside `Data.p4k`. **Patch-versioned** — the `v4.10` in the name is the SC version it was read from. I use this to verify that the action names (`v_*`) in [`../MOZA.xml`](../MOZA.xml) are real, labelled correctly, and bound under the right actionmap. |
 | `MOZA_BINDINGS.html` | **Self-contained printable binding sheet.** A single-file HTML page (inline CSS, no assets) listing this profile's bindings organized **by device**, with color-coded tags for combat / mining / salvage / utility. Open it in any browser and print to US-Letter. A text companion to the visual cards in [`../cards/`](../cards/README.md). |
 
-> **The catalogue lists labels, not actionmaps.** Which *actionmap* an action must be bound under
-> is a separate question it can't answer — get that from the game's own local profile files. The
-> check script for it lives in [`../tools/`](../tools/README.md).
+> **The catalogue answers the actionmap question.** Each section heading is an actionmap name —
+> the value that goes in `<actionmap name="…">`. An action bound under any other actionmap is
+> silently dropped by the game. The scripts that check this for the whole profile live in
+> [`../tools/`](../tools/README.md).
 
 ## Refreshing the catalogue
 
 The catalogue is specific to an SC patch, so I regenerate it when a new version ships. The
-refresh script (see [`../tools/`](../tools/README.md)) auto-detects the version, re-downloads the
-data, writes `STARBINDER_KEYBINDS_DATABASE_v<version>.md`, and deletes the previous snapshot.
+generator (see [`../tools/`](../tools/README.md)) reads the two source files directly from the
+installed game's `Data.p4k`, writes `SC_KEYBINDS_DATABASE_v<version>.md`, and deletes the
+previous snapshot. No download is involved, so the catalogue always matches the build that is
+actually installed.
 
-How it works, in short: starbinder is a static client-side app whose search box indexes plain
-JSON the page fetches. The script reads the **`UPDATED FOR <x.y>`** banner for the version, pulls
-`keybinds.json` (the master DB, keyed by action name) and `localisation.json` (resolves
-`@ui_*` description references), groups actions by their first keyword, and renders one Markdown
-table per category. The data files are plain HTTPS GETs — no auth, no API key.
+Earlier versions of this catalogue (up to Alpha 4.8) came from the public starbinder keybind
+database. That site's domain registration had expired by November 2026, which is why the
+catalogue is now built from the game files instead.
 
 ## Provenance / license
 
-The catalogue is **derived from third-party data** (the starbinder database and the
-[Star Citizen wiki](https://starcitizen.tools/)) and is **not** covered by this repo's MIT
-license — see [License & provenance](../README.md#license--provenance) in the root README. The
+The catalogue is **derived from Star Citizen's game data** (action names, labels and default
+bindings are Cloud Imperium Games') and is **not** covered by this repo's MIT license — see
+[License & provenance](../README.md#license--provenance) in the root README. The
 `MOZA_BINDINGS.html` sheet is my own original work.

@@ -1,9 +1,9 @@
 # MOZA HOTAS — Star Citizen Binding Profile
 
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
-[![Internally tested](https://img.shields.io/badge/internally_tested-in--game_verified-brightgreen)](#status)
-[![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.8-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-119_across_17_maps-informational)](MOZA.xml)
+[![Validated](https://img.shields.io/badge/validated-against_4.10_game_data-brightgreen)](#status)
+[![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.10.3-1f6fb2)](https://robertsspaceindustries.com/)
+[![Bindings](https://img.shields.io/badge/bindings-121_%2B_10_cleared_defaults-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
@@ -31,15 +31,16 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | --- | --- | --- |
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
 | 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
-| 🚀 | **Star Citizen** (captured against **Alpha 4.8**) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
-| ⚙️ | **MOZA Cockpit / Pithouse** configurator | A couple of device-side settings are assumed on — notably **"Detent Button Mapping" ON** (so the throttle rear detent emits button 34 for reverse) and **mixed-mode** on the AB6/MTQ levers (so the sliders emit an analog axis). |
+| 🚀 | **Star Citizen** (validated against **Alpha 4.10.3**, build `4.10.201.48085`) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
+| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's **idle / cutoff detent buttons enabled** (so the throttle rear detent emits button 34 for reverse), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
 
 > **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
 > load cleanly onto other hardware without editing.
 
 Regenerating the docs and cards (not needed just to *use* the profile) takes Windows PowerShell
-with .NET `System.Drawing`, Chrome or Edge, and internet access. See [`tools/`](tools/README.md).
+with .NET `System.Drawing` and Chrome or Edge for the cards, and Python 3 for the action
+catalogue and the game-data check. No internet access is needed. See [`tools/`](tools/README.md).
 
 ---
 
@@ -93,8 +94,10 @@ Product GUIDs as written in the profile:
 - `js1` → `MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}`
 - `js2` → `MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}`
 
-> **⚑ Vehicle-only by design.** On foot I play on an Xbox controller, so this profile binds
-> only seat/vehicle contexts — there are no on-foot (`player` / `spectator`) bindings.
+> **⚑ Ships only, by design.** On foot and in ground vehicles I play on an Xbox controller, so
+> this profile binds only ship/seat contexts — there are no on-foot (`player` / `spectator`) or
+> ground-vehicle bindings. The few entries in those maps are *clears*: they remove stock joystick
+> defaults that the game would otherwise leave live on the stick underneath this profile.
 
 > **⚠ Device-instance fragility.** `js1`/`js2` are assigned by the order the game enumerates USB
 > devices. If Windows re-enumerates them (port change, hub, reconnect order) the two sticks can
@@ -122,8 +125,8 @@ README.md           this file
 LICENSE             MIT license
 diagrams/           manufacturer button-number maps (source art) + button-index tables
 cards/              generated printable cheat sheets (PNG + editable SVG)
-reference/          starbinder action catalogue (v4.8) + an HTML binding sheet
-tools/              regeneration scripts (run from the project root)
+reference/          action catalogue read from the game files (v4.10) + an HTML binding sheet
+tools/              regeneration and validation scripts (run from the project root)
 ```
 
 Each folder above has its own README with the details:
@@ -136,13 +139,14 @@ needed by human readers.)
 
 ## Tooling
 
-Both scripts are PowerShell, run from the project root. Full usage, requirements, and gotchas are
-in [`tools/`](tools/README.md).
+All run from the project root. Full usage, requirements, and gotchas are in
+[`tools/`](tools/README.md).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\refresh_keybinds_db.ps1   # refresh the action catalogue for a new SC patch
+python tools\gamedata.py check                                             # pre-flight MOZA.xml against the installed game build
+python tools\gamedata.py catalogue                                         # regenerate the action catalogue for a new SC patch
+powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # after loading in-game: did the game keep every binding?
 powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards after a binding change
-powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # check every binding sits in the actionmap the game files it under
 ```
 
 ---
@@ -150,19 +154,24 @@ powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # che
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  119 `<action>`/`<rebind>` pairs across 17 action maps, with no action bound to two different
-  inputs. Buttons that appear in several maps (the trigger, rocker, hats, AB6 wings) are
-  intentional **operator-mode reuse** — only one of those maps is live at a time, depending on
-  whether the seat is in flight, mining, or salvage mode.
-- **Internally tested — in-game verified.** I validated the bindings in live Star Citizen
-  (Alpha 4.8), including the mining-laser and salvage-spacing slider axes, which I confirmed in a
-  Golem and a Salvation. I cross-checked the action labels and descriptions against the
-  [starbinder](https://starbinder.space/) master catalogue, captured in
-  [`reference/`](reference/README.md).
+  131 `<action>`/`<rebind>` pairs across 21 action maps — 121 bindings plus 10 cleared game
+  defaults — with no action bound to two different inputs. Buttons that appear in several maps
+  (the trigger, rocker, hats, AB6 wings) are intentional **operator-mode reuse** — only one of
+  those maps is live at a time, depending on whether the seat is in flight, mining, or salvage
+  mode.
+- **Validated against the Alpha 4.10.3 game data.** Every action name and actionmap in the
+  profile was checked against the game's own `defaultProfile.xml` for build `4.10.201.48085`
+  (`python tools\gamedata.py check`): no unknown actions, none in a wrong actionmap. The action
+  catalogue in [`reference/`](reference/README.md) is generated from the same file.
+- **In-game testing.** The core layout was flown and verified in Alpha 4.8 (June 2026),
+  including the mining-laser and salvage-spacing slider axes, confirmed in a Golem and a
+  Salvation. The November 2026 additions — the 10 cleared defaults, *Docking* on the AP key and
+  *Request Cargo Loading* on the ALT key — are validated against the game data but have not been
+  flown yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
-> "passing" claim is reproducible locally with the `xmllint` command above, and "tested" means
-> hands-on in the game.
+> "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
+> validation with the `gamedata.py` command, on any machine with the game installed.
 
 ---
 
@@ -193,9 +202,8 @@ Two third-party *inputs* are **not** covered by the MIT license and remain their
 
 - the **manufacturer diagrams** (`diagrams/*.png`) — MOZA's own button-number art, used as the
   source layer for the cards; and
-- the **action catalogue** in `reference/` — derived from the public
-  [starbinder](https://starbinder.space/) keybind database and the
-  [Star Citizen wiki](https://starcitizen.tools/).
+- the **action catalogue** in `reference/` — a listing of action names, labels and default
+  bindings read from Star Citizen's own game data, which belongs to Cloud Imperium Games.
 
 Star Citizen is a trademark of Cloud Imperium Games. This is an unofficial, fan-made config and
 is not affiliated with or endorsed by CIG or MOZA.
