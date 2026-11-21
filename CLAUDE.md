@@ -781,9 +781,9 @@ Per-ship notes:
   says opening the front or rear garage doors **vents that space** **[ref]**. Don't flip it in vacuum
   with people or loose vehicles inside.
 - **Liberator - services and stowage.** CIG's IAE 2956 Q&A says repair / refuel / rearm is currently
-  limited to the **internal garages**, with external pads to follow **[ref]**. No source found confirms
-  whether the Golem, Golem OX and Salvation fit the garage or the M80 (32 m long) fits an upper pad -
-  that needs trying in-game.
+  limited to the **internal garages**, with external pads to follow **[ref]**. Stowage is settled: the
+  user confirmed on 2026-11-20 that every ship they carry fits (Golem, Golem OX, Salvation in the
+  garage, M80 on the top rear pad) - not an open question.
 - **Liberator / C2 - shield faces.** The only two ships here with S3 shields; `v_shield_raise_level_*`
   stays unbound (§6 item 14).
 - **M80 - guns.** Split the weapon groups in the MFD (S5 pair = group 1, S4 pair = group 2) so trigger
