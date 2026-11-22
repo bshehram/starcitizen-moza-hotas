@@ -8,6 +8,10 @@ desktop.ini
 *.swp
 *~
 
+# Python bytecode cache (created when tools/gamedata.py is imported)
+__pycache__/
+*.py[cod]
+
 # Scratch / backups
 *.bak
 *.tmp
