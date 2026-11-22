@@ -432,7 +432,7 @@
   <!-- ================================================================ -->
   <!-- CLEARED GAME DEFAULTS (ground vehicles)                          -->
   <!-- ================================================================ -->
-  <!-- Not bindings - CLEARS. Ground vehicles (the Ursa Medivac) are driven on the Xbox controller, same as on foot. The game's stock joystick layout would otherwise stay live on js1 in a ground vehicle: stick X = steer AND camera yaw, stick Y = pitch AND camera pitch, the AB6 lever axis js1_slider1 = drive forward/back (a parked maintained lever makes the rover creep or fight the controller), left hat UP = brake, left hat RIGHT = boost + horn. These eight clears make the MOZA rig inert while driving. Turret aim (turret_movement, stick X/Y) is left at its stock binding on purpose. To drive on the MOZA instead, replace these clears with real binds. -->
+  <!-- Not bindings - CLEARS. Ground vehicles are driven on the Xbox controller, same as on foot. The game's stock joystick layout would otherwise stay live on js1 in a ground vehicle: stick X = steer AND camera yaw, stick Y = pitch AND camera pitch, the AB6 lever axis js1_slider1 = drive forward/back (a parked maintained lever makes the rover creep or fight the controller), left hat UP = brake, left hat RIGHT = boost + horn. These eight clears make the MOZA rig inert while driving. Turret aim (turret_movement, stick X/Y) is left at its stock binding on purpose. To drive on the MOZA instead, replace these clears with real binds. -->
   <actionmap name="vehicle_general">
     <action name="v_horn">
       <rebind input="js1_ "/>  <!-- clears stock js1_button8 (MHG left hat RIGHT) -->

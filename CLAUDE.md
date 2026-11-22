@@ -51,7 +51,7 @@ mappings/
 
 The MHG grip and the AB6 base report as **one** DirectInput device (`js1`): grip buttons are numbered 1–29, the base's own buttons continue at 49–62 (there is a 30–48 gap with no physical buttons). The MTQ throttle is a **separate** device (`js2`).
 
-> **⚑ Scope - ships only:** This MOZA rig is used **only when piloting a ship**. On foot / first-person / interaction **and when driving ground vehicles** (the Ursa Medivac) the user plays on an **Xbox controller** instead - never the MOZA gear. So this profile deliberately binds **only ship/seat contexts**; there are **no `player` / `spectator` / `player_choice` (on-foot) or `vehicle_*` (ground) bindings**, and none should be added. The only entries in those maps are **clears** of game defaults that would otherwise stay live on the stick (see *Cleared game defaults* in §4). The Xbox controller runs on the game's **stock gamepad layout** - there is no custom gamepad file to maintain.
+> **⚑ Scope - ships only:** This MOZA rig is used **only when piloting a ship**. On foot / first-person / interaction **and when driving ground vehicles** the user plays on an **Xbox controller** instead - never the MOZA gear. So this profile deliberately binds **only ship/seat contexts**; there are **no `player` / `spectator` / `player_choice` (on-foot) or `vehicle_*` (ground) bindings**, and none should be added. The only entries in those maps are **clears** of game defaults that would otherwise stay live on the stick (see *Cleared game defaults* in §4). The Xbox controller runs on the game's **stock gamepad layout** - there is no custom gamepad file to maintain.
 
 Product GUIDs as written in the profile:
 - `js1` → `MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}`
@@ -535,7 +535,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 9. **✅ Actionmap-correctness review (vs the game's own export):** validated every binding against `…\Profiles\default\actionmaps.xml` (the game's normalized export) using [`tools/validate_actionmaps.ps1`](tools/validate_actionmaps.ps1) - the game **drops** any action placed in the wrong map, so its export is an authoritative oracle (and the catalogue's *keyword category* is **not** the actionmap). Two issues fixed: **`v_target_pin_selected`** moved `spaceship_targeting_advanced`→**`spaceship_targeting`** (the game dropped pin from the *advanced* map, so pinning a target did nothing), and **`view_restore_defaults` removed** (it sat in `spaceship_view`, where the game drops it - it was dead; the cockpit recentre-on-cycle is `v_view_cycle_fwd`'s own behaviour). Every other bound action sits in the actionmap the game files it under. Authoritative local sources + the re-check workflow are in **§10**. *(A separate experiment - driving advanced-camera FoV from the throttle dial - was abandoned: `view_enable_camview_mode` engages the sticky cinematic/Director camera, the wrong tool for in-flight zoom; the dial's existing `v_view_dynamic_zoom_rel_*` cockpit zoom is the ceiling.)*
 
 10. **✅ Alpha 4.10.3 review (2026-11-20, build `4.10.201.48085`) - validated against the game's own files.** With starbinder gone (domain expired), every binding was checked against `defaultProfile.xml` extracted from `Data.p4k` by the new [`tools/gamedata.py`](tools/gamedata.py). Result: **all 119 existing bindings are valid in this build and sit in the correct actionmap** - no action was renamed or moved under the profile. (Renames that did *not* affect it: `v_ifcs_toggle_gravity_compensation` → `v_ifcs_gravity_compensation_toggle`; `v_invoke_docking` / `v_toggle_docking_mode` → `v_toggle_docking_request`.)
-11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in the Ursa, which is driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
+11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in ground vehicles (then the Ursa), which are driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
 12. **✅ Fleet tuning (§11):** added *Docking (Initiate)* on a tap of "AP" for the Liberator's docking collar, and brought back *Request Cargo Loading* as a hold on "ALT" for C2 / Golem OX hauling. No existing binding moved.
 13. **✅ Fixed - `MOZA_BINDINGS.html` had keypad 8/10 backwards** (it missed the June ATC↔Autoland swap). Corrected with the new tap/hold functions.
 14. **Open - shield faces on the two big ships.** The Liberator and C2 carry Size 3 shields (confirmed in the game files), the only ships in the fleet where `v_shield_raise_level_*` could do anything. They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit only if face management turns out to matter when flying the Liberator.
@@ -752,7 +752,8 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 
 ## 11. Fleet - what each ship uses
 
-The profile is tuned for this fleet (set 2026-11-20). Facts marked **[game]** were read directly from
+The profile is tuned for this fleet (set 2026-11-20; revised 2026-11-22 - the Ursa Medivac and Avenger
+Titan left in the 2026-11-21 reshuffle and the C8R Pisces Rescue joined). Facts marked **[game]** were read directly from
 each ship's definition inside `Data.p4k` for build `4.10.201.48085`. Facts marked **[ref]** come from
 the Star Citizen Wiki API's `4.10.3-LIVE` extract or CIG's own Q&A posts and were **not** checked
 in-ship - treat them as likely, not proven.
@@ -764,13 +765,12 @@ in-ship - treat them as likely, not proven.
 | **Drake Golem** | Mining - for profit and crafting materials. | Single seat. Mining arm, 2x S1 guns, 2x S1 missile racks, 1x S1 shield, **VTOL** (rotating nacelles) **[game]**. Laser has **2** module slots **[ref]**. |
 | **Drake Golem OX** | Light cargo runs. | Golem airframe with a cargo grid, a deployable turret and a *salvage* controller instead of the mining arm **[game]**; the turret carries a tractor beam **[ref]**. **VTOL**. |
 | **RSI Salvation** | Salvage - gathers RMC so repairs aboard the Liberator don't have to be bought. | Single seat. Two salvage arms plus a disintegration field, 2x S1 guns, 2x S1 shields, no missile racks, no VTOL **[game]**. |
-| **RSI Ursa Medivac** | Ground / medical. | Driver + passenger seats, turret mount, ramp + side door **[game]**. Driven on the **Xbox controller** - the rig is deliberately inert in it (§4 *Cleared game defaults*). |
+| **Anvil C8R Pisces Rescue** | Medical and courier - the fleet's only med bed. | Single seat. **T3** med bed, 2x S1 gimballed guns, 2x S1 missile racks, 1x S1 shield (*Bubble*), no VTOL thrusters, no cargo grid (~0.8 SCU internal storage), quantum drive **[ref]**. |
 | **Crusader C2 Hercules Starlifter** | Independent cargo runs. | 2x S5 pilot guns, 2x **S3** shields, **VTOL** thrusters, cargo ramps **[game]**. Shield type *Quadrant* **[ref]**. |
-| **Aegis Avenger Titan** | Backup ferry if separated from the Liberator. | 1x S4 + 2x S3 guns, 2x S3 missile racks, 2x S1 shields, rear door, no VTOL **[game]**. |
 
 ### 11.1 How the controls line up
 
-| Control group | Liberator | M80 | Golem | Golem OX | Salvation | C2 | Titan |
+| Control group | Liberator | M80 | Golem | Golem OX | Salvation | C2 | Pisces |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **VTOL switch** (`js2` 49 / 50) | yes | - | yes | yes | - | yes | - |
 | **Trigger** - guns (`js1` 1 / 6) | turrets only | yes | yes | yes | yes | yes | yes |
@@ -790,7 +790,8 @@ Per-ship notes:
 - **Liberator - services and stowage.** CIG's IAE 2956 Q&A says repair / refuel / rearm is currently
   limited to the **internal garages**, with external pads to follow **[ref]**. Stowage is settled: the
   user confirmed on 2026-11-20 that every ship they carry fits (Golem, Golem OX, Salvation in the
-  garage, M80 on the top rear pad) - not an open question.
+  garage, M80 on the top rear pad), and on 2026-11-21 that the C8R Pisces rides inside too - not an
+  open question.
 - **Liberator / C2 - shield faces.** The only two ships here with S3 shields; `v_shield_raise_level_*`
   stays unbound (§6 item 14).
 - **M80 - guns.** Split the weapon groups in the MFD (S5 pair = group 1, S4 pair = group 2) so trigger
