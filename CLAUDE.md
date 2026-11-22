@@ -440,7 +440,7 @@ These reuse MHG controls; active only in **Mining** operator mode.
 | `js1_button22` | MHG rocker ↑ | `v_increase_mining_throttle` → *Increase Mining Laser Power* | Raise laser power toward the fracture window. |
 | `js1_button23` | MHG rocker ↓ | `v_decrease_mining_throttle` → *Decrease Mining Laser Power* | Lower laser power. |
 | `js2_slider2` *(FLAPS)* | MTQ FLAPS slider - **axis** ("Slider") | `v_mining_throttle` → *Increase / Decrease Mining Laser Power* | **Absolute** laser power on the maintained FLAPS lever - hold it in the green fracture window. Supersedes the ± rocker above. **Confirmed in Golem:** rest (up) = ~20% charge (the laser's minimum floor), FULL (down) = 100% - direction correct, **no invert needed**. |
-| `js1_button4` | MHG upper thumb button | `v_toggle_mining_laser_type` → *Switch Mining Laser (Toggle)* | Switch between fitted mining laser heads/modules. |
+| `js1_button24` | MHG upper rocker **centre** | `v_toggle_mining_laser_type` → *Switch Mining Laser (Toggle)* | Switches the laser between **fracture** and **extraction** (the in-game hint reads *Laser Type (Fracture)* / *Laser Type (Extract)*). Puts every mining-laser control on the one rocker: ↑/↓ = power, push = mode. **Moved off `js1_button4` on 2026-11-21:** that button is also *Toggle Missile Operator Mode* in `seat_general`, which stays live in Mining mode, and the user could not get the laser mode to switch there (§6 item 18). |
 | `js1_button49` | AB6 left wing 1 | `v_mining_use_consumable1` → *Activate Mining Module (Slot 1)* | Activate fitted mining module, slot 1 (e.g. Surge/OptiMax). |
 | `js1_button50` | AB6 left wing 2 | `v_mining_use_consumable2` → *Activate Mining Module (Slot 2)* | Module slot 2. |
 | `js1_button51` | AB6 left wing 3 | `v_mining_use_consumable3` → *Activate Mining Module (Slot 3)* | Module slot 3. |
@@ -448,7 +448,7 @@ These reuse MHG controls; active only in **Mining** operator mode.
 
 > **Golem note:** reference data (the Star Citizen Wiki API extract for 4.10.3 and CIG's Golem Q&A) gives the Golem's bespoke laser **2 module slots**, so *Slot 3* (`js1_button51`) has nothing to fire on it - harmless, and still correct for 3-slot heads on other mining ships. Not checked in-ship.
 >
-> **AB6 wings in Mining mode:** left wing 49–52 = activate mining modules + emergency jettison (the same buttons are targeting in combat / salvage in salvage mode). The MHG rocker (22/23) doubles as mining-power ± here. **Removed:** the old `v_toggle_mining_mode` placeholder (was on `js1_button18`) - it was in the wrong action map (`seat_general`, not `spaceship_mining`), shared the scan trigger, and duplicated the mode knob's `v_set_mining_mode`. Mining mode is selected on the knob; nothing else needed.
+> **AB6 wings in Mining mode:** left wing 49–52 = activate mining modules + emergency jettison (the same buttons are targeting in combat / salvage in salvage mode). The MHG rocker (22/23) doubles as mining-power ± here, and its centre press (24) switches fracture ↔ extraction. **Removed:** the old `v_toggle_mining_mode` placeholder (was on `js1_button18`) - it was in the wrong action map (`seat_general`, not `spaceship_mining`), shared the scan trigger, and duplicated the mode knob's `v_set_mining_mode`. Mining mode is selected on the knob; nothing else needed.
 
 ### Salvage - `spaceship_salvage`
 
@@ -512,13 +512,13 @@ The MHG trigger and hats are deliberately **shared** across flight, mining, and 
 | --- | --- | --- | --- |
 | `js1_button1` (trigger) | Fire Guns Group 1 | Fire Mining Laser | Fire Focused Salvage Beam |
 | `js1_button6` (trigger 2) | Fire Guns Group 2 | - | Toggle Salvage Gimbal |
-| `js1_button4` (thumb btn) | Missile-mode toggle | Switch Mining Laser | - |
 | `js1_button22/23` (rocker) | Weapon/missile cycle | Mining power ± | Beam spacing ± |
+| `js1_button24` (rocker centre) | Aim-type cycle | Fracture ↔ extraction | - |
 | `js1_button8/10` (left hat ←/→) | Cycle hostiles | - | Fire Fracture / Disintegrate |
 | `js1_button11` (left hat press) | Lock target | - | Cycle salvage modifiers |
 | `js1_button49–56` (AB6 wings) | Target acquisition (in-view / friendly / closest / pinned / sub-target) | Modules 1–3 + jettison (49–52) | Focus all/L/R, fire L/R, axis, gimbal-reset, structural |
 
-This is normal and intended - only one of these action maps is "live" at a time. **The reuse is safe only because these maps are operator-gated** (weapons/missiles/mining/salvage/targeting are never simultaneously live). Always-active maps (power, defensive, movement, view) are deliberately **not** reused this way - that's why the WPN-hat power pips and left-hat countermeasures are single-purpose.
+This is normal and intended - only one of these action maps is "live" at a time. **The reuse is safe only because these maps are operator-gated** (weapons/missiles/mining/salvage/targeting are never simultaneously live). Always-active maps (power, defensive, movement, view, **and `seat_general`**) are deliberately **not** reused this way - that's why the WPN-hat power pips and left-hat countermeasures are single-purpose. `seat_general` (missile-mode toggle, look-behind, the mode knob) is live in *every* operator mode; the one past breach of this rule was the mining-laser switch sharing `js1_button4` with the missile-mode toggle (§6 item 18).
 
 ---
 
@@ -544,6 +544,8 @@ This is normal and intended - only one of these action maps is "live" at a time.
 16. **✅ Reverse throttle is now proportional (2026-11-20).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
 
 17. **⚠ Game option with a backwards label - "Defaults → Flight → Decoupled On" (found 2026-11-20, build `4.10.201.48085`).** Tested by the user across three launches: with the menu on **Yes** the ship spawned **coupled**; on **No** it spawned **decoupled**. The stored value is honest - `IFCS_Setting_CoupledEnabled` in `…\user\client\0\Profiles\default\attributes.xml`, where `1` = coupled (the game's default, so the entry is simply absent) and `0` = decoupled. The user wants to start **coupled**: menu on *Yes*, no `…CoupledEnabled = 0` line in the file. Two things learned about that file: the game drops an entry once it equals the default, so a missing setting is not readable from it; and hand-edits made with the game closed are picked up at the next launch. Re-check the label's sense after a patch before trusting either reading.
+
+18. **✅ Fixed - the mining fracture/extract switch shared a button with an always-live action (2026-11-21).** `v_toggle_mining_laser_type` (*Switch Mining Laser (Toggle)*, the fracture ↔ extraction switch - the game's own hint strings are *Laser Type (Fracture / Extract)*) sat on `js1_button4` together with `v_toggle_missile_mode`. That second action is in `seat_general`, which is not operator-gated, so in Mining mode one press fired both. The user reported they could not get the laser mode to switch in the Golem. The switch now lives on the MHG upper rocker **centre** (`js1_button24`), whose only other binding is *Aim Mode - Cycle* in the operator-gated `spaceship_weapons`. `js1_button4` is now missile-mode toggle only. The doc had also mis-described the action as "switch laser heads/modules". `gamedata.py check` passes (131 OK, no new ghost on button 24); **not yet tried in-ship**.
 
 ---
 

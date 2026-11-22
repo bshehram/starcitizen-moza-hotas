@@ -217,7 +217,7 @@
   <!-- MTQ rotary mode-selector knob: 5 detents = buttons 17-21, physically engraved 1-5 (17 = pos1/full CCW ... 21 = pos5/full CW). Each detent directly SETS one operator mode. Maintained selector - the knob position may not match the actual operator mode after seat entry or another mode change; turn off-and-back onto a detent to re-assert it. Operator modes are separate from Master Mode (SCM/NAV, on js2_button5). -->
   <actionmap name="seat_general">
     <action name="v_toggle_missile_mode">
-      <rebind input="js1_button4"/>  <!-- MHG upper thumb button - quick gun<->missile mode flip (knob detents 17/18 SET them explicitly; this same button = switch mining laser in Mining mode) -->
+      <rebind input="js1_button4"/>  <!-- MHG upper thumb button - quick gun<->missile mode flip (knob detents 17/18 SET them explicitly). seat_general is live in EVERY operator mode, so keep this button single-purpose - the mining fracture/extract switch was moved off it to js1_button24 (2026-11-21). -->
     </action>
     <action name="v_set_guns_mode">
       <rebind input="js2_button17"/>  <!-- MTQ mode knob detent 1 (full CCW) - Guns operator mode. Default park/rest position (combat-ready). -->
@@ -358,7 +358,7 @@
       <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - previous weapon group (also prev missile type / mining power -) -->
     </action>
     <action name="v_weapon_aim_type_cycle">
-      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal) -->
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal); in Mining mode the same press = fracture/extract switch -->
     </action>
     <action name="v_weapon_gimbals_state_toggle">
       <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - toggle gimbal lock (locked = tighter convergence vs auto-aim) -->
@@ -480,7 +480,7 @@
       <rebind input="js2_slider2"/>  <!-- MTQ FLAPS slider axis ("Slider") - absolute mining laser power -->
     </action>
     <action name="v_toggle_mining_laser_type">
-      <rebind input="js1_button4"/>  <!-- MHG upper thumb button - switch mining laser head/module (reuses the missile/gun mode toggle) -->
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - switch the laser between FRACTURE and EXTRACTION (in-game hint "Laser Type (Fracture / Extract)"). Rocker = all mining-laser controls: up/down = power, push = mode. Moved off js1_button4 (2026-11-21): that button is also v_toggle_missile_mode in seat_general, which stays live in Mining mode, and the user could not get the mode to switch there. js1_button24 is otherwise only aim-type cycle in spaceship_weapons (operator-gated). -->
     </action>
     <!-- REMOVED the v_toggle_mining_mode placeholder that was on js1_button18: it was in the wrong action map (belongs to seat_general), shared the scan trigger, and was redundant with the mode knob's v_set_mining_mode (js2_button20). Mining mode is selected on the knob; nothing else needed here. -->
     <!-- AB6 base wings as the MINING control bank (same buttons = targeting in combat / salvage in salvage mode): activate fitted mining modules + emergency cargo dump. -->
