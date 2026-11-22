@@ -165,7 +165,7 @@
       <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - TAP = request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). HOLD on this same key = request cargo loading (next action). -->
     </action>
     <action name="v_atc_loading_area_request">
-      <rebind input="js2_button8" activationMode="delayed_press"/>  <!-- MTQ keypad "ALT" HOLD (~0.25 s) - request CARGO LOADING (C2 / Golem OX hauling). Re-added 2026-11 for the cargo fleet after being removed as unused. activationMode IS needed here: the action's stock mode is "tap", the same as v_atc_request on this key, so without it one press would fire both requests; delayed_press makes it hold-only while a tap stays "request landing". -->
+      <rebind input="js2_button8" activationMode="delayed_press"/>  <!-- MTQ keypad "ALT" HOLD (~0.25 s) - request CARGO LOADING (Golem OX hauling). Re-added 2026-11 for the cargo fleet after being removed as unused. activationMode IS needed here: the action's stock mode is "tap", the same as v_atc_request on this key, so without it one press would fire both requests; delayed_press makes it hold-only while a tap stays "request landing". -->
     </action>
     <action name="v_retract_landing_system">
       <rebind input="js2_button29"/>  <!-- MTQ toggle C (gear-shaped lever) UP - landing gear RETRACT (lever position mirrors gear state) -->

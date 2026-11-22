@@ -317,7 +317,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button16` | MTQ lower encoder **center press** | `v_ifcs_toggle_gforce_safety` → *G-Force Safety On/Off (Toggle / Hold)* | G-Safe - caps manoeuvres to stop the pilot blacking out; off = full performance, blackout risk. Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the safety that governs it. **Moved here from `js1_button51`.** |
 | `js2_button57` | MTQ "COM" strafe-hat - **center press** | `v_ifcs_vector_decoupling_toggle` → *Enable / Disable decoupled mode* | Coupled ↔ decoupled. Co-located with the strafe directions it complements (decoupled = pure Newtonian translation - the mode you enable to strafe freely). Moved off AB6 left wing 1 (`js1_button49`, now free). Kept **off** the MTQ 3-pos switch (49/50) - its rest re-fires on every brake (would force-recouple); 57 is a plain press, so decoupled survives braking. |
 | `js2_button8` | MTQ keypad **"ALT"** (right-mid) - **tap** | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. **Swapped onto "ALT" from "AP"/10.** Moved off `js1_button53` (now free). Stock mode `tap`, so a quick press. |
-| `js2_button8` | MTQ keypad **"ALT"** - **hold** (~0.25 s) | `v_atc_loading_area_request` → *Request Cargo Loading* | Hails for a cargo-loading slot (C2 / Golem OX hauling). **Re-added 2026-11** for the cargo fleet (it had been removed in June as never used). Carries `activationMode="delayed_press"` - the one explicit activation mode in the file - because its stock mode is also `tap`. |
+| `js2_button8` | MTQ keypad **"ALT"** - **hold** (~0.25 s) | `v_atc_loading_area_request` → *Request Cargo Loading* | Hails for a cargo-loading slot (Golem OX hauling). **Re-added 2026-11** for the cargo fleet (it had been removed in June as never used). Carries `activationMode="delayed_press"` - the one explicit activation mode in the file - because its stock mode is also `tap`. |
 | `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing System (Retract)* | Gear **up**. Gear-shaped plastic lever - its position mirrors gear state. |
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing System (Deploy)* | Gear **down**. Lever down = gear down (aircraft convention). |
 | `js2_button10` | MTQ keypad **"AP"** (right-bottom) - **hold** (~0.25 s) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. **Swapped onto "AP" from "ALT"/8.** Stock mode is `delayed_press`, so it needs a short **hold** - a quick tap is the docking action (see *Quantum travel, navigation & docking*). Gear toggle is now **only** on the gear lever (29/30); the stock `js1_button12` gear toggle is cleared (see *Cleared game defaults*). |
@@ -538,7 +538,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in ground vehicles such as the Ursa, which are driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
 12. **✅ Fleet tuning (§11):** added *Docking (Initiate)* on a tap of "AP" for the Liberator's docking collar, and brought back *Request Cargo Loading* as a hold on "ALT" for C2 / Golem OX hauling. No existing binding moved.
 13. **✅ Fixed - `MOZA_BINDINGS.html` had keypad 8/10 backwards** (it missed the June ATC↔Autoland swap). Corrected with the new tap/hold functions.
-14. **Open - shield faces on the two big ships.** The Liberator and C2 carry Size 3 shields (confirmed in the game files), the only ships in the fleet where `v_shield_raise_level_*` could do anything. They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit only if face management turns out to matter when flying the Liberator.
+14. **Open - shield faces on the Liberator.** The Liberator carries Size 3 shields (confirmed in the game files), the only ship in the fleet where `v_shield_raise_level_*` could do anything (the C2, which also had them, left the fleet on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit only if face management turns out to matter when flying the Liberator.
 15. **Open - Golem OX tractor beam.** The OX has a deployable tractor turret and, in the game files, a *salvage* controller, so its tractor may run through Salvage operator mode (trigger = *Toggle Fire Focused*). `tractor_beam_vehicle_increase/decrease_distance` (in `spaceship_salvage`) are unbound on the rig - mouse wheel / gamepad shoulders only. Check in-ship which mode drives it before binding; the MHG right hat ↑/↓ (12/14) is the natural spot if targeting is inactive in that mode.
 
 16. **✅ Reverse throttle is now proportional (2026-11-20).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
@@ -753,7 +753,7 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 ## 11. Fleet - what each ship uses
 
 The profile is tuned for this fleet (set 2026-11-20; final lineup 2026-11-22 after a melt-and-rebuy -
-the Avenger Titan left, the F8C Lightning and C8R Pisces Rescue joined). Facts marked **[game]** were read directly from
+the Avenger Titan and C2 Hercules left, the F8C Lightning and C8R Pisces Rescue joined). Facts marked **[game]** were read directly from
 each ship's definition inside `Data.p4k` for build `4.10.201.48085`. Facts marked **[ref]** come from
 the Star Citizen Wiki API's `4.10.3-LIVE` extract or CIG's own Q&A posts and were **not** checked
 in-ship - treat them as likely, not proven.
@@ -768,20 +768,19 @@ in-ship - treat them as likely, not proven.
 | **RSI Salvation** | Salvage - gathers RMC so repairs aboard the Liberator don't have to be bought. | Single seat. Two salvage arms plus a disintegration field, 2x S1 guns, 2x S1 shields, no missile racks, no VTOL **[game]**. |
 | **RSI Ursa Medivac** | Ground / medical. | Driver + passenger seats, turret mount, ramp + side door **[game]**. Driven on the **Xbox controller** - the rig is deliberately inert in it (§4 *Cleared game defaults*). |
 | **Anvil C8R Pisces Rescue** | Medical and courier - the fleet's flying med bed. | Single seat. **T3** med bed, 2x S1 gimballed guns, 2x S1 missile racks, 1x S1 shield (*Bubble*), no VTOL thrusters, no cargo grid (~0.8 SCU internal storage), quantum drive **[ref]**. |
-| **Crusader C2 Hercules Starlifter** | Independent cargo runs. | 2x S5 pilot guns, 2x **S3** shields, **VTOL** thrusters, cargo ramps **[game]**. Shield type *Quadrant* **[ref]**. |
 
 ### 11.1 How the controls line up
 
-| Control group | Liberator | M80 | F8C | Golem | Golem OX | Salvation | C2 | Pisces |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **VTOL switch** (`js2` 49 / 50) | yes | - | - | yes | yes | - | yes | - |
-| **Trigger** - guns (`js1` 1 / 6) | turrets only | yes | yes | yes | yes | yes | yes | yes |
-| **Missiles** (knob 2, `js1` 2 / 4 / 22 / 23) | yes | yes | yes | yes | yes | - | - | yes |
-| **Mining** (knob 4, FLAPS axis, wing modules) | - | - | - | yes | - | - | - | - |
-| **Salvage** (knob 5, SPEEDBRAKE axis, wing bank) | - | - | - | - | tractor? | yes | - | - |
-| **"AP" tap** = dock / undock | yes | - | - | - | - | - | - | - |
-| **"ALT" hold** = request cargo loading | - | - | - | - | yes | - | yes | - |
-| **Power pips** (WPN hat), countermeasures, targeting, doors, lights, gear | all ships | | | | | | | |
+| Control group | Liberator | M80 | F8C | Golem | Golem OX | Salvation | Pisces |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **VTOL switch** (`js2` 49 / 50) | yes | - | - | yes | yes | - | - |
+| **Trigger** - guns (`js1` 1 / 6) | turrets only | yes | yes | yes | yes | yes | yes |
+| **Missiles** (knob 2, `js1` 2 / 4 / 22 / 23) | yes | yes | yes | yes | yes | - | yes |
+| **Mining** (knob 4, FLAPS axis, wing modules) | - | - | - | yes | - | - | - |
+| **Salvage** (knob 5, SPEEDBRAKE axis, wing bank) | - | - | - | - | tractor? | yes | - |
+| **"AP" tap** = dock / undock | yes | - | - | - | - | - | - |
+| **"ALT" hold** = request cargo loading | - | - | - | - | yes | - | - |
+| **Power pips** (WPN hat), countermeasures, targeting, doors, lights, gear | all ships | | | | | | |
 
 The Ursa Medivac is left out of this table: it is driven on the Xbox controller.
 
@@ -796,8 +795,8 @@ Per-ship notes:
   user confirmed on 2026-11-20 that every ship they carry fits (Golem, Golem OX, Salvation in the
   garage, M80 on the top rear pad), and on 2026-11-21 that the C8R Pisces rides inside too - not an
   open question.
-- **Liberator / C2 - shield faces.** The only two ships here with S3 shields; `v_shield_raise_level_*`
-  stays unbound (§6 item 14).
+- **Liberator - shield faces.** The only ship here with S3 shields; `v_shield_raise_level_*` stays
+  unbound (§6 item 14).
 - **M80 - guns.** Split the weapon groups in the MFD (S5 pair = group 1, S4 pair = group 2) so trigger
   stage 1 / stage 2 mean something - see the Weapons note in §4. CIG's DefenseCon 2956 Q&A says the S5
   pair deploys from the hull when powered on **[ref]**, so there is nothing to bind for that.
@@ -808,7 +807,7 @@ Per-ship notes:
 - **Golem OX - tractor.** Unbound on the rig and unverified - §6 item 15.
 - **Salvation.** Fully covered and the only ship besides the Golem whose slider axis was confirmed
   in-ship (June 2026, Alpha 4.8).
-- **C2 / Golem OX - cargo.** *Request Cargo Loading* is a hold on "ALT"; a tap is still *Request Landing*.
+- **Golem OX - cargo.** *Request Cargo Loading* is a hold on "ALT"; a tap is still *Request Landing*.
 
 ---
 
