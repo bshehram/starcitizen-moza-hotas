@@ -358,7 +358,7 @@
       <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - previous weapon group (also prev missile type / mining power -) -->
     </action>
     <action name="v_weapon_aim_type_cycle">
-      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal); in Mining mode the same press = fracture/extract switch -->
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal); in Mining mode the same press = fracture/extract switch, in Salvage mode = structural field mode cycle -->
     </action>
     <action name="v_weapon_gimbals_state_toggle">
       <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - toggle gimbal lock (locked = tighter convergence vs auto-aim) -->
@@ -528,7 +528,10 @@
     <action name="v_salvage_decrease_beam_spacing">
       <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - salvage beam spacing - (narrower gap) -->
     </action>
-    <!-- AB6 base wings as the SALVAGE control bank (same buttons = targeting in combat / mining in mining mode): focus heads, fire individual beams, gimbal/axis/structural controls. -->
+    <action name="v_salvage_cycle_modifiers_structural">
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle the STRUCTURAL salvage field's mode (game HUD: Fracture Field / Disintegration Field / Suction). Same button as the mining laser's fracture/extract switch, so the rocker centre is the "tool mode" press in both modes. Moved off AB6 right wing 4 (js1_button56) on 2026-11-22 for the Gatac Hyun (scraper heads + disintegration area, like the Salvation). Hull SCRAPING is not a mode of this tool - it is the salvage heads on the trigger. -->
+    </action>
+    <!-- AB6 base wings as the SALVAGE control bank (same buttons = targeting in combat / mining in mining mode): focus heads, fire individual beams, gimbal/axis controls. Right wing 4 (56) is unbound here. -->
     <action name="v_salvage_focus_all_heads">
       <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - focus ALL salvage heads -->
     </action>
@@ -550,9 +553,7 @@
     <action name="v_salvage_reset_gimbal">
       <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - reset salvage gimbal to centre -->
     </action>
-    <action name="v_salvage_cycle_modifiers_structural">
-      <rebind input="js1_button56"/>  <!-- AB6 RIGHT wing 4 - cycle STRUCTURAL salvage modes -->
-    </action>
+    <!-- AB6 RIGHT wing 4 (js1_button56) is free in Salvage mode since 2026-11-22: the structural mode cycle moved to the rocker centre (below). -->
   </actionmap>
 
   <!-- ONLY REMAINING UNBOUND js1 hardware = the two AB6 base levers (intentional): each is MIXED-MODE - 3 detent buttons AND a continuous analog axis. Left "Slider" = detents 57 (top/100) / 58 / 59 (bottom/0); right "Dial" = detents 60 (top/full) / 61 / 62 (bottom/0); analog halves are js1_slider1 / js1_slider2 (which lever is which needs joy.cpl confirmation, same counter-intuitive mapping as the MTQ). Reserved for a future modal/analog use - maintained set-and-hold levers suit neither momentary combat actions nor analog values combat doesn't need. Everything else on js1 is now bound: MHG grip 1-29 fully bound; AB6 wings 49-56 are the multi-mode bank (targeting in combat / mining / salvage). -->

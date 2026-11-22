@@ -258,7 +258,7 @@ $AB6 = @(
   @{Label='53';Primary='Target: cycle friendly fwd';Variants=@((V 'Salv:' 'fire left beam' $C_SALV))},
   @{Label='54';Primary='Target: cycle friendly back';Variants=@((V 'Salv:' 'fire right beam' $C_SALV))},
   @{Label='55';Primary='Target: cycle pinned back';Variants=@((V 'Salv:' 'reset gimbal' $C_SALV))},
-  @{Label='56';Primary='Target: reset sub-target';Variants=@((V 'Salv:' 'structural modes' $C_SALV))},
+  @{Label='56';Primary='Target: reset sub-target'},
   @{Label='57-59';Primary='Left "Slider" lever';Hint='unbound - reserved';Unbound=$true},
   @{Label='60-62';Primary='Right "Dial" lever';Hint='unbound - reserved';Unbound=$true}
 )
@@ -292,7 +292,7 @@ $MHG_R = @(
   @{Label='21';Primary='ADS / cockpit zoom toggle'},
   @{Label='22';Primary='Weapon preset - next';Variants=@((V 'Msl:' 'type +' $C_NOTE),(V 'Mine:' 'pwr +' $C_MINE),(V 'Salv:' 'gap +' $C_SALV))},
   @{Label='23';Primary='Weapon preset - prev';Variants=@((V 'Msl:' 'type -' $C_NOTE),(V 'Mine:' 'pwr -' $C_MINE),(V 'Salv:' 'gap -' $C_SALV))},
-  @{Label='24';Primary='Weapon aim-type cycle';Variants=@((V 'Mine:' 'fracture/extract' $C_MINE))},
+  @{Label='24';Primary='Weapon aim-type cycle';Variants=@((V 'Mine:' 'fracture/extract' $C_MINE),(V 'Salv:' 'structural mode' $C_SALV))},
   @{Label='25';Primary='Cycle all contacts forward'},
   @{Label='26';Primary='Snap-lock closest hostile'},
   @{Label='27';Primary='Cycle all contacts back'},
