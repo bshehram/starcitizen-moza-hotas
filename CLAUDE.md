@@ -772,7 +772,7 @@ exactly on the ships known to have VTOL (Liberator, Golem, Golem OX), so it is u
 | **RSI Perseus** | *Not stated yet* (CIG role: Heavy Gunship). Joined 2026-11-23. | Crew of 6, **no pilot guns**. Two manned S8 turrets (2x S8 Medusa cannons + 2x S3 Gatlings each), two remote S3 turrets run from the co-pilot and gunner seats, 6 automatic point-defence turrets, 2 torpedo racks (10x S5 each; the API names no seat for them), 2x **S3** shields (*Quadrant*), **VTOL**, 96 SCU, docking collars **[ref]**. |
 | **Drake Ironclad Assault** | *Not stated yet* (CIG role: Heavy Dropship). Joined 2026-11-23. | Crew of 7-8, **no pilot guns**. Three manned turrets (bottom: 4x S5 Gatlings; left / right: 2x S3 repeaters each), five remote turrets, 2 missile racks (5x S5 each; no seat named), 4x **S3** shields (*Quadrant*), **VTOL**, **1,440 SCU**, docking collar **[ref]**. |
 | **Drake Corsair** | *Not stated yet* (CIG role: Expedition). Joined 2026-11-23. | Crew of 4. **6 pilot guns** - 2x S5 + 4x S4 cannons - plus two manned side turrets (2x S2 each) and a tail turret (2x S2) run from the co-pilot seat, 4 missile racks (8x S3), 1x **S3** shield (*Quadrant*), no VTOL, 72 SCU, docking collar listed **[ref]**. |
-| **Gatac Hyūn** | Mining + salvage hybrid (the user's 2026-11-22 trial, §6 item 19). Joined 2026-11-23. | Single seat. 4x S3 gimballed repeaters, 1 missile rack (8x S2), 2x S2 shields (*Bubble*), no VTOL, 32 SCU. Mining arm with an S1 Arbor MH1 laser (the API shows two empty slots under it - likely 2 module slots, unchecked), two salvage arms with S2 Baler heads (Abrade scraper module each), and a disintegration intake **[ref]**. |
+| **Gatac Hyūn** | Mining + salvage hybrid (the user's 2026-11-22 trial, §6 item 19). Joined 2026-11-23. | Single seat. 4x S3 gimballed repeaters, 1 missile rack (8x S2), 2x S2 shields (*Bubble*), no VTOL. Mining arm with the stock S1 **Arbor MH1** laser (117-2,340 power, **1 module slot**; the second socket under it is a ventilation attachment, not a module) on a swappable mount, ore stored in **four pods totalling 32 SCU** (no separate cargo grid listed), two salvage arms with S2 Baler heads (Abrade scraper module each), a disintegration intake, and an S2 radar slot **[ref]**. |
 | **Drake Golem** | Mining - for profit and crafting materials. | Single seat. Mining arm, 2x S1 guns, 2x S1 missile racks, 1x S1 shield, **VTOL** (rotating nacelles) **[game]**. Laser has **2** module slots **[ref]**. |
 | **Drake Golem OX** | Light cargo runs. | Golem airframe with a cargo grid, a deployable turret and a *salvage* controller instead of the mining arm **[game]**; the turret carries a tractor beam **[ref]**. **VTOL**. |
 | **RSI Salvation** | Salvage - gathers RMC so repairs aboard the Liberator don't have to be bought. | Single seat. Two salvage arms plus a disintegration field, 2x S1 guns, 2x S1 shields, no missile racks, no VTOL **[game]**. |
@@ -795,7 +795,7 @@ kind `v_shield_raise_level_*` acts on (unbound, §6 item 14).
 | Perseus | yes | turrets only | torpedoes - seat unchecked | - | - | listed [ref] | 96 SCU | yes |
 | Ironclad Assault | yes | turrets only | racks - seat unchecked | - | - | listed [ref] | 1,440 SCU | yes |
 | Corsair | - | yes | yes | - | - | listed [ref] | 72 SCU | yes |
-| Hyūn | - | yes | yes | yes | yes | - | 32 SCU | - |
+| Hyūn | - | yes | yes | yes | yes | - | - (32 SCU ore pods) | - |
 | Golem | yes | yes | yes | yes | - | - | - | - |
 | Golem OX | yes | yes | yes | - | tractor? | - | 64 SCU | - |
 | Salvation | - | yes | - | - | yes | - | 6 SCU | - |
@@ -831,6 +831,9 @@ Per-ship notes:
 - **Hyūn - one seat, both tools.** Knob detent 4 (Mining) and 5 (Salvage) both apply. The rocker
   centre (`js1_button24`) is the tool-mode press in both: fracture ↔ extraction on the laser,
   structural-field mode in salvage (§6 item 19). Not yet flown with the rig.
+- **Hyūn - modules.** The stock Arbor MH1 has one module slot, so only AB6 left wing 1 (slot 1)
+  does anything, and only with an *active* module fitted. A two-slot laser (Helix I or Impact I) would
+  bring wing 2 into play. No binding change either way.
 - **Golem - modules.** Only slots 1 and 2 exist on its laser **[ref]**; AB6 left wing 3 does nothing.
 - **Golem OX - tractor.** Unbound on the rig and unverified - §6 item 15.
 - **Salvation.** Fully covered and the only ship besides the Golem whose slider axis was confirmed
