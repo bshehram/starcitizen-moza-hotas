@@ -330,7 +330,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | --- | --- | --- | --- |
 | `js2_button7` | MTQ keypad **"SPD"** (mid-middle) - **hold** | `v_toggle_qdrive_engagement` → *Engage Quantum Drive (Hold)* | Spools & engages the quantum drive for **in-system** travel (needs NAV mode + an aligned marker). Stock mode is `delayed_press` - **hold** ~0.25 s. Press again to drop out. (Physical "SPD"/speed label - loose quantum match.) |
 | `js2_button6` | MTQ keypad **"HDG"** (right-top) | `v_starmap` → *Map* | Opens the 3D star map (mobiGlas) to pick a quantum destination. (Physical "HDG"/heading label - loose nav match.) |
-| `js2_button10` | MTQ keypad **"AP"** - **tap** | `v_toggle_docking_request` → *Docking (Initiate)* | Starts / cancels docking at a docking port, and undocks (the label changes with state). **Added 2026-11 for the Liberator**, the one ship in the fleet with a docking collar. Shares the key with *Autoland* purely by stock activation modes (`tap` here, `delayed_press` there). Does nothing on ships that can't dock. Replaces the 4.8-era `v_invoke_docking` / `v_toggle_docking_mode`, which no longer exist. |
+| `js2_button10` | MTQ keypad **"AP"** - **tap** | `v_toggle_docking_request` → *Docking (Initiate)* | Starts / cancels docking at a docking port, and undocks (the label changes with state). **Added 2026-11 for the Liberator**'s docking collar; the Wiki API also lists docking collars on the Perseus, Ironclad Assault and Corsair (fleet since 2026-11-23, §11). Shares the key with *Autoland* purely by stock activation modes (`tap` here, `delayed_press` there). Does nothing on ships that can't dock. Replaces the 4.8-era `v_invoke_docking` / `v_toggle_docking_mode`, which no longer exist. |
 
 ### Mode switching & LAMP - `seat_general`
 
@@ -417,7 +417,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | --- | --- | --- | --- |
 | `js1_button7` | MHG left hat ↑ | `v_weapon_countermeasure_decoy_launch` → *Decoy - Launch Burst (tap), Set and Launch Burst (hold)* | Flares - lure **seeker-guided** (IR/cross-section) missiles. Burst them as a missile closes. |
 | `js1_button9` | MHG left hat ↓ | `v_weapon_countermeasure_noise_launch` → *Noise - Deploy (Tap)* | Chaff - a sensor-interference cloud that breaks **radar/scan locks**. |
-> **Shield faceting REMOVED from the "WPN" hat.** `v_shield_raise_level_*` only does anything on ships with **Size 3+ shield generators** (quad-faced - Carrack, Constellation, Hull C, M2 Hercules); every fighter the user flies (F8C, Origin → Size 1/2 **single-bubble** shields) treats it as a no-op, which is why it appeared "broken." The "WPN" hat now drives the **universal power-pip triangle** (see *Power management*) - shield **strength** is managed there and works on every ship. Per-facet angling stays unbound (re-add `v_shield_raise_level_*` only if you fly an S3-shield ship).
+> **Shield faceting REMOVED from the "WPN" hat.** `v_shield_raise_level_*` only does anything on ships with **Size 3+ shield generators** (quad-faced - Carrack, Constellation, Hull C, M2 Hercules); every fighter the user flew at the time (F8C, Origin → Size 1/2 **single-bubble** shields) treated it as a no-op, which is why it appeared "broken." The "WPN" hat now drives the **universal power-pip triangle** (see *Power management*) - shield **strength** is managed there and works on every ship. Per-facet angling stays unbound. Since 2026-11-23 four ships in the fleet have S3 *Quadrant* shields (Liberator, Perseus, Ironclad Assault, Corsair), so re-adding it is an open question - §6 item 14.
 
 ### View & camera - `spaceship_view`
 
@@ -538,7 +538,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in ground vehicles such as the Ursa, which are driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
 12. **✅ Fleet tuning (§11):** added *Docking (Initiate)* on a tap of "AP" for the Liberator's docking collar, and brought back *Request Cargo Loading* as a hold on "ALT" for C2 / Golem OX hauling. No existing binding moved.
 13. **✅ Fixed - `MOZA_BINDINGS.html` had keypad 8/10 backwards** (it missed the June ATC↔Autoland swap). Corrected with the new tap/hold functions.
-14. **Open - shield faces on the Liberator.** The Liberator carries Size 3 shields (confirmed in the game files), the only ship in the fleet where `v_shield_raise_level_*` could do anything (the C2, which also had them, left the fleet on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit only if face management turns out to matter when flying the Liberator.
+14. **Open - shield faces on the S3-shield ships.** The Liberator carries Size 3 shields (confirmed in the game files). Since the 2026-11-23 rebuy, the Wiki API also lists S3 *Quadrant* shields on the **Perseus** (2x), **Ironclad Assault** (4x) and **Corsair** (1x) **[ref]**. So four ships in the fleet, not one, are where `v_shield_raise_level_*` could do anything (the C2, which also had them, left on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit if face management turns out to matter on any of the four. Check first whether the pilot seat controls the faces on the crewed ships.
 15. **Open - Golem OX tractor beam.** The OX has a deployable tractor turret and, in the game files, a *salvage* controller, so its tractor may run through Salvage operator mode (trigger = *Toggle Fire Focused*). `tractor_beam_vehicle_increase/decrease_distance` (in `spaceship_salvage`) are unbound on the rig - mouse wheel / gamepad shoulders only. Check in-ship which mode drives it before binding; the MHG right hat ↑/↓ (12/14) is the natural spot if targeting is inactive in that mode.
 
 16. **✅ Reverse throttle is now proportional (2026-11-20).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
@@ -752,17 +752,27 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 
 ## 11. Fleet - what each ship uses
 
-The profile is tuned for this fleet (set 2026-11-20; final lineup 2026-11-22 after a melt-and-rebuy -
-the Avenger Titan and C2 Hercules left, the F8C Lightning and C8R Pisces Rescue joined). Facts marked **[game]** were read directly from
-each ship's definition inside `Data.p4k` for build `4.10.201.48085`. Facts marked **[ref]** come from
-the Star Citizen Wiki API's `4.10.3-LIVE` extract or CIG's own Q&A posts and were **not** checked
-in-ship - treat them as likely, not proven.
+The profile is tuned for this fleet. Current lineup **2026-11-23** (eleven ships), after a last
+melt-and-rebuy on the final IAE 2956 sale day: the F8C Lightning left; the **Gatac Hyūn** and the four
+2956 Best in Show ships joined - **Perseus, Ironclad Assault, M80, Corsair**, bought as the *2956 Best in
+Show Complete Pack* (the M80 was already in the fleet). Earlier changes: set 2026-11-20; on 2026-11-22
+the Avenger Titan and C2 Hercules left and the C8R Pisces Rescue joined.
+
+Facts marked **[game]** were read directly from each ship's definition inside `Data.p4k` for build
+`4.10.201.48085`. Facts marked **[ref]** come from the Star Citizen Wiki API's `4.10.3-LIVE` extract
+(`4.10.3-LIVE.13165946` for the 2026-11-23 additions) or CIG's own Q&A posts and were **not** checked
+in-ship - treat them as likely, not proven. The Wiki API's `mounting_positions` field is the quickest
+read of a ship's guns, turrets, racks and tool arms; its `propulsion.thrust_capacity.vtol` is non-zero
+exactly on the ships known to have VTOL (Liberator, Golem, Golem OX), so it is used as the VTOL test.
 
 | Ship | Role in the fleet | Systems that matter for the rig |
 | --- | --- | --- |
 | **Anvil Liberator** | Mothership / home base - carries the others. | Pilot + gunner seats and **no pilot guns**: 4x S4 missile racks, one manned S5 turret, two S3 remote turrets **[game]**. 2x **S3** shields, 4 **VTOL** thrusters, a **docking collar**, front + rear ramps, vehicle-bay door, landing-pad doors, elevator doors **[game]**. Shield type *Quadrant* **[ref]**. |
-| **Origin M80** | Combat. | Single seat. 2x S5 + 2x S4 guns, 4 missile racks, 2x S2 shields, no VTOL **[game]**. Shield type *Bubble* **[ref]**. |
-| **Anvil F8C Lightning** | Combat (heavy fighter). | Single seat. 6 pilot guns - 2x S3 + 2x S2 Tarantula cannons and 2x S3 Panther repeaters - plus a 2-gun remote turret (2x S2), 2x S4 missile racks (8 missiles), 2x S2 shields (*Bubble*), no VTOL, no cargo **[ref]**. |
+| **Origin M80** | Combat. Now the Best in Show pledge (from the Complete Pack). | Single seat. 2x S5 + 2x S4 guns, 4 missile racks, 2x S2 shields, no VTOL **[game]**. Shield type *Bubble* **[ref]**. |
+| **RSI Perseus** | *Not stated yet* (CIG role: Heavy Gunship). Joined 2026-11-23. | Crew of 6, **no pilot guns**. Two manned S8 turrets (2x S8 Medusa cannons + 2x S3 Gatlings each), two remote S3 turrets run from the co-pilot and gunner seats, 6 automatic point-defence turrets, 2 torpedo racks (10x S5 each; the API names no seat for them), 2x **S3** shields (*Quadrant*), **VTOL**, 96 SCU, docking collars **[ref]**. |
+| **Drake Ironclad Assault** | *Not stated yet* (CIG role: Heavy Dropship). Joined 2026-11-23. | Crew of 7-8, **no pilot guns**. Three manned turrets (bottom: 4x S5 Gatlings; left / right: 2x S3 repeaters each), five remote turrets, 2 missile racks (5x S5 each; no seat named), 4x **S3** shields (*Quadrant*), **VTOL**, **1,440 SCU**, docking collar **[ref]**. |
+| **Drake Corsair** | *Not stated yet* (CIG role: Expedition). Joined 2026-11-23. | Crew of 4. **6 pilot guns** - 2x S5 + 4x S4 cannons - plus two manned side turrets (2x S2 each) and a tail turret (2x S2) run from the co-pilot seat, 4 missile racks (8x S3), 1x **S3** shield (*Quadrant*), no VTOL, 72 SCU, docking collar listed **[ref]**. |
+| **Gatac Hyūn** | Mining + salvage hybrid (the user's 2026-11-22 trial, §6 item 19). Joined 2026-11-23. | Single seat. 4x S3 gimballed repeaters, 1 missile rack (8x S2), 2x S2 shields (*Bubble*), no VTOL, 32 SCU. Mining arm with an S1 Arbor MH1 laser (the API shows two empty slots under it - likely 2 module slots, unchecked), two salvage arms with S2 Baler heads (Abrade scraper module each), and a disintegration intake **[ref]**. |
 | **Drake Golem** | Mining - for profit and crafting materials. | Single seat. Mining arm, 2x S1 guns, 2x S1 missile racks, 1x S1 shield, **VTOL** (rotating nacelles) **[game]**. Laser has **2** module slots **[ref]**. |
 | **Drake Golem OX** | Light cargo runs. | Golem airframe with a cargo grid, a deployable turret and a *salvage* controller instead of the mining arm **[game]**; the turret carries a tractor beam **[ref]**. **VTOL**. |
 | **RSI Salvation** | Salvage - gathers RMC so repairs aboard the Liberator don't have to be bought. | Single seat. Two salvage arms plus a disintegration field, 2x S1 guns, 2x S1 shields, no missile racks, no VTOL **[game]**. |
@@ -771,18 +781,29 @@ in-ship - treat them as likely, not proven.
 
 ### 11.1 How the controls line up
 
-| Control group | Liberator | M80 | F8C | Golem | Golem OX | Salvation | Pisces |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **VTOL switch** (`js2` 49 / 50) | yes | - | - | yes | yes | - | - |
-| **Trigger** - guns (`js1` 1 / 6) | turrets only | yes | yes | yes | yes | yes | yes |
-| **Missiles** (knob 2, `js1` 2 / 4 / 22 / 23) | yes | yes | yes | yes | yes | - | yes |
-| **Mining** (knob 4, FLAPS axis, wing modules) | - | - | - | yes | - | - | - |
-| **Salvage** (knob 5, SPEEDBRAKE axis, wing bank) | - | - | - | - | tractor? | yes | - |
-| **"AP" tap** = dock / undock | yes | - | - | - | - | - | - |
-| **"ALT" hold** = request cargo loading | - | - | - | - | yes | - | - |
-| **Power pips** (WPN hat), countermeasures, targeting, doors, lights, gear | all ships | | | | | | |
+One row per ship (the table was turned on its side on 2026-11-23, when the fleet grew to eleven).
+Columns: **VTOL** = the MTQ VTOL switch (`js2` 49 / 50) · **Trigger** = guns on `js1` 1 / 6 ·
+**Missiles** = knob detent 2 + `js1` 2 / 4 / 22 / 23 · **Mining** = knob 4, FLAPS axis, wing modules ·
+**Salvage** = knob 5, SPEEDBRAKE axis, wing bank · **Dock** = "AP" tap · **Cargo** = the cargo grid
+that "ALT" hold (*Request Cargo Loading*) serves · **S3 faces** = Size 3 *Quadrant* shields, the only
+kind `v_shield_raise_level_*` acts on (unbound, §6 item 14).
 
+| Ship | VTOL | Trigger | Missiles | Mining | Salvage | Dock | Cargo | S3 faces |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Liberator | yes | turrets only | yes | - | - | yes | 400 SCU | yes |
+| M80 | - | yes | yes | - | - | - | 2 SCU | - |
+| Perseus | yes | turrets only | torpedoes - seat unchecked | - | - | listed [ref] | 96 SCU | yes |
+| Ironclad Assault | yes | turrets only | racks - seat unchecked | - | - | listed [ref] | 1,440 SCU | yes |
+| Corsair | - | yes | yes | - | - | listed [ref] | 72 SCU | yes |
+| Hyūn | - | yes | yes | yes | yes | - | 32 SCU | - |
+| Golem | yes | yes | yes | yes | - | - | - | - |
+| Golem OX | yes | yes | yes | - | tractor? | - | 64 SCU | - |
+| Salvation | - | yes | - | - | yes | - | 6 SCU | - |
+| C8R Pisces | - | yes | yes | - | - | - | - | - |
+
+**On every ship:** power pips (WPN hat), countermeasures, targeting, doors, lights, gear.
 The Ursa Medivac is left out of this table: it is driven on the Xbox controller.
+Cargo figures are the Wiki API's `cargo_capacity` **[ref]**.
 
 Per-ship notes:
 
@@ -795,14 +816,21 @@ Per-ship notes:
   user confirmed on 2026-11-20 that every ship they carry fits (Golem, Golem OX, Salvation in the
   garage, M80 on the top rear pad), and on 2026-11-21 that the C8R Pisces rides inside too - not an
   open question.
-- **Liberator - shield faces.** The only ship here with S3 shields; `v_shield_raise_level_*` stays
-  unbound (§6 item 14).
+- **Shield faces.** The Liberator, Perseus, Ironclad Assault and Corsair all carry S3 *Quadrant*
+  shields **[ref]**; `v_shield_raise_level_*` stays unbound for now (§6 item 14).
 - **M80 - guns.** Split the weapon groups in the MFD (S5 pair = group 1, S4 pair = group 2) so trigger
   stage 1 / stage 2 mean something - see the Weapons note in §4. CIG's DefenseCon 2956 Q&A says the S5
   pair deploys from the hull when powered on **[ref]**, so there is nothing to bind for that.
-- **F8C - guns.** Two gun types (cannons and repeaters): split them across weapon groups in the MFD so
-  trigger stage 1 / stage 2 mean something, as on the M80. How its 2-gun remote turret is operated has
-  not been checked.
+- **Corsair - guns.** The same S5 + S4 split as the M80 (2x S5 + 4x S4 cannons): S5 pair = group 1,
+  S4s = group 2. Its side and tail turrets are crew seats.
+- **Perseus and Ironclad Assault - pilot seat.** Neither has pilot guns, so from the pilot seat the
+  trigger and gun-group stages do nothing; the stick and MTQ fly the ship and run power, targeting,
+  countermeasures and doors. Which seat fires the Perseus's torpedoes and the Ironclad Assault's
+  missile racks is not in the API data - check in-ship before relying on missile mode there. In a
+  turret seat the stick aims through the stock turret defaults left in place (§4), as on the Liberator.
+- **Hyūn - one seat, both tools.** Knob detent 4 (Mining) and 5 (Salvage) both apply. The rocker
+  centre (`js1_button24`) is the tool-mode press in both: fracture ↔ extraction on the laser,
+  structural-field mode in salvage (§6 item 19). Not yet flown with the rig.
 - **Golem - modules.** Only slots 1 and 2 exist on its laser **[ref]**; AB6 left wing 3 does nothing.
 - **Golem OX - tractor.** Unbound on the rig and unverified - §6 item 15.
 - **Salvation.** Fully covered and the only ship besides the Golem whose slider axis was confirmed

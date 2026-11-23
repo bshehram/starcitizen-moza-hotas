@@ -31,7 +31,7 @@
     <action name="v_power_set_off">
       <rebind input="js2_button23"/>  <!-- MTQ 3-pos rocker LEFT - master power OFF (discrete SET, always off, not a toggle) -->
     </action>
-    <!-- POWER-PIP TRIANGLE on the MTQ Right Module "WPN" hat (thumb-reachable mid-fight). Moved here off the AB6 wings, REPLACING the old shield-faceting that only did anything on rare Size-3-shield ships - this pip system works on EVERY ship (F8C/Origin included). Tap toward the system you need, RIGHT=reset to rebalance, press-HOLD=slam shields for a burst-tank. No decrease binds (reset rebalances). ACTIONMAP NOTE: v_engineering_assignment_* live in spaceship_power (catalogue files them with the working v_power_* under "flight - power"); verify in-game if a direction does nothing. -->
+    <!-- POWER-PIP TRIANGLE on the MTQ Right Module "WPN" hat (thumb-reachable mid-fight). Moved here off the AB6 wings, REPLACING the old shield-faceting that only did anything on rare Size-3-shield ships - this pip system works on EVERY ship. Tap toward the system you need, RIGHT=reset to rebalance, press-HOLD=slam shields for a burst-tank. No decrease binds (reset rebalances). ACTIONMAP NOTE: v_engineering_assignment_* live in spaceship_power (catalogue files them with the working v_power_* under "flight - power"); verify in-game if a direction does nothing. -->
     <action name="v_engineering_assignment_weapons_increase">
       <rebind input="js2_button56"/>  <!-- MTQ "WPN" hat UP - power to WEAPONS + (tap) -->
     </action>
@@ -387,7 +387,7 @@
     <action name="v_weapon_countermeasure_noise_launch">
       <rebind input="js1_button9"/>  <!-- MHG left hat DOWN - launch NOISE/chaff (break radar/scan locks) -->
     </action>
-    <!-- Shield FACETING (v_shield_raise_level_*) was REMOVED from the "WPN" hat: confirmed it only does anything on ships with Size 3+ shield generators (quad-faced, e.g. Carrack/Constellation/Hull-C); every fighter the user flies (F8C, Origin = Size 1/2 single-bubble shields) treats it as a no-op. The "WPN" hat now drives the universal power-pip triangle (see spaceship_power) - shield STRENGTH is managed there on every ship. Countermeasures (decoy/noise) stay on the MHG left hat. -->
+    <!-- Shield FACETING (v_shield_raise_level_*) was REMOVED from the "WPN" hat: confirmed it only does anything on ships with Size 3+ shield generators (quad-faced, e.g. Carrack/Constellation/Hull-C); every fighter the user flew at the time (F8C, Origin = Size 1/2 single-bubble shields) treated it as a no-op. Since 2026-11-23 the Liberator, Perseus, Ironclad Assault and Corsair in the fleet have S3 Quadrant shields - whether to re-add faceting is open (CLAUDE.md section 6 item 14). The "WPN" hat now drives the universal power-pip triangle (see spaceship_power) - shield STRENGTH is managed there on every ship. Countermeasures (decoy/noise) stay on the MHG left hat. -->
   </actionmap>
 
   <!-- ================================================================ -->
