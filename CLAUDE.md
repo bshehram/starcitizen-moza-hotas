@@ -9,7 +9,8 @@ This document explains, in detail, **what every bound control does**, **how the 
 - **Fleet:** the ships this profile is tuned for, and which controls matter on each, are in [§11](#11-fleet---what-each-ship-uses).
 - **Device diagrams:** `diagrams/MOZA_AB6.png`, `diagrams/MOZA_MHG.png`, `diagrams/MOZA_MTQ.png` - the manufacturer button-number maps these bindings are based on. **Do not delete these** - they're the source art for the reference cards below.
 - **Button-reference cards:** [`cards/MOZA_MHG_AB6_ref.png`](cards/MOZA_MHG_AB6_ref.png) (js1: grip 1-29 **+** base 49-62, combined) and [`cards/MOZA_MTQ_ref.png`](cards/MOZA_MTQ_ref.png) (js2 throttle 1-65) - printable **US-Letter landscape (11×8.5)** "cheat sheets": each manufacturer diagram is split into its sub-views and stacked large in the left ~60%, beside a **button# → function** lookup table in the right ~40%. The `.svg` next to each PNG is its editable source. See [Regenerating the button-reference cards](#8-regenerating-the-button-reference-cards) (§8).
-- **Card generator:** [`tools/regen_cards.ps1`](tools/regen_cards.ps1) - rebuilds both cards from the manufacturer diagrams + the binding tables embedded in it. Re-run after any binding change.
+- **Card generator:** [`tools/regen_cards.py`](tools/regen_cards.py) - rebuilds both cards from the manufacturer diagrams + the binding tables embedded in it. Re-run after any binding change.
+- **All tooling is Python 3** and runs on Windows, macOS or Linux; one-time setup is `python -m pip install -r tools/requirements.txt`. The tools were PowerShell until 2026-11-23. Only the game-data tools (`gamedata.py`, `validate_actionmaps.py`) need the game installed (§10); the cards and the XML can be worked on from any machine.
 
 > Every action name, actionmap and in-game label below was re-checked against the game's own `defaultProfile.xml` / `global.ini` for build `4.10.201.48085` (2026-11-20); the "what it does" text is from earlier starbinder-era descriptions plus community references. Where the inline comments in `MOZA.xml` are imprecise or wrong, this file says so in a **⚠ Note**.
 
@@ -31,7 +32,7 @@ mappings/
 ├─ reference/                ← bulk reference material
 │   └─ SC_KEYBINDS_DATABASE_v4.10.md · MOZA_BINDINGS.html · README.md · CLAUDE.md
 └─ tools/                    ← regeneration + validation scripts (run from the project root)
-    └─ gamedata.py · validate_actionmaps.ps1 · regen_cards.ps1 · README.md · CLAUDE.md
+    └─ gamedata.py · validate_actionmaps.py · regen_cards.py · requirements.txt · README.md · CLAUDE.md
 ```
 
 > **Docs convention.** Every folder has a `README.md` (human-facing) and a `CLAUDE.md` (working
@@ -532,7 +533,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 6. **✅ Fixed - AB6 levers are mixed-mode, not button-only:** an earlier doc claimed the "Slider"/"Dial" levers (57–62) were 3-position button-only "not an analog axis." They are **mixed-mode** (3 detent buttons **plus** an analog axis, `js1_slider1`/`js1_slider2`). Corrected in §1 and §3.2. *(2026-11: which of the two they emit turned out to be a per-lever MOZA Cockpit setting - both were found on Button Mapping, i.e. buttons only; see §1.1.)*
 7. **Only remaining free js1 hardware = the two AB6 levers (57–62), deliberately unbound:** maintained set-and-hold levers suit neither momentary combat actions nor the wing power-pips (a held detent would fight the pip taps). Reserved for a future **modal/analog** use (e.g. a multi-role analog value) - confirm which axis is `js1_slider1` vs `js1_slider2` in `joy.cpl` first. **MTQ (js2)** remains essentially full (only the rocker centre 22, slider detents 31/36-40/43, and throttle-twin `js2_rotx` are intentional gaps).
 8. **Device-instance fragility:** see the warning in §1 - keep USB enumeration order stable so `js1`/`js2` don't swap.
-9. **✅ Actionmap-correctness review (vs the game's own export):** validated every binding against `…\Profiles\default\actionmaps.xml` (the game's normalized export) using [`tools/validate_actionmaps.ps1`](tools/validate_actionmaps.ps1) - the game **drops** any action placed in the wrong map, so its export is an authoritative oracle (and the catalogue's *keyword category* is **not** the actionmap). Two issues fixed: **`v_target_pin_selected`** moved `spaceship_targeting_advanced`→**`spaceship_targeting`** (the game dropped pin from the *advanced* map, so pinning a target did nothing), and **`view_restore_defaults` removed** (it sat in `spaceship_view`, where the game drops it - it was dead; the cockpit recentre-on-cycle is `v_view_cycle_fwd`'s own behaviour). Every other bound action sits in the actionmap the game files it under. Authoritative local sources + the re-check workflow are in **§10**. *(A separate experiment - driving advanced-camera FoV from the throttle dial - was abandoned: `view_enable_camview_mode` engages the sticky cinematic/Director camera, the wrong tool for in-flight zoom; the dial's existing `v_view_dynamic_zoom_rel_*` cockpit zoom is the ceiling.)*
+9. **✅ Actionmap-correctness review (vs the game's own export):** validated every binding against `…\Profiles\default\actionmaps.xml` (the game's normalized export) using [`tools/validate_actionmaps.py`](tools/validate_actionmaps.py) - the game **drops** any action placed in the wrong map, so its export is an authoritative oracle (and the catalogue's *keyword category* is **not** the actionmap). Two issues fixed: **`v_target_pin_selected`** moved `spaceship_targeting_advanced`→**`spaceship_targeting`** (the game dropped pin from the *advanced* map, so pinning a target did nothing), and **`view_restore_defaults` removed** (it sat in `spaceship_view`, where the game drops it - it was dead; the cockpit recentre-on-cycle is `v_view_cycle_fwd`'s own behaviour). Every other bound action sits in the actionmap the game files it under. Authoritative local sources + the re-check workflow are in **§10**. *(A separate experiment - driving advanced-camera FoV from the throttle dial - was abandoned: `view_enable_camview_mode` engages the sticky cinematic/Director camera, the wrong tool for in-flight zoom; the dial's existing `v_view_dynamic_zoom_rel_*` cockpit zoom is the ceiling.)*
 
 10. **✅ Alpha 4.10.3 review (2026-11-20, build `4.10.201.48085`) - validated against the game's own files.** With starbinder gone (domain expired), every binding was checked against `defaultProfile.xml` extracted from `Data.p4k` by the new [`tools/gamedata.py`](tools/gamedata.py). Result: **all 119 existing bindings are valid in this build and sit in the correct actionmap** - no action was renamed or moved under the profile. (Renames that did *not* affect it: `v_ifcs_toggle_gravity_compensation` → `v_ifcs_gravity_compensation_toggle`; `v_invoke_docking` / `v_toggle_docking_mode` → `v_toggle_docking_request`.)
 11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in ground vehicles such as the Ursa, which are driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
@@ -559,7 +560,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - `gamedata.py check` passes: 131 OK, 0 unknown, 0 wrong-map, no ghost on js1 25–29 or js2 57–61.
     - Strafing now depends on the mini-stick being in **Button Mapping** mode (§1.1).
     - Clicking the stick in while strafing toggles decoupled mode.
-    - **Not yet flown, and not yet loaded in-game** (run `validate_actionmaps.ps1` after the next load).
+    - **Not yet flown, and not yet loaded in-game** (run `validate_actionmaps.py` after the next load).
 
 ---
 
@@ -573,9 +574,9 @@ internet.
 
 From the project root:
 
-```powershell
-python tools\gamedata.py check        # every binding still a real action in the right actionmap? any new ghost defaults?
-python tools\gamedata.py catalogue    # rewrite reference/SC_KEYBINDS_DATABASE_v<major.minor>.md, remove the old snapshot
+```sh
+python tools/gamedata.py check        # every binding still a real action in the right actionmap? any new ghost defaults?
+python tools/gamedata.py catalogue    # rewrite reference/SC_KEYBINDS_DATABASE_v<major.minor>.md, remove the old snapshot
 ```
 
 `catalogue` names the file after the build's branch version (`sc-alpha-4.10.0` → `v4.10`), so hotfixes
@@ -583,7 +584,7 @@ inside one patch line overwrite the same file. **After it runs, update the versi
 top of this `CLAUDE.md`, in the folder-layout block, in §9, in `README.md` and in the two `reference/`
 docs** if the name changed.
 
-Requires Python 3 and a zstd decoder - built into Python 3.14+, otherwise `python -m pip install zstandard`.
+Requires Python 3 and a zstd decoder - built into Python 3.14+, otherwise `python -m pip install zstandard` (it's in `tools/requirements.txt`). Run from a clone outside the game folder (e.g. on a Mac), the tool can't find `Data.p4k` by itself; pass `--p4k <path>`.
 
 ### How it works (for future Claude)
 
@@ -618,7 +619,7 @@ were hiding in.
 
 ## 8. Regenerating the button-reference cards
 
-The two cards - `MOZA_MHG_AB6_ref.png` (js1) and `MOZA_MTQ_ref.png` (js2) - are **printable cheat sheets** sized to fill a **US-Letter sheet in landscape** (11×8.5, ratio 1.294). Each is a **60 / 40 split**: the left ~60% holds the manufacturer diagram **split into its sub-views and stacked** (the two small views side by side on top, the one big view below); the right ~40% holds a **button# → function** lookup table in two columns. They're rebuilt by one committed script - [`tools/regen_cards.ps1`](tools/regen_cards.ps1) - with **no hand-placement of numbers** anywhere (the numbers ride along inside the manufacturer art; see §8.2).
+The two cards - `MOZA_MHG_AB6_ref.png` (js1) and `MOZA_MTQ_ref.png` (js2) - are **printable cheat sheets** sized to fill a **US-Letter sheet in landscape** (11×8.5, ratio 1.294). Each is a **60 / 40 split**: the left ~60% holds the manufacturer diagram **split into its sub-views and stacked** (the two small views side by side on top, the one big view below); the right ~40% holds a **button# → function** lookup table in two columns. They're rebuilt by one committed script - [`tools/regen_cards.py`](tools/regen_cards.py) - with **no hand-placement of numbers** anywhere (the numbers ride along inside the manufacturer art; see §8.2).
 
 | Card | Device | Top-left band (two views side by side) | Bottom-left band (one big view) |
 | --- | --- | --- | --- |
@@ -629,52 +630,51 @@ The two cards - `MOZA_MHG_AB6_ref.png` (js1) and `MOZA_MTQ_ref.png` (js2) - are 
 
 From the project root:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1
+```sh
+python tools/regen_cards.py
 ```
 
-It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `MOZA_MTQ_ref.png/.svg` - overwriting the previous versions. The `.svg` is the editable source (self-contained: each recolored sub-view is embedded as a base64 PNG, so the SVG needs no sidecar files). **Print at "Fit to page" / 100%, landscape** - the image is already the page aspect, so it fills the sheet. **Requirements:** Windows PowerShell + .NET `System.Drawing`, and **Chrome or Edge** (used headless to rasterize SVG → PNG at 2×, ≈330 DPI). The script auto-detects the browser.
+It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `MOZA_MTQ_ref.png/.svg` - overwriting the previous versions. The `.svg` is the editable source (self-contained: each recolored sub-view is embedded as a base64 PNG, so the SVG needs no sidecar files). **Print at "Fit to page" / 100%, landscape** - the image is already the page aspect, so it fills the sheet. **Requirements:** Python 3.8+ with **Pillow**, and **Chrome, Edge or Chromium** (used headless to rasterize SVG → PNG at 2×, ≈330 DPI). The script finds the browser on Windows, macOS and Linux; set `CARD_BROWSER=<path>` to choose one.
 
 ### 8.2 How a card is built (split diagrams + table, composited in SVG)
 
 1. **Diagram layer - comes straight from the manufacturer PNG, never edited by hand.** `diagrams/MOZA_AB6.png` / `MOZA_MHG.png` / `MOZA_MTQ.png` already show every button numbered with a leader line. The script does **not** move, add, or relabel a single number - they're the manufacturer's own numbers riding along inside the image. Three helpers process them:
-   - **`Get-Diagram`** recolors art to white-background line work. Recolor math = **grayscale → invert → levels stretch** in one `ColorMatrix`: `out = -k·luma + k·(1−black)`, `k = 1/(white−black)`, tuned `black=0.45`, `white=0.85` (navy bg → white, faint line-art → crisp dark).
-   - **`Get-SubDiagram`** crops a **sub-rectangle** out of a source PNG (then recolors it) so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop rectangles (`x0,y0,x1,y1` in source pixels) are listed in the script header; re-verify only if MOZA ships new device art.
-   - **`Add-DiagramStack`** lays the sub-views into the left ~60% as a column of **bands**: each band gets a height share (`HFrac`, equal by default) and holds one or more images placed **side by side**, each owning a cell = `Frac` of the zone width, fit/centred (optional caption under it). Resize a view by changing its `Frac` - e.g. the AB6 base's `Frac` is kept below the grips' so it reads smaller.
-2. **Table layer - the part you edit.** Five PowerShell arrays - `$AB6`, `$MHG_L`/`$MHG_R`, `$MTQ_L`/`$MTQ_R` - hold one hashtable per row. `Add-Row` / `New-Card` draw each as a dark number badge + function text with alternating row shading, and rasterize via headless Chrome. The combined card's right column is `$MHG_R + $AB6`.
+   - **`get_sub_diagram`** crops a **sub-rectangle** out of a source PNG so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop boxes (`x0, y0, x1, y1` in source pixels) are listed in the script header; re-verify only if MOZA ships new device art.
+   - It then recolors the crop to white-background line work. Recolor math = **grayscale → invert → levels stretch** (Pillow `point`): `out = -k·luma + k·(1−black)`, `k = 1/(white−black)`, tuned `black=0.45`, `white=0.85` (navy bg → white, faint line-art → crisp dark).
+   - **`add_diagram_stack`** lays the sub-views into the left ~60% as a column of **bands**: each band gets a height share (`HFrac`, equal by default) and holds one or more images placed **side by side**, each owning a cell = `Frac` of the zone width, fit/centred (optional caption under it). Resize a view by changing its `Frac` - e.g. the AB6 base's `Frac` is kept below the grips' so it reads smaller.
+2. **Table layer - the part you edit.** Five Python lists - `AB6`, `MHG_L`/`MHG_R`, `MTQ_L`/`MTQ_R` - hold one dict per row. `add_row` / `new_card` draw each as a dark number badge + function text with alternating row shading, and `render_png` rasterizes via headless Chrome. The combined card's right column is `MHG_R + AB6`.
 
-> **Source of truth is `MOZA.xml`, not these arrays.** The arrays are a hand-maintained *view* of the bindings. Nothing cross-checks them against the XML, so when you change a binding you must edit both (see §8.3).
+> **Source of truth is `MOZA.xml`, not these lists.** The lists are a hand-maintained *view* of the bindings. Nothing cross-checks them against the XML, so when you change a binding you must edit both (see §8.3).
 
 ### 8.3 Updating after you change a binding
 
 1. Edit [`MOZA.xml`](MOZA.xml) as usual (and its inline comment / §4 of this doc).
-2. Open `tools/regen_cards.ps1`, find the row whose `Label` is that **button number**, and edit its fields:
+2. Open `tools/regen_cards.py`, find the row whose `Label` is that **button number**, and edit its fields:
 
 | Field | Meaning | Example |
 | --- | --- | --- |
-| `Label` | The number printed on the diagram (or an axis name / a range like `57-59`). **Must match the diagram.** | `'52'`, `'Slider'`, `'31-43'` |
-| `Primary` | The main (combat / default) function - what the button does in flight. | `'Target: lock closest attacker'` |
-| `Hint` | *(optional)* greyed parenthetical naming **where** the control is. Used heavily on the MTQ. | `'WPN hat up'`, `'keypad A1'` |
-| `Variants` | *(optional)* the operator-mode alternates for that **same physical button**, built with `V '<tag>' '<text>' $color`. Keep `<text>` short (see note below). | `@((V 'Mine:' 'module 1' $C_MINE),(V 'Salv:' 'focus all' $C_SALV))` |
-| `Unbound=$true` | *(optional)* renders the row greyed (rest positions, reserved levers, absent axes). | rocker centre `22`, levers `57-62` |
-| `Header='…'` | A row that is actually a section header inside a column (no badge). | `@{Header='AXES'}` |
+| `'Label'` | The number printed on the diagram (or an axis name / a range like `57-59`). **Must match the diagram.** | `'52'`, `'Slider'`, `'31-43'` |
+| `'Primary'` | The main (combat / default) function - what the button does in flight. | `'Target: lock closest attacker'` |
+| `'Hint'` | *(optional)* greyed parenthetical naming **where** the control is. Used heavily on the MTQ. | `'WPN hat up'`, `'keypad A1'` |
+| `'Variants'` | *(optional)* the operator-mode alternates for that **same physical button**, built with `V('<tag>', '<text>', color)`. Keep `<text>` short (see note below). | `[V('Mine:', 'module 1', C_MINE), V('Salv:', 'focus all', C_SALV)]` |
+| `'Unbound': True` | *(optional)* renders the row greyed (rest positions, reserved levers, absent axes). | rocker centre `22`, levers `57-62` |
+| `'Header'` | A row that is actually a section header inside a column (no badge). | `{'Header': 'AXES'}` |
 
 3. Re-run the rebuild command (§8.1).
 
-The mode-tag colours are fixed: **`Mine:`** = amber `$C_MINE`, **`Salv:`** = teal `$C_SALV`, **`Msl:`/notes** = grey `$C_NOTE`. These encode the [operator-mode reuse](#5-operator-mode-reuse-mining--salvage) - one physical control doing a different job per mode.
+The mode-tag colours are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal `C_SALV`, **`Msl:`/notes** = grey `C_NOTE`. These encode the [operator-mode reuse](#5-operator-mode-reuse-mining--salvage) - one physical control doing a different job per mode.
 
 > **Labels here are abbreviated.** Because the 40% columns are narrow, primary/variant/header text is deliberately **terser than `MOZA.xml`** (headers are just `PANEL BUTTONS 1-30`; variants are `Salv: gap +`, not `Salvage Beam Spacing Increase`). Same bindings, shorter wording - keep new lines short or they overflow the column.
 
-> **You rarely touch anything else.** Button numbers and leader lines are baked into the diagram art, so adding/removing a binding is a one-row text edit. You only touch `Get-Diagram` / `Get-SubDiagram`'s crop/levels or swap the `MOZA_<device>.png` source if **MOZA ships a new device diagram** with a different layout.
+> **You rarely touch anything else.** Button numbers and leader lines are baked into the diagram art, so adding/removing a binding is a one-row text edit. You only touch `get_sub_diagram`'s crop boxes / levels or swap the `MOZA_<device>.png` source if **MOZA ships a new device diagram** with a different layout.
 
 ### 8.4 Layout knobs & gotchas (for whoever maintains the script)
 
-- **Per-card layout** lives in each `New-Card @{…}` call: `F` (global font scale - the narrow 40% table forces **1.18 / 1.15**), `CanvasW`/`CanvasH` (held at the 1.294 page ratio, rendered 2×), `Stack=@{X;W;Gap;Rows}` (the diagram bands - `Rows` is a list of `@{Imgs=@(@{D;Frac;Caption})}`, one entry per band), and `Cols=@(@{X;W;Rows})` (the two table columns). Want bigger diagrams? widen `Stack.W` and shrink the columns / `F`.
-- ⚠ **Renders from a path with spaces (`…\Program Files\…`) while Chrome is usually open.** `Start-Process` (PS 5.1) doesn't quote array args, so a `--screenshot=…\Program Files\…` value splits and Chrome aborts with *"Multiple targets are not supported in headless mode."* The script renders to a **space-free `$env:TEMP` path** (then `Move-Item`s into `cards/`), passes the SVG as a **`%20`-encoded `[Uri].AbsoluteUri`**, and uses an **isolated `--user-data-dir`** so the headless run doesn't collide with a running Chrome.
-- ⚠ **Chrome writes "NNN bytes written…" to stderr.** Under `$ErrorActionPreference='Stop'` the call operator escalates that to a terminating `NativeCommandError` *even though the PNG rendered fine* - hence `Start-Process … -RedirectStandardError`, not `& $chrome …`.
-- ⚠ **`--window-size` must be one token** (`"--window-size=$CW,$CH"`) - a bare comma is PowerShell's array operator, so only the width survives and the screenshot collapses to a sliver.
-- ⚠ **PowerShell variables are case-insensitive** - keep row-local names distinct (`$rh`, not `$h`, which would silently clobber `$H` / canvas height).
-- The script stays **pure ASCII**; the only non-ASCII glyph (the `·` separator) is injected by code-point (`[char]0x00B7`) so the `.ps1` can't be corrupted by ANSI-vs-UTF-8 reads. SVGs are written UTF-8 **without BOM**.
+- **Per-card layout** lives in each `new_card({...})` call: `F` (global font scale - the narrow 40% table forces **1.18 / 1.15**), `CanvasW`/`CanvasH` (held at the 1.294 page ratio, rendered 2×), `Stack` (`X`, `W`, `Gap`, and `Rows` - the diagram bands, each `{'Imgs': [{'D', 'Frac', 'VA', 'Caption'}]}`), and `Cols` (the two table columns, each `{'X', 'W', 'Rows'}`). Want bigger diagrams? widen `Stack['W']` and shrink the columns / `F`.
+- **Rendering.** `render_png` runs the browser with an argument list (no shell quoting), passes the SVG as a `file://` URI (`Path.as_uri()` percent-encodes the spaces in `…\Program Files\…`), screenshots into a temp folder, then moves the PNG into `cards/`. An isolated temp `--user-data-dir` keeps the headless run from colliding with a Chrome that's already open. Chrome writes "NNN bytes written…" to stderr even on success, so stderr is discarded and success is judged by the PNG existing.
+- **Fonts.** The SVG asks for *Segoe UI*, then *Arial*. On a Mac it renders in Arial, which runs slightly wider - look at the PNG for clipped table text after regenerating there.
+- **Rounding.** `rnd` / `r1` round half-to-even, the rule the original PowerShell (.NET `Math.Round`) used, so the port reproduces its geometry exactly. Verified 2026-11-23: the SVG markup matched the PowerShell output byte for byte apart from the embedded images, and the PNGs differed by at most 2/255 per pixel.
+- SVGs are written UTF-8 **without BOM**.
 
 ---
 
@@ -729,25 +729,25 @@ What the export **cannot** show is a stock default the profile never touched - i
 
 Two steps, in this order:
 
-```powershell
-# 1) BEFORE launching (no game needed) - from the project root:
-python tools\gamedata.py check
+```sh
+# 1) BEFORE launching (no game launch needed) - from the project root:
+python tools/gamedata.py check
 
 # 2) AFTER loading MOZA.xml in-game (Keybindings > Load, or console: pp_rebindkeys MOZA.xml):
-powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1
+python tools/validate_actionmaps.py
 ```
 
 - **`gamedata.py check`** reports `UNKNOWN` (no such action in this build), `WRONG-MAP` (the game will
   drop it) and `GHOST` (an un-overridden stock joystick binding, §2.5). Non-zero exit on any
   UNKNOWN / WRONG-MAP. The expected `GHOST` list is the "deliberately left in place" table in §4 -
   anything new there after a patch deserves a look.
-- **`validate_actionmaps.ps1`** reports `OK` / `MISMATCH` / `NOT-IN-EXPORT` per action against the
+- **`validate_actionmaps.py`** reports `OK` / `MISMATCH` / `NOT-IN-EXPORT` per action against the
   export (non-zero exit on any mismatch). A **cleared** default (`js1_ `) differs from stock, so it
   should be listed in the export after a load - one that shows up as `NOT-IN-EXPORT` means the game
   did not take the clear.
 
 Workflow when adding/moving a binding: look the action up in the catalogue (its section heading is the
-actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → `validate_actionmaps.ps1`. The
+actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → `validate_actionmaps.py`. The
 export check is what caught `v_target_pin_selected` and `view_restore_defaults`; the game-data check is
 what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 

@@ -37,7 +37,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent          # ...\controls\mappings
-LIVE = ROOT.parents[4]                                  # ...\StarCitizen\LIVE
+# ...\StarCitizen\LIVE when the repo sits in the game's mappings folder. A clone elsewhere (e.g. on
+# a Mac, with no game installed) may not have that many parents; then --p4k must be given.
+LIVE = ROOT.parents[4] if len(ROOT.parents) > 4 else None
 PROFILE_ENTRY = 'Data\\Libs\\Config\\defaultProfile.xml'
 LABELS_ENTRY = 'Data\\Localization\\english\\global.ini'
 ZSTD_MAGIC = b'\x28\xb5\x2f\xfd'
@@ -151,6 +153,9 @@ def cryxml_to_tree(buf):
 
 
 def load_game_data(p4k):
+    if p4k is None:
+        sys.exit('Data.p4k location unknown: this copy of the repo is not inside a game install.  '
+                 'Pass --p4k <path to Data.p4k>.')
     if not p4k.exists():
         sys.exit('Data.p4k not found: %s  (pass --p4k)' % p4k)
     with open(p4k, 'rb') as f:
@@ -335,7 +340,8 @@ def cmd_check(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('command', choices=('catalogue', 'check'))
-    ap.add_argument('--p4k', type=Path, default=LIVE / 'Data.p4k', help='path to Data.p4k (default: this install)')
+    ap.add_argument('--p4k', type=Path, default=LIVE / 'Data.p4k' if LIVE else None,
+                    help='path to Data.p4k (default: this install)')
     ap.add_argument('--mapping', type=Path, default=ROOT / 'MOZA.xml', help='profile to check (default: MOZA.xml)')
     args = ap.parse_args()
     return cmd_catalogue(args) if args.command == 'catalogue' else cmd_check(args)

@@ -12,8 +12,8 @@ editing or relying on these files.
   [`../tools/CLAUDE.md`](../tools/CLAUDE.md).
 - **Button numbers are baked into the art.** Never hand-place or relabel a number anywhere; the
   card generator only recolors and crops these images. The numbers you see are MOZA's own.
-- **Crop rectangles** that carve each sub-view out of these PNGs live in `../tools/regen_cards.ps1`
-  (the `Get-SubDiagram` helper). Only re-verify them if MOZA ships new device art with a different
+- **Crop rectangles** that carve each sub-view out of these PNGs live in `../tools/regen_cards.py`
+  (the `get_sub_diagram` calls in `main()`). Only re-verify them if MOZA ships new device art with a different
   layout — then update the crops and rebuild the cards.
 
 ## Where the detail lives

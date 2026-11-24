@@ -38,9 +38,10 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
 > load cleanly onto other hardware without editing.
 
-Regenerating the docs and cards (not needed just to *use* the profile) takes Windows PowerShell
-with .NET `System.Drawing` and Chrome or Edge for the cards, and Python 3 for the action
-catalogue and the game-data check. No internet access is needed. See [`tools/`](tools/README.md).
+Regenerating the docs and cards (not needed just to *use* the profile) takes Python 3 on
+Windows, macOS or Linux (`python -m pip install -r tools/requirements.txt`), plus Chrome, Edge
+or Chromium for the cards. The action catalogue and the game-data check also need the game
+installed. No internet access is needed. See [`tools/`](tools/README.md).
 
 ---
 
@@ -142,12 +143,16 @@ needed by human readers.)
 All run from the project root. Full usage, requirements, and gotchas are in
 [`tools/`](tools/README.md).
 
-```powershell
-python tools\gamedata.py check                                             # pre-flight MOZA.xml against the installed game build
-python tools\gamedata.py catalogue                                         # regenerate the action catalogue for a new SC patch
-powershell -ExecutionPolicy Bypass -File .\tools\validate_actionmaps.ps1   # after loading in-game: did the game keep every binding?
-powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # rebuild the reference cards after a binding change
+```sh
+python -m pip install -r tools/requirements.txt   # one-time setup (Pillow, plus zstandard on Python < 3.14)
+python tools/gamedata.py check                    # pre-flight MOZA.xml against the installed game build
+python tools/gamedata.py catalogue                # regenerate the action catalogue for a new SC patch
+python tools/validate_actionmaps.py               # after loading in-game: did the game keep every binding?
+python tools/regen_cards.py                       # rebuild the reference cards after a binding change
 ```
+
+The first four need the game installed. The card rebuild works anywhere, including a clone
+on a Mac.
 
 ---
 
@@ -161,7 +166,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\regen_cards.ps1           # reb
   mode.
 - **Validated against the Alpha 4.10.3 game data.** Every action name and actionmap in the
   profile was checked against the game's own `defaultProfile.xml` for build `4.10.201.48085`
-  (`python tools\gamedata.py check`): no unknown actions, none in a wrong actionmap. The action
+  (`python tools/gamedata.py check`): no unknown actions, none in a wrong actionmap. The action
   catalogue in [`reference/`](reference/README.md) is generated from the same file.
 - **In-game testing.** The core layout was flown and verified in Alpha 4.8 (June 2026),
   including the mining-laser and salvage-spacing slider axes, confirmed in a Golem and a
@@ -183,7 +188,7 @@ other MOZA layouts, newer-patch updates, or improvements to the docs and cards. 
 
 - keep [`MOZA.xml`](MOZA.xml) loading cleanly (run `xmllint --noout MOZA.xml`), and
 - if you change a binding, update its inline comment in the XML and the card tables in
-  `tools/regen_cards.ps1` (the cards aren't auto-derived from the XML — see
+  `tools/regen_cards.py` (the cards aren't auto-derived from the XML — see
   [`tools/`](tools/README.md)).
 
 Open an issue first if it's a big change, so we don't duplicate effort.
@@ -197,7 +202,7 @@ Released under the [MIT License](LICENSE) — © 2026 Basit Shehram.
 Everything here is **original work**: I built the `MOZA.xml` profile, the reference cards, the
 regeneration scripts, the HTML binding sheet, and all the documentation for this repo. **No
 third-party profile generator is used anywhere** — the cards are built solely by the in-repo
-`tools/regen_cards.ps1`.
+`tools/regen_cards.py`.
 
 Two third-party *inputs* are **not** covered by the MIT license and remain their owners' property:
 
