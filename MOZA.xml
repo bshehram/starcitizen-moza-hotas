@@ -95,18 +95,18 @@
       <rebind input="js1_rotz"/>  <!-- MHG stick TWIST (Z-rotation) - yaw (nose left/right) -->
     </action>
 
-    <!-- Strafe directions on the MTQ Right Module "COM" hat (the larger hat, 57-61). Moved off the MHG right hat (js1 12/13/14/15, now targeting). Hat CENTRE PRESS (57) = decoupling toggle, see Flight Control Assists below. -->
+    <!-- Strafe directions on the MHG top mini-stick (js1 25-29, 4-way + press). Swapped 2026-11-23 with the target-acquisition cluster, which moved to the MTQ "COM" hat (js2 57-61): strafing is used far more, and the stick hand is the natural place for it. Stick PRESS (29) = decoupling toggle, see Flight Control Assists below. DEVICE SETTING REQUIRED: the mini-stick only emits buttons 25-29 while MOZA Cockpit has it in BUTTON MAPPING mode (MHG > Grip Settings; in Axis Mode it sends two analog axes and no buttons, and strafe goes dead). Keep "Press stick to switch mode" OFF. -->
     <action name="v_strafe_up">
-      <rebind input="js2_button61"/>  <!-- MTQ "COM" hat UP - strafe up (translate, no rotation) -->
+      <rebind input="js1_button25"/>  <!-- MHG top mini-stick UP - strafe up (translate, no rotation) -->
     </action>
     <action name="v_strafe_down">
-      <rebind input="js2_button60"/>  <!-- MTQ "COM" hat DOWN - strafe down -->
+      <rebind input="js1_button27"/>  <!-- MHG top mini-stick DOWN - strafe down -->
     </action>
     <action name="v_strafe_right">
-      <rebind input="js2_button58"/>  <!-- MTQ "COM" hat RIGHT - strafe right -->
+      <rebind input="js1_button26"/>  <!-- MHG top mini-stick RIGHT - strafe right -->
     </action>
     <action name="v_strafe_left">
-      <rebind input="js2_button59"/>  <!-- MTQ "COM" hat LEFT - strafe left -->
+      <rebind input="js1_button28"/>  <!-- MHG top mini-stick LEFT - strafe left -->
     </action>
 
     <!-- Throttle = TWO one-way axes. SC locks a single throttle axis's neutral to axis-CENTRE (32767) with only centre-symmetric options, so one full-range v_strafe_longitudinal would read the MTQ's idle as deep reverse; forward and reverse are therefore separate half-actions. FORWARD = js2_roty (idle detent to full). REVERSE = js2_rotz, the MTQ's reverse-thrust axis. DEVICE SETTING REQUIRED: MOZA Cockpit > MTQ > Throttle Detent Settings > Limit Output Mode = REVERSE THRUST, which turns the ~13% of lever travel BEHIND the idle detent into its own axis pair (Z = left body, RZ = right body; never output together with the forward axes), and BOTH calibrations in that dialog must be run: IDLE with the levers resting on the lower detent (uncalibrated, the forward axis idles at ~13% instead of 0), and REV IDLE with the levers pulled only just behind that detent (about 11-12% travel) - "rev idle" is where reverse STARTS, full reverse is the rear stop. Calibrating rev idle AT the rear stop gives a zero-size zone and the reverse axes stay at 0. Confirmed in MOZA Cockpit 2026-11-20: Z/RZ = 0 at the detent, 65535 at the rear stop. History: until 2026-11 reverse was the rear-detent BUTTON js2_button34 (Limit Output Mode = Button), which is all-or-nothing full reverse; that mode's detent buttons (32-35, 41/42) are not part of Reverse Thrust mode. -->
@@ -151,9 +151,9 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <!-- Decoupling toggle on the MTQ "COM" strafe-hat CENTRE PRESS (57) - co-located with the strafe directions (decoupled = pure Newtonian translation, the mode you enable to strafe freely while keeping guns on a target). Moved off AB6 left wing 1 (js1_button49, now an AB6 multi-mode wing: targeting/mining/salvage). Deliberately NOT on the 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake; 57 is a plain press, so decoupled survives braking. -->
+    <!-- Decoupling toggle on the MHG top mini-stick PRESS (29) - co-located with the strafe directions (decoupled = pure Newtonian translation, the mode you enable to strafe freely while keeping guns on a target). Moved here with strafe on 2026-11-23 from the MTQ "COM" hat press (js2_button57, now pin target); before that it was on AB6 left wing 1 (js1_button49). Deliberately NOT on the MTQ 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake; 29 is a plain press, so decoupled survives braking. Pressing the stick in while strafing flips coupled/decoupled - push the directions without clicking. -->
     <action name="v_ifcs_vector_decoupling_toggle">
-      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - toggle coupled/decoupled flight -->
+      <rebind input="js1_button29"/>  <!-- MHG top mini-stick PRESS - toggle coupled/decoupled flight -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
       <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now an AB6 multi-mode wing: targeting/mining/salvage). -->
@@ -180,7 +180,7 @@
     <action name="v_toggle_landing_system">
       <rebind input="js1_ "/>  <!-- clears the stock js1_button12 gear toggle - gear stays on the gear lever only -->
     </action>
-    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now decoupling). -->
+    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now pin target). -->
     <action name="v_vtol_on">
       <rebind input="js2_button50"/>  <!-- MTQ 3-pos switch FORWARD-LATCH - VTOL ON (flick forward, stays latched) -->
     </action>
@@ -250,7 +250,7 @@
       <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
     <action name="v_target_pin_selected">
-      <rebind input="js1_button29"/>  <!-- MHG coolie CENTER PRESS - pin the current target (cycle back to it later via coolie LEFT). MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
+      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - pin the current target (cycle back to it later via COM hat LEFT). Moved here from the MHG mini-stick press (js1_button29, now decoupling) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
     </action>
   </actionmap>
 
@@ -279,20 +279,20 @@
     <action name="v_target_cycle_attacker_back">
       <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
     </action>
-    <!-- MHG top coolie hat (4-way + press) = TARGET ACQUISITION cluster, freed when camera-look moved to the MTQ mini-stick; thumb-reachable mid-dogfight, complements the left hat's hostile-cycle/lock. DEVICE SETTING REQUIRED: this "hat" is the MHG's top mini-stick, and it only emits buttons 25-29 while MOZA Cockpit has it in BUTTON MAPPING mode (MHG > Grip Settings; in Axis Mode it sends two analog axes and no buttons, and these five bindings go dead). Keep "Press stick to switch mode" OFF so the pin press (29) can't flip the mode. NOTE: the coolie CENTER PRESS (v_target_pin_selected) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
+    <!-- MTQ Right Module "COM" hat (the larger hat, 4-way + press, 57-61) = TARGET ACQUISITION cluster. Swapped 2026-11-23 with strafe + decoupling, which moved to the MHG top mini-stick (js1 25-29): these were rarely used, so they went to the throttle hand. Complements the MHG left hat's hostile-cycle/lock. NOTE: the hat CENTER PRESS (v_target_pin_selected, js2_button57) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
     <action name="v_target_cycle_all_fwd">
-      <rebind input="js1_button25"/>  <!-- MHG coolie UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
+      <rebind input="js2_button61"/>  <!-- MTQ "COM" hat UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
     </action>
     <action name="v_target_cycle_all_back">
-      <rebind input="js1_button27"/>  <!-- MHG coolie DOWN - cycle ALL contacts back -->
+      <rebind input="js2_button60"/>  <!-- MTQ "COM" hat DOWN - cycle ALL contacts back -->
     </action>
     <action name="v_target_cycle_hostile_reset">
-      <rebind input="js1_button26"/>  <!-- MHG coolie RIGHT - snap-lock the CLOSEST hostile (the best panic-target button in a furball) -->
+      <rebind input="js2_button58"/>  <!-- MTQ "COM" hat RIGHT - snap-lock the CLOSEST hostile (the best panic-target button in a furball) -->
     </action>
     <action name="v_target_cycle_pinned_fwd">
-      <rebind input="js1_button28"/>  <!-- MHG coolie LEFT - cycle PINNED targets forward -->
+      <rebind input="js2_button59"/>  <!-- MTQ "COM" hat LEFT - cycle PINNED targets forward -->
     </action>
-    <!-- v_target_pin_selected (MHG coolie CENTER PRESS, js1_button29) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
+    <!-- v_target_pin_selected (MTQ "COM" hat CENTER PRESS, js2_button57) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
     <!-- AB6 base wings (8 momentary pushbuttons) - in COMBAT a secondary target-acquisition bank (all cycle actions, distinct from the hats); the SAME buttons become the Mining/Salvage control banks in those operator modes (see spaceship_mining / spaceship_salvage). Multi-mode reuse is double-fire-safe because targeting maps go inactive in mining/salvage modes (proven by the left hat's hostile-cycle vs salvage-beam reuse). -->
     <action name="v_target_cycle_in_view_fwd">
       <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - cycle targets IN VIEW forward (forward-arc contacts) -->
@@ -313,7 +313,7 @@
       <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - cycle FRIENDLIES back -->
     </action>
     <action name="v_target_cycle_pinned_back">
-      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - cycle PINNED targets back (pairs with coolie LEFT = pinned forward) -->
+      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - cycle PINNED targets back (pairs with MTQ "COM" hat LEFT = pinned forward) -->
     </action>
     <action name="v_target_cycle_subitem_reset">
       <rebind input="js1_button56"/>  <!-- AB6 RIGHT wing 4 - reset SUB-TARGET back to the main hull -->
@@ -395,10 +395,10 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_view">
     <action name="v_view_cycle_fwd">
-      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = pin target). -->
+      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = decoupling toggle). -->
     </action>
     <!-- view_restore_defaults was REMOVED from here (it shared js2_button62): the game DROPS it from spaceship_view, so it did nothing - the cockpit recentre-on-view-cycle is v_view_cycle_fwd's own behaviour. It is only accepted in the view_director_mode actionmap (the cinematic/Director camera), which this combat profile doesn't use. -->
-    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now target acquisition). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
+    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now strafe). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">
       <rebind input="js2_x"/>  <!-- MTQ mini-stick X axis - look left/right -->
     </action>

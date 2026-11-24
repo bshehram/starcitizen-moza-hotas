@@ -293,11 +293,11 @@ $MHG_R = @(
   @{Label='22';Primary='Weapon preset - next';Variants=@((V 'Msl:' 'type +' $C_NOTE),(V 'Mine:' 'pwr +' $C_MINE),(V 'Salv:' 'gap +' $C_SALV))},
   @{Label='23';Primary='Weapon preset - prev';Variants=@((V 'Msl:' 'type -' $C_NOTE),(V 'Mine:' 'pwr -' $C_MINE),(V 'Salv:' 'gap -' $C_SALV))},
   @{Label='24';Primary='Weapon aim-type cycle';Variants=@((V 'Mine:' 'fracture/extract' $C_MINE),(V 'Salv:' 'structural mode' $C_SALV))},
-  @{Label='25';Primary='Cycle all contacts forward'},
-  @{Label='26';Primary='Snap-lock closest hostile'},
-  @{Label='27';Primary='Cycle all contacts back'},
-  @{Label='28';Primary='Cycle pinned forward'},
-  @{Label='29';Primary='Pin target'}
+  @{Label='25';Primary='Strafe up'},
+  @{Label='26';Primary='Strafe right'},
+  @{Label='27';Primary='Strafe down'},
+  @{Label='28';Primary='Strafe left'},
+  @{Label='29';Primary='Decoupled mode toggle'}
 )
 
 # ================================================================ MTQ (js2 1-65 + axes)
@@ -345,11 +345,11 @@ $MTQ_R = @(
   @{Label='54';Primary='Power to engines';Hint='WPN hat left'},
   @{Label='53';Primary='Power allocation reset';Hint='WPN hat right'},
   @{Label='52';Primary='Power to shields MAX';Hint='WPN hat hold'},
-  @{Label='61';Primary='Strafe up';Hint='COM hat up'},
-  @{Label='60';Primary='Strafe down';Hint='COM hat down'},
-  @{Label='59';Primary='Strafe left';Hint='COM hat left'},
-  @{Label='58';Primary='Strafe right';Hint='COM hat right'},
-  @{Label='57';Primary='Decoupled mode toggle';Hint='COM hat press'},
+  @{Label='61';Primary='Cycle all contacts fwd';Hint='COM hat up'},
+  @{Label='60';Primary='Cycle all contacts back';Hint='COM hat down'},
+  @{Label='59';Primary='Cycle pinned forward';Hint='COM hat left'},
+  @{Label='58';Primary='Lock closest hostile';Hint='COM hat right'},
+  @{Label='57';Primary='Pin target';Hint='COM hat press'},
   @{Label='62';Primary='Cycle camera view';Hint='mini-stick press'},
   @{Label='63';Primary='Zoom in - cockpit';Hint='throttle dial fwd'},
   @{Label='64';Primary='Zoom out - cockpit';Hint='throttle dial back'},

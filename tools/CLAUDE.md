@@ -21,7 +21,9 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     update the version stamp in [`../CLAUDE.md`](../CLAUDE.md).
   - Needs Python 3 plus `zstandard` (or Python 3.14+, which has zstd built in). The system Python
     on this machine did not have `zstandard` when the tool was written — if the import fails, ask
-    before installing into the user's Python, or run it from a scratch venv.
+    before installing into the user's Python, or run it from a scratch venv. (On 2026-11-23 it was
+    installed with `python -m pip install --user zstandard` into the system Python 3.12, so `check`
+    now runs there directly.)
   - It reads only plain-zstd entries. If CIG ever encrypts those two files it exits with a clear
     message; a community extractor such as unp4k is the fallback (see [`../CLAUDE.md` §10](../CLAUDE.md)).
 - **`validate_actionmaps.ps1` is the post-load proof.** It diffs [`../MOZA.xml`](../MOZA.xml)
