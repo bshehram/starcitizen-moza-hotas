@@ -314,7 +314,7 @@ MHG_R = [
     {'Label': '26', 'Primary': 'Strafe right'},
     {'Label': '27', 'Primary': 'Strafe down'},
     {'Label': '28', 'Primary': 'Strafe left'},
-    {'Label': '29', 'Primary': 'Decoupled mode toggle'},
+    {'Label': '29', 'Primary': 'Reverse thrust (hold)'},
 ]
 
 # ================================================================ MTQ (js2 1-65 + axes)
@@ -323,7 +323,7 @@ MTQ_L = [
     {'Label': '1', 'Primary': 'Weapons power toggle', 'Hint': 'keypad A1'},
     {'Label': '2', 'Primary': 'Thruster power toggle', 'Hint': 'A2'},
     {'Label': '3', 'Primary': 'Shield power toggle', 'Hint': 'A3'},
-    {'Label': '4', 'Primary': 'LAMP night-vision toggle', 'Hint': 'A4'},
+    {'Label': '4', 'Primary': 'Decoupled / hold: LAMP', 'Hint': 'A4'},
     {'Label': '5', 'Primary': 'Master mode SCM / NAV', 'Hint': 'NAV key'},
     {'Label': '6', 'Primary': 'Starmap', 'Hint': 'HDG key'},
     {'Label': '7', 'Primary': 'Engage quantum drive', 'Hint': 'SPD key'},
@@ -373,11 +373,10 @@ MTQ_R = [
     {'Label': '65', 'Primary': 'Boost / afterburner', 'Hint': 'L-Module button'},
     {'Header': 'AXES'},
     {'Label': 'RY', 'Primary': 'Main throttle - forward', 'Hint': 'throttle lever'},
-    {'Label': 'RZ', 'Primary': 'Throttle - reverse', 'Hint': 'behind idle detent'},
     {'Label': 'Slider', 'Primary': 'Mining laser power', 'Hint': 'FLAPS, Mining'},
     {'Label': 'Dial', 'Primary': 'Salvage beam spacing', 'Hint': 'S-brake, Salvage'},
     {'Label': 'X / Y', 'Primary': 'Camera look (yaw / pitch)', 'Hint': 'mini-stick'},
-    {'Label': 'RX / Z', 'Primary': 'Throttle twins', 'Hint': 'unbound', 'Unbound': True},
+    {'Label': 'RX, Z, RZ', 'Primary': 'Twin + reverse axes', 'Hint': 'unbound', 'Unbound': True},
 ]
 
 
@@ -439,8 +438,8 @@ def main():
                 {'D': sub_mtq_main, 'Frac': 0.74, 'Caption': 'Throttle panel'}]},
         ]},
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MTQ_L}, {'X': 1475, 'W': 365, 'Rows': MTQ_R}],
-        'Legend': ('Throttle forward = axis RY; reverse = axis RZ, the travel behind the idle detent (MOZA Reverse '
-                   'Thrust mode).  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
+        'Legend': ('Throttle forward = axis RY, zero in the idle detent; reverse = hold the MHG stick press (js1 '
+                   'button 29).  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
                    'modes; detent buttons 31-43 are unbound.'),
     }, browser)
 

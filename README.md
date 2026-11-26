@@ -32,7 +32,7 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
 | 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
 | 🚀 | **Star Citizen** (validated against **Alpha 4.10.3**, build `4.10.201.48085`) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
-| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** and calibrated (so the travel behind the idle detent is a proportional reverse axis), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
+| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** (or Button) with its **Idle** point calibrated just forward of the detent (so the forward throttle reads zero at rest), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
 
 > **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
@@ -173,7 +173,8 @@ on a Mac.
   Salvation. The November 2026 changes — the 10 cleared defaults, *Docking* on the AP key,
   *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
   the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
-  cargo loading have not been exercised yet.
+  cargo loading have not been exercised yet. On 26 November reverse moved to the MHG stick press
+  and the decoupled toggle to the MTQ's A4 key; that change hasn't been loaded in-game yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data

@@ -95,7 +95,7 @@
       <rebind input="js1_rotz"/>  <!-- MHG stick TWIST (Z-rotation) - yaw (nose left/right) -->
     </action>
 
-    <!-- Strafe directions on the MHG top mini-stick (js1 25-29, 4-way + press). Swapped 2026-11-23 with the target-acquisition cluster, which moved to the MTQ "COM" hat (js2 57-61): strafing is used far more, and the stick hand is the natural place for it. Stick PRESS (29) = decoupling toggle, see Flight Control Assists below. DEVICE SETTING REQUIRED: the mini-stick only emits buttons 25-29 while MOZA Cockpit has it in BUTTON MAPPING mode (MHG > Grip Settings; in Axis Mode it sends two analog axes and no buttons, and strafe goes dead). Keep "Press stick to switch mode" OFF. -->
+    <!-- Strafe directions on the MHG top mini-stick (js1 25-29, 4-way + press). Swapped 2026-11-23 with the target-acquisition cluster, which moved to the MTQ "COM" hat (js2 57-61): strafing is used far more, and the stick hand is the natural place for it. Stick PRESS (29) = REVERSE (held), see the throttle block below. DEVICE SETTING REQUIRED: the mini-stick only emits buttons 25-29 while MOZA Cockpit has it in BUTTON MAPPING mode (MHG > Grip Settings; in Axis Mode it sends two analog axes and no buttons, and strafe goes dead). Keep "Press stick to switch mode" OFF. -->
     <action name="v_strafe_up">
       <rebind input="js1_button25"/>  <!-- MHG top mini-stick UP - strafe up (translate, no rotation) -->
     </action>
@@ -109,12 +109,12 @@
       <rebind input="js1_button28"/>  <!-- MHG top mini-stick LEFT - strafe left -->
     </action>
 
-    <!-- Throttle = TWO one-way axes. SC locks a single throttle axis's neutral to axis-CENTRE (32767) with only centre-symmetric options, so one full-range v_strafe_longitudinal would read the MTQ's idle as deep reverse; forward and reverse are therefore separate half-actions. FORWARD = js2_roty (idle detent to full). REVERSE = js2_rotz, the MTQ's reverse-thrust axis. DEVICE SETTING REQUIRED: MOZA Cockpit > MTQ > Throttle Detent Settings > Limit Output Mode = REVERSE THRUST, which turns the ~13% of lever travel BEHIND the idle detent into its own axis pair (Z = left body, RZ = right body; never output together with the forward axes), and BOTH calibrations in that dialog must be run: IDLE with the levers resting on the lower detent (uncalibrated, the forward axis idles at ~13% instead of 0), and REV IDLE with the levers pulled only just behind that detent (about 11-12% travel) - "rev idle" is where reverse STARTS, full reverse is the rear stop. Calibrating rev idle AT the rear stop gives a zero-size zone and the reverse axes stay at 0. Confirmed in MOZA Cockpit 2026-11-20: Z/RZ = 0 at the detent, 65535 at the rear stop. History: until 2026-11 reverse was the rear-detent BUTTON js2_button34 (Limit Output Mode = Button), which is all-or-nothing full reverse; that mode's detent buttons (32-35, 41/42) are not part of Reverse Thrust mode. -->
+    <!-- Throttle. FORWARD = js2_roty as a one-way half-action: SC locks a single throttle axis's neutral to axis-CENTRE (32767) with only centre-symmetric options, so one full-range v_strafe_longitudinal would read the MTQ's idle as deep reverse. REVERSE = the MHG top mini-stick PRESS (js1_button29), held = full reverse thrust; the action's stock mode is press+release, so no activationMode. Moved there 2026-11-26 at the user's request: the proportional reverse AXIS (js2_rotz via MOZA's Reverse Thrust detent mode, 2026-11-20 to 11-26) did not work out. An action holds ONE joystick input, so js2_rotz is now unbound. The MTQ can stay in Reverse Thrust mode: lever travel behind the idle detent then outputs only the unbound Z / RZ axes, i.e. nothing. FORWARD CREEP with the lever resting in the idle detent is a DEVICE fix, not a profile one (SC's axis options are centre-symmetric, so an SC deadzone acts at mid-throw): in MOZA Cockpit > MTQ > Throttle Detent Settings, run the IDLE calibration with the levers pushed a few mm FORWARD of the detent, so the forward axis stays 0 across the detent's slack. History: until 2026-11-20 reverse was the rear-detent BUTTON js2_button34 (Limit Output Mode = Button). -->
     <action name="v_strafe_forward">
       <rebind input="js2_roty"/>  <!-- MTQ main throttle lever axis (RY) - forward throttle, idle detent = 0 thrust. Its synced twin js2_rotx (RX) is intentionally left UNBOUND. -->
     </action>
     <action name="v_strafe_back">
-      <rebind input="js2_rotz"/>  <!-- MTQ reverse-thrust axis (RZ, right throttle body) - PROPORTIONAL reverse: 0 at the idle detent, rising as the lever is pulled back toward the rear stop. Its twin js2_z (Z, left body) is left UNBOUND. If reverse is stuck ON at idle, SC is reading the axis the other way round: add <flight_strafe_backward invert="1"/> to the js2 <options> block at the top. -->
+      <rebind input="js1_button29"/>  <!-- MHG top mini-stick PRESS - HOLD for full reverse thrust (digital, like the old rear-detent button js2_button34). Clicking the stick in while strafing (25-28) also reverses, so push the directions without pressing. Needs the mini-stick in Button Mapping mode (MOZA Cockpit, MHG > Grip Settings). -->
     </action>
     <action name="v_space_brake">
       <rebind input="js2_button51"/>  <!-- MTQ Right Module 3-pos switch, MOMENTARY-BACK - space brake / full stop. Hold to brake; springs back through rest (49 = v_vtol_off, idempotent so re-firing is harmless). Switch rest (49) = VTOL off, forward-latch (50) = VTOL on - see the VTOL block below. -->
@@ -151,14 +151,14 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <!-- Decoupling toggle on the MHG top mini-stick PRESS (29) - co-located with the strafe directions (decoupled = pure Newtonian translation, the mode you enable to strafe freely while keeping guns on a target). Moved here with strafe on 2026-11-23 from the MTQ "COM" hat press (js2_button57, now pin target); before that it was on AB6 left wing 1 (js1_button49). Deliberately NOT on the MTQ 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake; 29 is a plain press, so decoupled survives braking. Pressing the stick in while strafing flips coupled/decoupled - push the directions without clicking. -->
+    <!-- Decoupling toggle on MTQ keypad "A4" TAP (2026-11-26: the user wanted it on the throttle, and the MHG stick press it sat on became reverse). Stock mode "tap", so no attribute. A4 HOLD = LAMP (seat_general), which carries activationMode="delayed_press" so one press can't fire both - the same tap/hold split as the "ALT" and "AP" keys. History: MHG mini-stick press js1_button29 (2026-11-23 to 11-26), MTQ "COM" hat press js2_button57 before that, AB6 left wing 1 (js1_button49) before that. Deliberately NOT on the MTQ 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake. -->
     <action name="v_ifcs_vector_decoupling_toggle">
-      <rebind input="js1_button29"/>  <!-- MHG top mini-stick PRESS - toggle coupled/decoupled flight -->
+      <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" TAP - toggle coupled/decoupled flight -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
       <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now an AB6 multi-mode wing: targeting/mining/salvage). -->
     </action>
-    <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now returned to LAMP); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
+    <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now decoupling on tap, LAMP on hold); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
@@ -235,7 +235,7 @@
       <rebind input="js2_button21"/>  <!-- MTQ mode knob detent 5 (full CW) - Salvage operator mode (salvage-capable ships) -->
     </action>
     <action name="v_light_amplification_toggle">
-      <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" - LAMP canopy night-vision toggle (LAMP-equipped ships). Back on A4 after ESP was unbound; the earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only again). -->
+      <rebind input="js2_button4" activationMode="delayed_press"/>  <!-- MTQ keypad "A4" HOLD (~0.25 s) - LAMP canopy night-vision toggle (LAMP-equipped ships). activationMode IS needed: the stock mode is "tap", the same as the decoupling toggle that took A4's TAP on 2026-11-26, so without it one press would fire both. The earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only). -->
     </action>
     <action name="v_view_look_behind">
       <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera. MUST live in seat_general, NOT spaceship_view: despite the v_view_ prefix, CIG files look-behind under "seats & operator modes" (catalogue confirms), and the first attempt in spaceship_view silently did nothing. REPLACED v_view_freelook_mode (which genuinely IS a spaceship_view action - hence the map swap): freelook detached the view from ship facing, and an unconscious pinky-hold felt like losing control. Look-behind keeps FULL stick/flight control (camera swings rear, snaps back on release). Bare binding - hold is the action's native behavior; add activationMode="hold" only if it doesn't behave as hold. -->
@@ -250,7 +250,7 @@
       <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
     <action name="v_target_pin_selected">
-      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - pin the current target (cycle back to it later via COM hat LEFT). Moved here from the MHG mini-stick press (js1_button29, now decoupling) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
+      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - pin the current target (cycle back to it later via COM hat LEFT). Moved here from the MHG mini-stick press (js1_button29, since then decoupling and now reverse) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
     </action>
   </actionmap>
 
@@ -395,7 +395,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_view">
     <action name="v_view_cycle_fwd">
-      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = decoupling toggle). -->
+      <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = reverse). -->
     </action>
     <!-- view_restore_defaults was REMOVED from here (it shared js2_button62): the game DROPS it from spaceship_view, so it did nothing - the cockpit recentre-on-view-cycle is v_view_cycle_fwd's own behaviour. It is only accepted in the view_director_mode actionmap (the cinematic/Director camera), which this combat profile doesn't use. -->
     <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now strafe). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
