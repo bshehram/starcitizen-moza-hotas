@@ -16,7 +16,9 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
   of every action, its **actionmap**, and its default bindings for the build that is installed.
   - `python tools/gamedata.py check` — run this **first** after any edit to
     [`../MOZA.xml`](../MOZA.xml) and after every game patch. `UNKNOWN` = the action name no longer
-    exists; `WRONG-MAP` = the game will silently drop it; `GHOST` = a stock joystick binding
+    exists; `WRONG-MAP` = the game will silently drop it; `MULTI-BIND` = the action has more
+    than one `<rebind>`, and the game keeps only the last (added 2026-11-26 after a second rebind
+    silently replaced the throttle's reverse axis and Autoland); `GHOST` = a stock joystick binding
     (they land on `js1`) the profile neither rebinds nor clears. A ghost on an input the profile
     also uses double-fires wherever both maps are active — judge each one by whether the two
     contexts can be live together; many (spectator, menus, turret aim) are harmless or wanted.
@@ -32,9 +34,14 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
 - **`validate_actionmaps.py` is the post-load proof.** It diffs [`../MOZA.xml`](../MOZA.xml)
   against the game's normalized export (`…\Profiles\default\actionmaps.xml`). The game **drops**
   wrong-map actions, so a `MISMATCH` — or an unexplained `NOT-IN-EXPORT` on a non-default action —
-  means the running game did not keep a binding. Reads local files only. It can only be as fresh
-  as the last time the profile was loaded in-game, so check the export's timestamp. Its output was
-  byte-identical to the old PowerShell version when ported.
+  means the running game did not keep a binding. Since 2026-11-26 it also compares the **inputs**:
+  `INPUT-DIFF` = the game holds a different input for that action (a lost or replaced binding, or
+  the profile not loaded since an edit), and `LEFTOVER` = a joystick binding the game holds that
+  `MOZA.xml` does not declare (loading is an overlay, so a binding removed from the file lingers
+  in the game). Non-zero exit on `MISMATCH`, `INPUT-DIFF` or `LEFTOVER`. Before that date it
+  compared actionmaps only and reported a clean result while two bindings were lost. Reads local
+  files only. It can only be as fresh as the last time the profile was loaded in-game: the game
+  writes the export when it quits, so load, quit, then run.
 - **`regen_cards.py` rebuilds [`../cards/`](../cards/CLAUDE.md)** from the art in
   [`../diagrams/`](../diagrams/CLAUDE.md) plus binding tables embedded in the script. Key rules:
   - The cards are **not auto-derived from [`../MOZA.xml`](../MOZA.xml)**. When a binding changes,

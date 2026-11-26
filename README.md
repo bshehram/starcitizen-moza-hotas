@@ -3,7 +3,7 @@
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
 [![Validated](https://img.shields.io/badge/validated-against_4.10_game_data-brightgreen)](#status)
 [![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.10.3-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-121_%2B_11_cleared_defaults-informational)](MOZA.xml)
+[![Bindings](https://img.shields.io/badge/bindings-121_%2B_10_cleared_defaults-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
@@ -159,9 +159,9 @@ on a Mac.
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  130 actions with 132 `<rebind>` entries across 21 action maps — 121 bindings plus 11 cleared
-  game defaults. Reverse is deliberately bound twice (the throttle's reverse axis and the stick
-  press). Buttons that appear in several maps (the trigger, rocker and stick hats) are intentional
+  131 actions, each with one `<rebind>`, across 21 action maps — 121 bindings plus 10 cleared
+  game defaults. The game keeps a single joystick input per action, so no action carries two.
+  Buttons that appear in several maps (the trigger, rocker and stick hats) are intentional
   **operator-mode reuse** — only one of those maps is live at a time, depending on whether the
   seat is in flight, mining, or salvage mode. The AB6 base wings are a power panel that works the
   same in every mode.
@@ -174,11 +174,14 @@ on a Mac.
   Salvation. The November 2026 changes — the 10 cleared defaults, *Docking* on the AP key,
   *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
   the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
-  cargo loading have not been exercised yet. On 26 November the MHG stick press became full reverse
-  and the decoupled toggle moved back to the MTQ's COM hat press (a hold there pins the target).
-  Later the same day the AB6 wings became the power panel, the mining and salvage banks moved to
-  the stick's right hat, and shield faces went on the MTQ's WPN hat as a trial. None of the
-  26 November changes has been loaded in-game yet.
+  cargo loading have not been exercised yet. On 26 November the decoupled toggle moved back to the
+  MTQ's COM hat press (a hold there pins the target), the AB6 wings became the power panel, the
+  mining and salvage banks moved to the stick's right hat, and shield faces went on the MTQ's WPN
+  hat as a trial. That version was loaded the same day and the wing power panel worked. The load
+  also showed that the game keeps only one joystick input per action: a stick-press "full
+  reverse" added beside the throttle's reverse axis had replaced it. Reverse is the throttle axis
+  again, and the stick press now tries full reverse through a separate action. That fix, the
+  shield faces and the right-hat banks have not been flown yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data

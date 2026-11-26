@@ -48,7 +48,7 @@ mappings/
 | Game device | Physical hardware | Button range | Axes used |
 | --- | --- | --- | --- |
 | **`js1`** (joystick instance 1) | **MOZA MHG** flight-stick grip mounted on the **MOZA AB6 FFB** base | Grip = **1–29**, Base = **49–62** | `js1_x` (roll), `js1_y` (pitch), `js1_rotz` (yaw / twist), plus `js1_slider1`/`js1_slider2` (the AB6 "Slider"/"Dial" lever analog halves - present but **unbound**) |
-| **`js2`** (joystick instance 2) | **MOZA MTQ** Throttle Panel (Mission Throttle Quadrant) | **1–65** (44–48 unused/absent) | `js2_roty` (throttle forward), `js2_rotz` (throttle reverse, proportional - the MHG stick press 29 gives full reverse on the same action), `js2_slider2` / `js2_slider1` (FLAPS / SPEEDBRAKE levers), `js2_x` / `js2_y` (mini-stick); `js2_rotx` and `js2_z` are the unbound twins of the two throttle axes |
+| **`js2`** (joystick instance 2) | **MOZA MTQ** Throttle Panel (Mission Throttle Quadrant) | **1–65** (44–48 unused/absent) | `js2_roty` (throttle forward), `js2_rotz` (throttle reverse, proportional - the MHG stick press 29 is a trial for full reverse on a separate action), `js2_slider2` / `js2_slider1` (FLAPS / SPEEDBRAKE levers), `js2_x` / `js2_y` (mini-stick); `js2_rotx` and `js2_z` are the unbound twins of the two throttle axes |
 
 The MHG grip and the AB6 base report as **one** DirectInput device (`js1`): grip buttons are numbered 1–29, the base's own buttons continue at 49–62 (there is a 30–48 gap with no physical buttons). The MTQ throttle is a **separate** device (`js2`).
 
@@ -71,7 +71,7 @@ The profile depends on a few settings that live **on the devices**, not in `MOZA
 | MHG → Basic Settings → Grip Settings | **Mode 1** (the mini-stick's active mode) | **Button Mapping** | The top mini-stick must emit **buttons 25-29** - the four strafe directions and, on the press, **reverse** are bound to them (strafe since 2026-11-23, reverse since 2026-11-26; the press was the decoupled toggle in between, and before that the stick held the target-acquisition cluster). In **Axis Mode** it emits the RX/RY axes (`js1_rotx` / `js1_roty`, unbound) and **no buttons**, so those five bindings go dead. | Found on **Axis Mode**; **fixed the same day** - now Button Mapping (both modes) ✔ |
 | MHG → Grip Settings | **Press stick to switch mode** | **Off** | Otherwise pressing the mini-stick (button 29 = reverse) flips it between the two modes in flight. | Found **On**; **fixed the same day** - now Off ✔ |
 | MHG → Yaw Axis Settings | Enable Yaw Axis Output | On | Twist = `js1_rotz` = yaw. | On ✔ |
-| MTQ → Settings → Throttle Detent Settings → *Axis Detent Settings* | **Limit Output Mode** | **Reverse Thrust** | Turns the lever travel **behind the idle detent** (~13 % of the throw) into its own axis pair - **Z** (left body) / **RZ** (right body) - never output together with the forward axes. `v_strafe_back` is bound to `js2_rotz`, which makes reverse **proportional**; since 2026-11-26 the MHG stick press (29) is full reverse on the same action (§6 item 21). The other modes: *Button* (detent buttons 32–35 / 41 / 42 - the pre-2026-11 setup, reverse on button 34, all-or-nothing) and *Disabled* (puts the forward axes' zero at the rear stop - avoid). | Found on Button; **switched to Reverse Thrust the same day** ✔ (the page then reads "The extra reverse-thrust axes Z and RZ have been Enabled") |
+| MTQ → Settings → Throttle Detent Settings → *Axis Detent Settings* | **Limit Output Mode** | **Reverse Thrust** | Turns the lever travel **behind the idle detent** (~13 % of the throw) into its own axis pair - **Z** (left body) / **RZ** (right body) - never output together with the forward axes. `v_strafe_back` is bound to `js2_rotz`, which makes reverse **proportional**. The MHG stick press (29) cannot share that action - the game keeps one joystick input per action - so its full reverse is a trial on `v_strafe_longitudinal` (§6 item 23). The other modes: *Button* (detent buttons 32–35 / 41 / 42 - the pre-2026-11 setup, reverse on button 34, all-or-nothing) and *Disabled* (puts the forward axes' zero at the rear stop - avoid). | Found on Button; **switched to Reverse Thrust the same day** ✔ (the page then reads "The extra reverse-thrust axes Z and RZ have been Enabled") |
 | MTQ → same dialog | **Idle** calibration | Levers pushed **a few mm forward of** the lower detent (since 2026-11-26) | Sets forward-throttle zero. Uncalibrated, the forward axes read ~8400 (13 %) at rest - the ship creeps forward. Calibrated exactly **on** the detent (2026-11-20), the user still saw the ship **creep forward now and then** with the lever resting there: the detent has slack, so the rest position can read a hair above zero. Calibrating slightly forward of the detent gives the forward axis a small band at the bottom that reads 0. SC can't do this itself: its axis options are centre-symmetric (see the throttle comment in `MOZA.xml`). | 2026-11-20: done on the detent ✔. **2026-11-26: redone at ~15 % of lever travel** ✔ (the detent rests at ~13 %), so the forward axis reads 0 across a ~2 % band around the detent. The forward detent stays at roughly 75 % throttle. **Confirmed in Cockpit 2.0.0.111 the same day:** with both bodies resting in the detent (13.0 % travel), X, Y, Z and RZ all read 0. Not yet flown. |
 | MTQ → same dialog | **Rev idle** calibration | Levers pulled **only just behind** the lower detent (~11 % travel) | "Rev idle" is where reverse **starts**; full reverse is the rear stop. Calibrating it **at** the rear stop gives a zero-size zone and Z / RZ stay at 0 (that is how the dialog says to switch reverse *off* on one side). With Idle at ~15 % and Rev idle at ~11 %, the band around the detent (~13 %) is neutral both ways. | Done ✔ (2026-11-20) - Z / RZ read 0 at the detent and **65535** at the rear stop. **Redone 2026-11-26 at ~11 % of travel** ✔ |
 | MTQ → Settings | Throttle Input Sync | On | The two throttle bodies report as one synced pair; only `js2_roty` is bound. | On ✔ |
@@ -165,7 +165,13 @@ A physical button can appear in several action maps because **only one action ma
 
 Loading `MOZA.xml` does **not** start from a blank slate. The game first applies its own stock layout (`defaultProfile.xml`) and then lays this file's `<rebind>`s on top. Stock **joystick** bindings are written as bare `button12` / `x` / `slider1` and land on **joystick 1 (`js1`)**. So any action this file does not mention keeps its stock `js1` binding - and if that button is one this profile uses for something else, **one press fires both**.
 
-- Rebinding an action (to `js1` *or* `js2`) is assumed to replace its stock joystick binding; `gamedata.py check` works on that assumption. **Corrected 2026-11-26:** an action does **not** hold just one joystick input. The game keeps a binding slot **per joystick instance**: CIG's own `layout_all_blank.xml` clears `js1_ `, `js2_ ` and `js3_ ` separately on every action. So one action can carry a `js1` and a `js2` input at once, as `v_strafe_back` now does. **Open:** under that model, a stock `js1` default might survive a rebind made on `js2` only (for example the stock *Boost* on `js1_button8`, the left hat's right press, after Boost moved to `js2_button65`). If the left hat's right press ever boosts as well as cycling hostiles, that is the cause, and the fix is an explicit `js1_ ` clear alongside the js2 rebind. Applied as a precaution to *Autoland* on 2026-11-26 (stock `js1_button12` hold, now a busier button).
+- **An action holds exactly one joystick input, across all joystick instances.** Rebinding an action (to `js1` *or* `js2`) replaces its stock joystick binding. If a profile gives one action two `<rebind>` lines, the game keeps the **last** and silently loses the other. **Proven by the game's export after the 2026-11-26 load:**
+  - `v_strafe_back` listed `js2_rotz` then `js1_button29`. The game kept only the button, and the throttle's reverse axis went dead.
+  - `v_autoland` listed `js2_button10` then a `js1_ ` clear. The game kept only the clear, and Autoland went dead.
+  - An earlier note here claimed a slot per joystick instance, on the strength of CIG's `layout_all_blank.xml` clearing `js1_ `, `js2_ ` and `js3_ ` in turn on every action. That reading was wrong: the three clears just overwrite one slot one after another.
+  - So a clear next to a rebind is never needed, and is harmful if it comes second. `gamedata.py check` reports any action with more than one rebind as `MULTI-BIND`.
+  - Each **device type** has its own slot (keyboard, mouse, gamepad, joystick). The stock keyboard binding of an action (`S` on `v_strafe_back`) stays live beside the joystick one.
+- **Loading a profile is an overlay on what the game already holds, not a reset.** An action the file does not mention keeps its current binding, and that includes bindings from an *earlier version of this profile*. After the 2026-11-26 rework was loaded, the export still held nine bindings the new file had dropped: the old tap *Pin Selected Target* on `js2_button57` and the eight wing target-cycle actions on `js1_button49–56`, each double-firing with a new binding. `validate_actionmaps.py` lists these as `LEFTOVER`. To remove one, clear it in the game's Keybindings menu, or delete its `<action>` block from `…\Profiles\default\actionmaps.xml` with the game closed (how the nine were removed on 2026-11-26; a backup sits next to the file).
 - An action this file never mentions keeps the stock one. The export in `Profiles\default\actionmaps.xml` can't show you these: it lists only what *differs* from stock, which is also why a binding identical to stock (`v_pitch` = `js1_y`, the trigger = mining-laser fire) is missing from it.
 - `python tools/gamedata.py check` lists every un-overridden stock joystick binding as a `GHOST` and flags the ones sitting on an input this profile also binds.
 
@@ -238,7 +244,7 @@ Button indices come directly from the MOZA configurator diagrams (`diagrams/MOZA
 | 17–21 | **Rotary mode-selector knob** - 5 detents physically engraved **1–5** (17 = pos 1/full CCW … 21 = pos 5/full CW); rests on one | | |
 | 22/23/24 | 3-position rocker (23 L / 22 C / 24 R) | | |
 
-**Axes** (confirmed in `joy.cpl`): the **throttle is a synced pair of bodies** reporting as **X Rotation + Y Rotation** = `js2_rotx` + `js2_roty`; the throttle is bound on `js2_roty` (`v_strafe_forward`) and its twin `js2_rotx` is left alone. With MOZA's **Reverse Thrust** detent mode on (§1.1) the lever travel behind the idle detent reports as a second pair, **Z + Z Rotation** = `js2_z` + `js2_rotz` (MOZA's names). Reverse is bound on `js2_rotz` (`v_strafe_back`) and `js2_z` is left alone; the MHG stick press (`js1_button29`) shares the action as full reverse (§6 item 21). Raw readings seen in MOZA Cockpit on 2026-11-20, before the idle calibration: rear stop 0, lower (idle) detent ≈ 8400, forward detent ≈ 51600, front stop 65535 - so after calibration the forward detent sits at roughly 75 % throttle. The **Left Module mini-stick** = `js2_x` (camera yaw) / `js2_y` (camera pitch) drives **camera look**. The two side sliders are the slider-family axes: **FLAPS** (far right) = joy.cpl's **"Slider"** axis = `js2_slider2`, and **SPEEDBRAKE** (far left) = joy.cpl's **"Dial"** axis = `js2_slider1` - both set in MOZA Cockpit to output their axis (§1.1), now bound to mining-power / salvage-spacing (see slider note). *(The joy.cpl name↔SC number is counter-intuitive - "Slider"→slider2, "Dial"→slider1 - confirmed via SC's in-game binder, not guessable from joy.cpl.)*
+**Axes** (confirmed in `joy.cpl`): the **throttle is a synced pair of bodies** reporting as **X Rotation + Y Rotation** = `js2_rotx` + `js2_roty`; the throttle is bound on `js2_roty` (`v_strafe_forward`) and its twin `js2_rotx` is left alone. With MOZA's **Reverse Thrust** detent mode on (§1.1) the lever travel behind the idle detent reports as a second pair, **Z + Z Rotation** = `js2_z` + `js2_rotz` (MOZA's names). Reverse is bound on `js2_rotz` (`v_strafe_back`) and `js2_z` is left alone; the MHG stick press (`js1_button29`) tries full reverse on a separate action (§6 item 23). Raw readings seen in MOZA Cockpit on 2026-11-20, before the idle calibration: rear stop 0, lower (idle) detent ≈ 8400, forward detent ≈ 51600, front stop 65535 - so after calibration the forward detent sits at roughly 75 % throttle. The **Left Module mini-stick** = `js2_x` (camera yaw) / `js2_y` (camera pitch) drives **camera look**. The two side sliders are the slider-family axes: **FLAPS** (far right) = joy.cpl's **"Slider"** axis = `js2_slider2`, and **SPEEDBRAKE** (far left) = joy.cpl's **"Dial"** axis = `js2_slider1` - both set in MOZA Cockpit to output their axis (§1.1), now bound to mining-power / salvage-spacing (see slider note). *(The joy.cpl name↔SC number is counter-intuitive - "Slider"→slider2, "Dial"→slider1 - confirmed via SC's in-game binder, not guessable from joy.cpl.)*
 
 > **Throttle-lever dial (buttons 63/64):** a **detented thumb dial on the throttle lever**, *not* two Left-Module face buttons as an earlier version of this doc claimed. It is an **incremental rotary encoder** - each forward/CW click pulses button **63**, each back/CCW click pulses button **64** (a momentary pulse per click, no held/latched state). It is therefore only suited to **increment/decrement** pairs - it can't cleanly hold or toggle. It is **buttons-only** (no axis); the configurator's analog **"Dial"** axis is a *different* control - `joy.cpl` confirmed that axis is the **SPEEDBRAKE slider**, not this wheel (an earlier version of this doc guessed the Dial axis was this wheel - wrong). Note the "increment/decrement only" caveat is soft - a single deliberate click *does* fire a toggle once (ESP worked fine on it); it's just that *rolling* the wheel flips a toggle repeatedly, which is why ESP was moved off to A4. 63/64 drive `v_view_dynamic_zoom_rel_*`, which works in the **cockpit**; the 3rd-person `v_view_zoom_*` pair that once rode along on the same clicks was removed as dead. The other three zoom pairs (`zoom_*` / `spectate_*` / `pc_*`) are on-foot/spectator/interaction and can't fire from a pilot seat (rig is **vehicle-only**, see §1). The `view_fov`+camview experiment was **removed** - 3rd-person FoV zoom needs a *held* modifier (kb F4), and a momentary dial click can't hold anything (confirmed: stacking `view_fov` + `view_enable_camview_mode` on one click did nothing). So the dial does **cockpit zoom only**; 3rd-person FoV zoom stays on the keyboard (or a MOZA Pithouse macro that emits "hold F4 + tap NumPad±" per click). Buttons 63/64 firing is **confirmed in joy.cpl**. *(Buttons 62 and 65 are still believed to be the Left-Module mini-stick press and a face button respectively - re-verify if you find otherwise.)*
 
@@ -256,7 +262,7 @@ Button indices come directly from the MOZA configurator diagrams (`diagrams/MOZA
 
 ## 4. Complete binding reference
 
-Every binding currently in `MOZA.xml`, grouped by action map, with the official in-game label and what it does. **Input** = the XML `input=` value; **Control** = where that is on the hardware. The file holds **121 bindings + 11 cleared game defaults across 21 actionmaps** (the clears have their own table at the end of this section).
+Every binding currently in `MOZA.xml`, grouped by action map, with the official in-game label and what it does. **Input** = the XML `input=` value; **Control** = where that is on the hardware. The file holds **121 bindings + 10 cleared game defaults across 21 actionmaps**, one `<rebind>` per action (the clears have their own table at the end of this section).
 
 > **Labels are the exact strings the 4.10 Keybindings menu shows** (from `global.ini`), so you can find an action in-game by searching for it. Two are worth knowing because the game's wording is unhelpful: `v_starmap` is listed simply as *Map*, and the game labels **both** `v_lights_on` and `v_lights_off` *Headlights (Enable)* - a CIG label slip; the tables below keep "Off" for the second one.
 
@@ -305,8 +311,8 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js1_button26` | MHG top mini-stick → | `v_strafe_right` → *Strafe right (abs.)* | Translate right without yawing. |
 | `js1_button28` | MHG top mini-stick ← | `v_strafe_left` → *Strafe left (abs.)* | Translate left without yawing. |
 | `js2_roty` | MTQ throttle lever (RY) | `v_strafe_forward` → *Throttle - Increase* | Main forward throttle axis. Behaviour (absolute vs relative) depends on the cruise/throttle-mode toggle below. |
-| `js2_rotz` | MTQ throttle lever **behind the idle detent** (RZ, the reverse-thrust axis) | `v_strafe_back` → *Throttle - Decrease* | **Proportional reverse** - nothing at the idle detent, more the further back you pull, full at the rear stop. Needs MOZA's *Reverse Thrust* detent mode and both calibrations (§1.1). Replaced the rear-detent button `js2_button34` on 2026-11-20. **Flown** (2026-11-20, Avenger Titan): "working fine", no invert needed. If it is ever stuck on at idle, SC is reading the axis the other way round - add `<flight_strafe_backward invert="1"/>` to the js2 `<options>` block. |
-| `js1_button29` | MHG top mini-stick - **press** | `v_strafe_back` → *Throttle - Decrease* (second input on the same action) | **Hold for full reverse instantly**, without touching the throttle (stock mode `press+release`, so it thrusts while held; no attribute). **Added 2026-11-26.** The game keeps one binding slot per joystick instance, so the js1 button and the js2 axis can share the action (§2.5). Clicking the stick in while strafing (25–28) also reverses - push the directions without pressing. |
+| `js2_rotz` | MTQ throttle lever **behind the idle detent** (RZ, the reverse-thrust axis) | `v_strafe_back` → *Throttle - Decrease* | **Proportional reverse** - nothing at the idle detent, more the further back you pull, full at the rear stop. Needs MOZA's *Reverse Thrust* detent mode and both calibrations (§1.1). Replaced the rear-detent button `js2_button34` on 2026-11-20. **Flown** (2026-11-20, Avenger Titan): "working fine", no invert needed. If it is ever stuck on at idle, SC is reading the axis the other way round - add `<flight_strafe_backward invert="1"/>` to the js2 `<options>` block. **Must stay the only rebind on this action:** on 2026-11-26 a second rebind (the stick press) replaced it and the throttle's reverse went dead (§2.5, §6 item 23). |
+| `js1_button29` | MHG top mini-stick - **press** | `v_strafe_longitudinal` → *Throttle - Forward / Back* | **Trial (2026-11-26), unverified in-ship: hold for full reverse instantly**, without touching the throttle. A button on this full-axis action should read as full deflection while held, and `<flight_strafe_longitudinal invert="1"/>` in the js1 `<options>` block should make that deflection *backward*. **Test in open space first.** If the press thrusts forward or does nothing, remove the action and the options line together. It cannot go on `v_strafe_back`, which holds the throttle axis. Clicking the stick in while strafing (25–28) also fires it - push the directions without pressing. |
 | `js2_button51` | MTQ Right Module switch - **momentary back** | `v_space_brake` → *Spacebrake* | Active full-stop on all axes (the "handbrake"). Hold to brake; springs back to rest (49) = `v_vtol_off`, an idempotent SET that's harmless to re-fire on every brake release. Rest (49) = VTOL off, forward-latch (50) = VTOL on (see VTOL rows below). |
 | `js2_button65` | MTQ Left Module face button | `v_afterburner` → *Boost* | Boost - burst of extra acceleration from a depletable pool; also overrides proximity assist while held. |
 | `js2_button9` | MTQ keypad **"FD"** (mid-bottom) | `v_toggle_jump_request` → *Jump Drive - Request Jump* | Engages **inter-system jump-point** travel (e.g. Stanton↔Pyro) - distinct from in-system quantum. Sits **directly below the quantum key** (7) → travel column. Moved off `js1_button56` (AB6 right wing 4, now free). |
@@ -322,7 +328,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button8` | MTQ keypad **"ALT"** - **hold** (~0.25 s) | `v_atc_loading_area_request` → *Request Cargo Loading* | Hails for a cargo-loading slot (Golem OX hauling). **Re-added 2026-11** for the cargo fleet (it had been removed in June as never used). Carries `activationMode="delayed_press"` - the one explicit activation mode in the file - because its stock mode is also `tap`. |
 | `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing System (Retract)* | Gear **up**. Gear-shaped plastic lever - its position mirrors gear state. |
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing System (Deploy)* | Gear **down**. Lever down = gear down (aircraft convention). |
-| `js2_button10` | MTQ keypad **"AP"** (right-bottom) - **hold** (~0.25 s) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. **Swapped onto "AP" from "ALT"/8.** Stock mode is `delayed_press`, so it needs a short **hold** - a quick tap is the docking action (see *Quantum travel, navigation & docking*). Gear toggle is now **only** on the gear lever (29/30); the stock `js1_button12` gear toggle is cleared (see *Cleared game defaults*). Since 2026-11-26 the action also carries a `js1_ ` **clear**: the stock Autoland sits on `js1_button12` (a hold), the right hat UP, which now also fires mining module 1 and salvage focus-all (see *Cleared game defaults*). |
+| `js2_button10` | MTQ keypad **"AP"** (right-bottom) - **hold** (~0.25 s) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. **Swapped onto "AP" from "ALT"/8.** Stock mode is `delayed_press`, so it needs a short **hold** - a quick tap is the docking action (see *Quantum travel, navigation & docking*). Gear toggle is now **only** on the gear lever (29/30); the stock `js1_button12` gear toggle is cleared (see *Cleared game defaults*). This one rebind also replaces the stock Autoland on `js1_button12` (the right hat UP), because an action has a single joystick binding. A `js1_ ` clear added beside it on 2026-11-26 wiped the binding (the last rebind wins) and was removed the same day (§2.5). |
 | `js2_button50` | MTQ Right Module switch - **forward-latch** | `v_vtol_on` → *Enable VTOL* | Engages VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. Flick the switch forward; it stays latched. |
 | `js2_button49` | MTQ Right Module switch - **rest/default** | `v_vtol_off` → *Disable VTOL* | Disengages VTOL. As a discrete idempotent SET it re-fires on every space-brake release (51 springs back through 49) with no ill effect, so the switch position always reflects true VTOL state. Moved here off the COM-hat press (`js2_button57`, now *Pin Selected Target*). |
 
@@ -479,12 +485,11 @@ These reuse MHG controls; active only in **Salvage** operator mode.
 
 ### Cleared game defaults - `spaceship_movement`, `player_choice`, `vehicle_general`, `vehicle_driver`
 
-These eleven entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which removes a stock joystick binding that would otherwise stay live on `js1` underneath this profile (the mechanism is in §2.5). The first ten were identified from the 4.10 `defaultProfile.xml` with `tools/gamedata.py check` on 2026-11-20; the game accepted all ten on the first 4.10.3 load (each is listed as `js1_ ` in its export, §10.3). The eleventh (*Autoland*, 2026-11-26) sits alongside a js2 binding on the same action and has not been loaded yet. Their in-flight effect has not been checked one by one.
+These ten entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which removes a stock joystick binding that would otherwise stay live on `js1` underneath this profile (the mechanism is in §2.5). They were identified from the 4.10 `defaultProfile.xml` with `tools/gamedata.py check` on 2026-11-20; the game accepted all ten on the first 4.10.3 load (each is listed as `js1_ ` in its export, §10.3). Their in-flight effect has not been checked one by one. A clear only belongs on an action the profile does **not** bind: an eleventh, placed beside the *Autoland* binding on 2026-11-26, replaced that binding and was removed (§2.5).
 
 | Cleared action → In-game label | Actionmap | Stock `js1` input | What that input is on this rig | Why it is cleared |
 | --- | --- | --- | --- | --- |
 | `v_toggle_landing_system` → *Landing System (Toggle)* | `spaceship_movement` | `js1_button12` (tap) | MHG right hat ↑ = sub-target forward | Every sub-target tap also toggled the landing gear and left the gear lever (29/30) out of sync. |
-| `v_autoland` → *Autoland* | `spaceship_movement` | `js1_button12` (hold) | MHG right hat ↑ = sub-target fwd / module 1 / focus all | Added 2026-11-26 as a precaution. The action is bound on `js2_button10` ("AP" hold), but the game keeps a slot per joystick instance (§2.5), so the stock js1 hold may survive; the clear makes sure a held right-hat ↑ can never autoland. |
 | `pc_interaction_mode` → *Interaction Mode* | `player_choice` | `js1_button6` (hold) | MHG trigger stage 2 = fire group 2 / salvage gimbal | A full trigger pull also held interaction mode. Interaction is done on the Xbox controller / keyboard. |
 | `v_horn` → *Horn* | `vehicle_general` | `js1_button8` | MHG left hat → | Ground vehicles are driven on the Xbox controller. |
 | `v_view_yaw` → *Look left / right* | `vehicle_general` | `js1_x` | stick X (roll) | Same - stops the stick swinging the camera in a ground vehicle. |
@@ -547,7 +552,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 14. **Open - shield faces on the S3-shield ships.** The Liberator carries Size 3 shields (confirmed in the game files). Since the 2026-11-23 rebuy, the Wiki API also lists S3 *Quadrant* shields on the **Perseus** (2x), **Ironclad Assault** (4x) and **Corsair** (1x) **[ref]**. So four ships in the fleet, not one, are where `v_shield_raise_level_*` could do anything (the C2, which also had them, left on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit if face management turns out to matter on any of the four. Check first whether the pilot seat controls the faces on the crewed ships. **Update 2026-11-26:** bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.
 15. **Open - Golem OX tractor beam.** The OX has a deployable tractor turret and, in the game files, a *salvage* controller, so its tractor may run through Salvage operator mode (trigger = *Toggle Fire Focused*). `tractor_beam_vehicle_increase/decrease_distance` (in `spaceship_salvage`) are unbound on the rig - mouse wheel / gamepad shoulders only. Check in-ship which mode drives it before binding; the MHG right hat ↑/↓ (12/14) is the natural spot if targeting is inactive in that mode. **Update 2026-11-26:** trial binding on the MHG lower hat ↑/↓ in Salvage mode (item 22); test it in the OX.
 
-16. **✅ Reverse throttle is now proportional (2026-11-20; item 21 added full reverse on the stick).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
+16. **✅ Reverse throttle is now proportional (2026-11-20; items 21 and 23 cover full reverse on the stick).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behaviour was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
 
 17. **⚠ Game option with a backwards label - "Defaults → Flight → Decoupled On" (found 2026-11-20, build `4.10.201.48085`).** Tested by the user across three launches: with the menu on **Yes** the ship spawned **coupled**; on **No** it spawned **decoupled**. The stored value is honest - `IFCS_Setting_CoupledEnabled` in `…\user\client\0\Profiles\default\attributes.xml`, where `1` = coupled (the game's default, so the entry is simply absent) and `0` = decoupled. The user wants to start **coupled**: menu on *Yes*, no `…CoupledEnabled = 0` line in the file. Two things learned about that file: the game drops an entry once it equals the default, so a missing setting is not readable from it; and hand-edits made with the game closed are picked up at the next launch. Re-check the label's sense after a patch before trusting either reading.
 
@@ -568,7 +573,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Not yet flown, and not yet loaded in-game** (run `validate_actionmaps.py` after the next load).
     - *Update 2026-11-26 (item 21):* the stick press 29 is now full reverse, and the decoupled toggle went back to the MTQ "COM" hat press (tap; hold = pin).
 
-21. **✅ Full reverse on the MHG stick press; decoupled back on the MTQ "COM" hat press (2026-11-26).** The user asked for three things:
+21. **✅ Full reverse on the MHG stick press; decoupled back on the MTQ "COM" hat press (2026-11-26). The two-rebind reverse described here failed on load - see item 23.** The user asked for three things:
     - **Reverse on button 29.** The user wanted **both**: full reverse instantly on the stick press, and the proportional reverse on the throttle lever behind the detent (item 16).
       - The first commit wrongly moved the axis off, on the old belief that an action holds one joystick input. The game files disprove that: `layout_all_blank.xml` clears js1, js2 and js3 separately on every action (§2.5).
       - `v_strafe_back` now carries **two rebinds**: `js2_rotz` (proportional) and `js1_button29` (held = full).
@@ -597,19 +602,40 @@ This is normal and intended - only one of these action maps is "live" at a time.
       - Shield faces go on the freed "WPN" hat (item 14). The vehicle tractor distance is a trial on the MHG lower hat ↑/↓ in Salvage mode (item 15).
     - **Extras the user chose:**
       - Jettison needs a hold (`delayed_press`).
-      - A `js1_ ` clear on *Autoland*: its stock js1 hold sits on right hat ↑, which the plan made busier (§2.5).
+      - A `js1_ ` clear on *Autoland*: its stock js1 hold sits on right hat ↑, which the plan made busier. **Removed the same day (item 23):** it replaced the Autoland binding.
       - The tractor trial above.
     - **Counts:** 121 bindings + 11 clears across 21 actionmaps. `gamedata.py check`: 130 OK, 0 unknown, 0 wrong-map. No ghost on js1 12–19 or 49–56; the ghost list is otherwise unchanged.
     - **Not yet loaded in-game or flown.** After loading, `validate_actionmaps.py` should show:
       - the eight power actions on js1 49–56;
       - shield faces on js2 52–56;
       - jettison on `js2_button1` with `delayed_press`;
-      - `v_autoland` with both `js2_button10` and `js1_ `.
+      - `v_autoland` with both `js2_button10` and `js1_ ` (wrong - it kept only the clear, item 23).
     - **Things to test in-ship:**
       - shield faces (Corsair first);
       - the OX tractor in Salvage mode;
       - module activation on the right hat (Golem);
       - the salvage bank (Salvation / Hyūn).
+
+23. **✅ Fixed - the first load of the 2026-11-26 rework lost two bindings and left nine old ones behind (2026-11-26).**
+    - **What the user saw:** after loading the profile, the throttle no longer reversed behind the idle detent. The stick press (29) reversed fine, and so did the AB6 wing power panel.
+    - **Cause 1 - one joystick input per action (§2.5).** The game's export after the load held only the *last* rebind of each two-rebind action:
+      - `v_strafe_back` = `js1_button29` only. The `js2_rotz` axis was gone.
+      - `v_autoland` = the `js1_ ` clear only. The "AP" hold was gone; the user had not noticed yet.
+    - **Cause 2 - loading is an overlay (§2.5).** Nine bindings deleted from the file earlier that day were still in the export:
+      - the tap *Pin Selected Target* on `js2_button57`, so a tap of the COM hat press toggled decoupled **and** pinned;
+      - the eight wing target-cycle actions on `js1_button49–56`, each firing together with a power-panel button.
+    - **Why the tooling missed it:** `validate_actionmaps.py` compared actionmaps only, never inputs. `gamedata.py check` did not look at rebind counts.
+    - **Fixes:**
+      - `v_strafe_back` is `js2_rotz` alone again (proportional reverse, as flown 2026-11-20).
+      - The `js1_ ` clear on `v_autoland` is removed. The js2 rebind already replaces the stock js1 default.
+      - **Stick-press full reverse is now a trial on a different action:** `v_strafe_longitudinal` (*Throttle - Forward / Back*) on `js1_button29`, with `<flight_strafe_longitudinal invert="1"/>` in the js1 `<options>` so the button's full deflection points backward.
+        - Unverified. Whether a button drives this axis action, and whether the invert applies to a button, are both guesses.
+        - If the press thrusts forward or does nothing, remove both lines.
+        - Other routes considered: MOZA Cockpit 2.0.0.111 shows no button-to-keyboard mapping in its install files (the action's keyboard slot, stock `S`, is separate and free). *Throttle - Forward / Back Invert* only flips the throttle half-axis while held, so it is not an instant full reverse.
+      - The nine leftovers were deleted from `…\Profiles\default\actionmaps.xml` with the game closed. Backup: `actionmaps.xml.before-leftover-cleanup-2026-11-26.bak` in the same folder.
+      - `gamedata.py check` gained `MULTI-BIND`. `validate_actionmaps.py` gained `INPUT-DIFF` and `LEFTOVER` (§10).
+    - **State:** `gamedata.py check` gives 131 OK, 0 unknown, 0 wrong-map, 0 multi-bind. The validator against the cleaned export gives 0 leftovers and 2 input-diffs (`v_strafe_back`, `v_autoland`), which is the game still holding the bad load.
+    - **Next:** load `MOZA.xml` again, quit the game, run `validate_actionmaps.py`. Expected: no problems, and `v_strafe_longitudinal` listed on `js1_button29`. Then test the stick press in open space.
 
 ---
 
@@ -774,6 +800,13 @@ An action present under a **different** actionmap than `MOZA.xml` uses is an out
 What the export **cannot** show is a stock default the profile never touched - it lists only what
 *differs* from stock. That blind spot is why §2.5's overlaps went unseen; `gamedata.py check` covers it.
 
+The export also shows two things about the **inputs** (both learned on 2026-11-26, §6 item 23):
+
+- An action in the export with a **different input** than `MOZA.xml` means the game replaced or lost
+  the binding - for example the second of two rebinds on one action winning.
+- An action in the export that `MOZA.xml` **does not declare** is a leftover from an earlier load. The
+  game keeps it, and it still fires.
+
 ### 10.3 Run the checks
 
 Two steps, in this order:
@@ -782,21 +815,31 @@ Two steps, in this order:
 # 1) BEFORE launching (no game launch needed) - from the project root:
 python tools/gamedata.py check
 
-# 2) AFTER loading MOZA.xml in-game (Keybindings > Load, or console: pp_rebindkeys MOZA.xml):
+# 2) AFTER loading MOZA.xml in-game (Keybindings > Load, or console: pp_rebindkeys MOZA.xml)
+#    AND quitting the game (it writes the export on exit):
 python tools/validate_actionmaps.py
 ```
 
 - **`gamedata.py check`** reports `UNKNOWN` (no such action in this build), `WRONG-MAP` (the game will
-  drop it) and `GHOST` (an un-overridden stock joystick binding, §2.5). Non-zero exit on any
-  UNKNOWN / WRONG-MAP. The expected `GHOST` list is the "deliberately left in place" table in §4 -
-  anything new there after a patch deserves a look.
-- **`validate_actionmaps.py`** reports `OK` / `MISMATCH` / `NOT-IN-EXPORT` per action against the
-  export (non-zero exit on any mismatch). A **cleared** default (`js1_ `) differs from stock, so it
-  should be listed in the export after a load - one that shows up as `NOT-IN-EXPORT` means the game
-  did not take the clear.
+  drop it), `MULTI-BIND` (more than one rebind on an action; the game keeps only the last) and
+  `GHOST` (an un-overridden stock joystick binding, §2.5). Non-zero exit on any
+  UNKNOWN / WRONG-MAP / MULTI-BIND. The expected `GHOST` list is the "deliberately left in place"
+  table in §4 - anything new there after a patch deserves a look.
+- **`validate_actionmaps.py`** reports, per action against the export:
+  - `OK` - same actionmap and same input;
+  - `MISMATCH` - filed under a different actionmap;
+  - `INPUT-DIFF` - same actionmap, different input (lost or replaced, or the profile was edited
+    since the last load);
+  - `LEFTOVER` - a joystick binding in the export that `MOZA.xml` does not declare;
+  - `NOT-IN-EXPORT` - not listed (equal to stock, or dropped).
+
+  Non-zero exit on `MISMATCH`, `INPUT-DIFF` or `LEFTOVER`. A **cleared** default (`js1_ `) differs
+  from stock, so it should be listed in the export after a load - one that shows up as
+  `NOT-IN-EXPORT` means the game did not take the clear.
 
 Workflow when adding/moving a binding: look the action up in the catalogue (its section heading is the
-actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → `validate_actionmaps.py`. The
+actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → quit → `validate_actionmaps.py`.
+When a binding is **removed** from `MOZA.xml`, expect a `LEFTOVER` for it and clear it in the game. The
 export check is what caught `v_target_pin_selected` and `view_restore_defaults`; the game-data check is
 what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 
@@ -805,6 +848,9 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 > are the known stock-equal bindings (`v_pitch`, mining-laser fire, salvage focused fire). The export
 > lists all 10 clears as `js1_ `, `v_strafe_back` on `js2_rotz`, and *Request Cargo Loading* with its
 > `delayed_press` mode. That session enumerated AB6 = joystick 1, MTQ = 2, Razer keyboard = 3.
+>
+> **State on 2026-11-26:** step 1 passes (131 OK, 0 unknown, 0 wrong-map, 0 multi-bind). Step 2 is
+> pending a reload: the export still holds the bad first load of that day's rework (§6 item 23).
 
 ---
 

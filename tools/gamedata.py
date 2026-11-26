@@ -14,10 +14,12 @@ seconds) and does two jobs:
   check       Pre-flight MOZA.xml against the installed build, no game launch needed:
                 UNKNOWN    action name does not exist in this build        (binding is dead)
                 WRONG-MAP  action exists, but not in that actionmap        (game drops it)
+                MULTI-BIND action has more than one <rebind>. The game keeps ONE joystick
+                           binding per action and the last listed wins, so the others are lost.
                 GHOST      a game-default joystick binding the profile does not override.
                            Defaults land on joystick 1 (js1), so a ghost on a button the
                            profile also uses fires BOTH actions.
-              Exit code is non-zero if any UNKNOWN / WRONG-MAP is found.
+              Exit code is non-zero if any UNKNOWN / WRONG-MAP / MULTI-BIND is found.
 
 Usage (from the project root):
     python tools/gamedata.py check
@@ -294,10 +296,12 @@ def cmd_check(args):
     mroot = ET.parse(args.mapping).getroot()
     bound, used = set(), {}                              # used: js input -> ['map/action', ...]
     unknown, wrong, ok = [], [], 0
+    rebinds = {}                                         # (map, action) -> [input, ...] as written
     for am in mroot.iter('actionmap'):
         for a in am.findall('action'):
             key = (am.get('name'), a.get('name'))
             bound.add(key)
+            rebinds.setdefault(key, []).extend(r.get('input') or '' for r in a.findall('rebind'))
             for r in a.findall('rebind'):
                 inp = (r.get('input') or '').strip()
                 if inp and not inp.endswith('_'):        # "js1_ " (stripped: "js1_") is a cleared binding
@@ -312,11 +316,15 @@ def cmd_check(args):
     print('Game:    Star Citizen Alpha %s (%s)' % (info['short'], info['long']))
     print('Mapping: %s' % args.mapping)
     print('')
-    print('OK: %d   UNKNOWN: %d   WRONG-MAP: %d' % (ok, len(unknown), len(wrong)))
+    multi = [(key, inputs) for key, inputs in rebinds.items() if len(inputs) > 1]
+    print('OK: %d   UNKNOWN: %d   WRONG-MAP: %d   MULTI-BIND: %d' % (ok, len(unknown), len(wrong), len(multi)))
     for m, a in unknown:
         print('  UNKNOWN    %s / %s  - no such action in this build' % (m, a))
     for (m, a), maps_ in wrong:
         print('  WRONG-MAP  %s / %s  - the game defines it in: %s' % (m, a, ', '.join(maps_)))
+    for (m, a), inputs in multi:
+        print('  MULTI-BIND %s / %s  - %d rebinds (%s); the game keeps only the last'
+              % (m, a, len(inputs), ', '.join(repr(i) for i in inputs)))
 
     colliding, quiet = [], []
     for name, _am, actions in maps:
@@ -334,7 +342,7 @@ def cmd_check(args):
     print('Other un-overridden joystick defaults (input not otherwise used by this profile): %d' % len(quiet))
     for m, a, j, mode, _clash in quiet:
         print('  js1_%-10s %s / %s (%s)' % (j, m, a, mode or '-'))
-    return 1 if (unknown or wrong) else 0
+    return 1 if (unknown or wrong or multi) else 0
 
 
 def main():

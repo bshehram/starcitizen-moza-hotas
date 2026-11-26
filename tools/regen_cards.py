@@ -314,7 +314,7 @@ MHG_R = [
     {'Label': '26', 'Primary': 'Strafe right'},
     {'Label': '27', 'Primary': 'Strafe down'},
     {'Label': '28', 'Primary': 'Strafe left'},
-    {'Label': '29', 'Primary': 'Full reverse (hold)'},
+    {'Label': '29', 'Primary': 'Full reverse (hold, trial)'},
 ]
 
 # ================================================================ MTQ (js2 1-65 + axes)
