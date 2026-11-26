@@ -3,7 +3,7 @@
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
 [![Validated](https://img.shields.io/badge/validated-against_4.10_game_data-brightgreen)](#status)
 [![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.10.3-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-121_%2B_10_cleared_defaults-informational)](MOZA.xml)
+[![Bindings](https://img.shields.io/badge/bindings-121_%2B_11_cleared_defaults-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
