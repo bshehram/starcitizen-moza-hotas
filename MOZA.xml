@@ -20,32 +20,32 @@
   <!-- MTQ bottom-centre 3-position rocker (22/23/24): LEFT (23) = master power OFF (below), RIGHT (24) = Flight Ready / power ON (v_flightready in spaceship_general), CENTRE (22) = rest, intentionally UNBOUND (a binding there would fire on every return-to-centre). -->
   <actionmap name="spaceship_power">
     <action name="v_power_toggle_weapons">
-      <rebind input="js2_button1"/>  <!-- MTQ keypad A1 - weapons power on/off (only meaningful in SCM; weapons stow in NAV) -->
+      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 (top) - weapons power on/off (only meaningful in SCM; weapons stow in NAV) -->
     </action>
     <action name="v_power_toggle_thrusters">
-      <rebind input="js2_button2"/>  <!-- MTQ keypad A2 - thruster power on/off (off = can't manoeuvre, lower engine signature / cold running) -->
+      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - thruster power on/off (off = cannot manoeuvre, lower engine signature / cold running) -->
     </action>
     <action name="v_power_toggle_shields">
-      <rebind input="js2_button3"/>  <!-- MTQ keypad A3 - shield power on/off (re-enable incurs a boot delay; shields are offline in NAV regardless) -->
+      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - shield power on/off (re-enable incurs a boot delay; shields are offline in NAV regardless) -->
     </action>
     <action name="v_power_set_off">
       <rebind input="js2_button23"/>  <!-- MTQ 3-pos rocker LEFT - master power OFF (discrete SET, always off, not a toggle) -->
     </action>
-    <!-- POWER-PIP TRIANGLE on the MTQ Right Module "WPN" hat (thumb-reachable mid-fight). Moved here off the AB6 wings, REPLACING the old shield-faceting that only did anything on rare Size-3-shield ships - this pip system works on EVERY ship. Tap toward the system you need, RIGHT=reset to rebalance, press-HOLD=slam shields for a burst-tank. No decrease binds (reset rebalances). ACTIONMAP NOTE: v_engineering_assignment_* live in spaceship_power (catalogue files them with the working v_power_* under "flight - power"); verify in-game if a direction does nothing. -->
+    <!-- POWER PANEL on the AB6 base wings (js1 49-56, eight momentary pushbuttons), live in EVERY operator mode. LEFT wing top to bottom = power toggles weapons / thrusters / shields, then RESET of the power assignment. RIGHT wing top to bottom = assignment taps weapons + / engines + / shields +, then HOLD = shields to max (stock mode hold; returns on release). spaceship_power is always live, so these eight buttons carry NOTHING else: the old combat target-cycle bank was deleted (never used) and the Mining / Salvage banks moved off the wings (see spaceship_mining / spaceship_salvage). No decrease binds (reset rebalances). -->
     <action name="v_engineering_assignment_weapons_increase">
-      <rebind input="js2_button56"/>  <!-- MTQ "WPN" hat UP - power to WEAPONS + (tap) -->
+      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 (top) - power to WEAPONS + (tap) -->
     </action>
     <action name="v_engineering_assignment_shields_increase">
-      <rebind input="js2_button55"/>  <!-- MTQ "WPN" hat DOWN - power to SHIELDS + (tap) -->
+      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - power to SHIELDS + (tap) -->
     </action>
     <action name="v_engineering_assignment_engine_increase">
-      <rebind input="js2_button54"/>  <!-- MTQ "WPN" hat LEFT - power to ENGINES + (tap) -->
+      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - power to ENGINES + (tap) -->
     </action>
     <action name="v_engineering_assignment_reset">
-      <rebind input="js2_button53"/>  <!-- MTQ "WPN" hat RIGHT - RESET power allocation to balanced/even -->
+      <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 (bottom) - RESET power assignment to balanced/even -->
     </action>
     <action name="v_engineering_assignment_shields_max">
-      <rebind input="js2_button52"/>  <!-- MTQ "WPN" hat CENTER PRESS - HOLD to slam all power to SHIELDS (burst-tank an incoming hit; returns on release) -->
+      <rebind input="js1_button56"/>  <!-- AB6 RIGHT wing 4 (bottom) - HOLD to put all power into SHIELDS (stock mode hold; returns on release) -->
     </action>
   </actionmap>
 
@@ -124,7 +124,7 @@
       <rebind input="js2_button65"/>  <!-- MTQ Left Module face button - afterburner / boost (depletable pool; also overrides proximity assist while held) -->
     </action>
     <action name="v_toggle_jump_request">
-      <rebind input="js2_button9"/>  <!-- MTQ keypad "FD" - engage inter-system JUMP-POINT travel (e.g. Stanton<->Pyro), NOT in-system quantum (that's "SPD"/7). Sits directly below the quantum key to form a travel column. Moved off js1_button56 (now an AB6 multi-mode wing: targeting/mining/salvage). -->
+      <rebind input="js2_button9"/>  <!-- MTQ keypad "FD" - engage inter-system JUMP-POINT travel (e.g. Stanton<->Pyro), NOT in-system quantum (that's "SPD"/7). Sits directly below the quantum key to form a travel column. Moved off js1_button56 (now part of the AB6 power panel). -->
     </action>
 
     <!-- Master Mode (NAV vs SCM) -->
@@ -157,13 +157,13 @@
       <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, TAP - toggle coupled/decoupled flight (hold = pin target) -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
-      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now an AB6 multi-mode wing: targeting/mining/salvage). -->
+      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now part of the AB6 power panel). -->
     </action>
     <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now LAMP); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
-      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - TAP = request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now an AB6 multi-mode wing: targeting/mining/salvage). HOLD on this same key = request cargo loading (next action). -->
+      <rebind input="js2_button8"/>  <!-- MTQ keypad "ALT" (right-col middle) - TAP = request landing (hails ATC, opens hangar/pad/forcefields in range). Swapped with v_autoland (now on "AP"/10). Moved off js1_button53 (now part of the AB6 power panel). HOLD on this same key = request cargo loading (next action). -->
     </action>
     <action name="v_atc_loading_area_request">
       <rebind input="js2_button8" activationMode="delayed_press"/>  <!-- MTQ keypad "ALT" HOLD (~0.25 s) - request CARGO LOADING (Golem OX hauling). Re-added 2026-11 for the cargo fleet after being removed as unused. activationMode IS needed here: the action's stock mode is "tap", the same as v_atc_request on this key, so without it one press would fire both requests; delayed_press makes it hold-only while a tap stays "request landing". -->
@@ -176,6 +176,7 @@
     </action>
     <action name="v_autoland">
       <rebind input="js2_button10"/>  <!-- MTQ keypad "AP" (right-col bottom) - HOLD (~0.25 s; the action's stock mode is delayed_press) = autoland (autopilot lands on an ATC pad when gear is down and you're close). Swapped with v_atc_request (now on "ALT"/8). Gear toggle is now ONLY on the gear lever (29/30). A quick TAP of this key = docking initiate/undock (v_toggle_docking_request in spaceship_docking). -->
+      <rebind input="js1_ "/>  <!-- CLEAR of the stock js1 slot: the game's stock joystick layout puts Autoland on button 12 (a hold), which is the MHG right hat UP - sub-target fwd in combat, module 1 in Mining, focus-all in Salvage since 2026-11-26. The game keeps one binding slot per joystick instance (CLAUDE.md section 2.5), so the js2 rebind above may not remove it; this clear makes sure a held right-hat UP can never autoland. -->
     </action>
     <!-- CLEARED GAME DEFAULT (not a binding): the game's stock joystick layout puts "Landing System (Toggle)" on joystick button 12, and stock joystick binds land on js1 and stay live under this profile unless overridden. js1_button12 is the MHG right hat UP (sub-target cycle), so without this clear every sub-target tap also toggled the landing gear and left the gear lever (29/30) out of sync. Found by tools/gamedata.py check against the 4.10 defaultProfile.xml. -->
     <action name="v_toggle_landing_system">
@@ -269,16 +270,16 @@
       <rebind input="js1_button10"/>  <!-- MHG left hat LEFT - cycle to previous hostile (also = fire salvage DISINTEGRATE beam in Salvage mode) -->
     </action>
     <action name="v_target_cycle_subitem_fwd">
-      <rebind input="js1_button12"/>  <!-- MHG right hat UP - cycle SUB-TARGETS forward (components: thrusters/weapons/power plant to focus-fire) -->
+      <rebind input="js1_button12"/>  <!-- MHG right hat UP - cycle SUB-TARGETS forward (components: thrusters/weapons/power plant to focus-fire). Mining mode: module slot 1. Salvage mode: focus ALL heads. -->
     </action>
     <action name="v_target_cycle_subitem_back">
-      <rebind input="js1_button14"/>  <!-- MHG right hat DOWN - cycle SUB-TARGETS back (completes the up/down pair with 12) -->
+      <rebind input="js1_button14"/>  <!-- MHG right hat DOWN - cycle SUB-TARGETS back. Mining mode: module slot 3. Salvage mode: flip the beam axis. -->
     </action>
     <action name="v_target_cycle_attacker_fwd">
-      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - cycle ATTACKERS forward (snap to whoever is shooting you) -->
+      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - cycle ATTACKERS forward (snap to whoever is shooting you). Mining mode: module slot 2. Salvage mode: focus RIGHT head. -->
     </action>
     <action name="v_target_cycle_attacker_back">
-      <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
+      <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back. Salvage mode: focus LEFT head. -->
     </action>
     <!-- MTQ Right Module "COM" hat (the larger hat, 4-way + press, 57-61) = TARGET ACQUISITION cluster. Swapped 2026-11-23 with strafe + decoupling, which moved to the MHG top mini-stick (js1 25-29): these were rarely used, so they went to the throttle hand. Complements the MHG left hat's hostile-cycle/lock. NOTE: the hat CENTER PRESS (HOLD = v_target_pin_selected_hold, js2_button57; TAP = the decoupling toggle in spaceship_movement) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
     <action name="v_target_cycle_all_fwd">
@@ -294,31 +295,6 @@
       <rebind input="js2_button59"/>  <!-- MTQ "COM" hat LEFT - cycle PINNED targets forward -->
     </action>
     <!-- Pin (MTQ "COM" hat CENTER PRESS HOLD, v_target_pin_selected_hold, js2_button57) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
-    <!-- AB6 base wings (8 momentary pushbuttons) - in COMBAT a secondary target-acquisition bank (all cycle actions, distinct from the hats); the SAME buttons become the Mining/Salvage control banks in those operator modes (see spaceship_mining / spaceship_salvage). Multi-mode reuse is double-fire-safe because targeting maps go inactive in mining/salvage modes (proven by the left hat's hostile-cycle vs salvage-beam reuse). -->
-    <action name="v_target_cycle_in_view_fwd">
-      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - cycle targets IN VIEW forward (forward-arc contacts) -->
-    </action>
-    <action name="v_target_cycle_in_view_back">
-      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - cycle targets IN VIEW back -->
-    </action>
-    <action name="v_target_cycle_all_reset">
-      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - lock CLOSEST contact of any type -->
-    </action>
-    <action name="v_target_cycle_attacker_reset">
-      <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 - lock CLOSEST attacker -->
-    </action>
-    <action name="v_target_cycle_friendly_fwd">
-      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 - cycle FRIENDLIES forward (escort/support) -->
-    </action>
-    <action name="v_target_cycle_friendly_back">
-      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - cycle FRIENDLIES back -->
-    </action>
-    <action name="v_target_cycle_pinned_back">
-      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - cycle PINNED targets back (pairs with MTQ "COM" hat LEFT = pinned forward) -->
-    </action>
-    <action name="v_target_cycle_subitem_reset">
-      <rebind input="js1_button56"/>  <!-- AB6 RIGHT wing 4 - reset SUB-TARGET back to the main hull -->
-    </action>
   </actionmap>
 
   <!-- ================================================================ -->
@@ -335,10 +311,10 @@
       <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - HOLD to scan the target/area under the reticle (Scan operator mode) -->
     </action>
     <action name="v_inc_scan_focus_level">
-      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - narrow the scan cone (stronger/longer-range read) -->
+      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - narrow the scan cone (stronger/longer-range read). Salvage mode: vehicle tractor distance + (trial) -->
     </action>
     <action name="v_dec_scan_focus_level">
-      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - widen the scan cone (broader sweep) -->
+      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - widen the scan cone (broader sweep). Salvage mode: vehicle tractor distance - (trial) -->
     </action>
   </actionmap>
 
@@ -362,7 +338,7 @@
       <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle aim mode (fixed / gimbal-assist / manual gimbal); in Mining mode the same press = fracture/extract switch, in Salvage mode = structural field mode cycle -->
     </action>
     <action name="v_weapon_gimbals_state_toggle">
-      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - toggle gimbal lock (locked = tighter convergence vs auto-aim) -->
+      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - toggle gimbal lock (locked = tighter convergence vs auto-aim). Salvage mode: reset the salvage gimbal. -->
     </action>
   </actionmap>
 
@@ -388,7 +364,22 @@
     <action name="v_weapon_countermeasure_noise_launch">
       <rebind input="js1_button9"/>  <!-- MHG left hat DOWN - launch NOISE/chaff (break radar/scan locks) -->
     </action>
-    <!-- Shield FACETING (v_shield_raise_level_*) was REMOVED from the "WPN" hat: confirmed it only does anything on ships with Size 3+ shield generators (quad-faced, e.g. Carrack/Constellation/Hull-C); every fighter the user flew at the time (F8C, Origin = Size 1/2 single-bubble shields) treated it as a no-op. Since 2026-11-23 the Liberator, Perseus, Ironclad Assault and Corsair in the fleet have S3 Quadrant shields - whether to re-add faceting is open (CLAUDE.md section 6 item 14). The "WPN" hat now drives the universal power-pip triangle (see spaceship_power) - shield STRENGTH is managed there on every ship. Countermeasures (decoy/noise) stay on the MHG left hat. -->
+    <!-- SHIELD FACES on the MTQ Right Module "WPN" hat (js2 52-56), freed when the power pips moved to the AB6 wings. Push toward the face that is taking fire; CENTER PRESS resets. Only acts on Size 3 QUADRANT shields: in the fleet the Liberator, Perseus, Ironclad Assault and Corsair. A no-op on bubble-shield ships. spaceship_defensive is always live, so this hat carries nothing else. NOT YET CHECKED IN-SHIP in 4.10 (CLAUDE.md section 6 item 14). Top / bottom faces are left unbound (a quadrant shield has four faces). Countermeasures (decoy/noise) stay on the MHG left hat. -->
+    <action name="v_shield_raise_level_forward">
+      <rebind input="js2_button56"/>  <!-- MTQ "WPN" hat UP - raise the FRONT shield face -->
+    </action>
+    <action name="v_shield_raise_level_back">
+      <rebind input="js2_button55"/>  <!-- MTQ "WPN" hat DOWN - raise the REAR shield face -->
+    </action>
+    <action name="v_shield_raise_level_left">
+      <rebind input="js2_button54"/>  <!-- MTQ "WPN" hat LEFT - raise the LEFT shield face -->
+    </action>
+    <action name="v_shield_raise_level_right">
+      <rebind input="js2_button53"/>  <!-- MTQ "WPN" hat RIGHT - raise the RIGHT shield face -->
+    </action>
+    <action name="v_shield_reset_level">
+      <rebind input="js2_button52"/>  <!-- MTQ "WPN" hat CENTER PRESS - reset the shield faces to even -->
+    </action>
   </actionmap>
 
   <!-- ================================================================ -->
@@ -484,18 +475,18 @@
       <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - switch the laser between FRACTURE and EXTRACTION (in-game hint "Laser Type (Fracture / Extract)"). Rocker = all mining-laser controls: up/down = power, push = mode. Moved off js1_button4 (2026-11-21): that button is also v_toggle_missile_mode in seat_general, which stays live in Mining mode, and the user could not get the mode to switch there. js1_button24 is otherwise only aim-type cycle in spaceship_weapons (operator-gated). -->
     </action>
     <!-- REMOVED the v_toggle_mining_mode placeholder that was on js1_button18: it was in the wrong action map (belongs to seat_general), shared the scan trigger, and was redundant with the mode knob's v_set_mining_mode (js2_button20). Mining mode is selected on the knob; nothing else needed here. -->
-    <!-- AB6 base wings as the MINING control bank (same buttons = targeting in combat / salvage in salvage mode): activate fitted mining modules + emergency cargo dump. -->
+    <!-- MINING bank on the MHG right hat (js1 12-16; sub-target / attacker cycling and gimbal lock in combat, all operator-gated): UP / RIGHT / DOWN = activate mining module slot 1 / 2 / 3 (Golem laser = 2 slots, Hyun stock laser = 1). JETTISON sits alone on MTQ keypad A1: nothing else is bound to that key in any actionmap, and it is the key furthest from LAMP on A4. Moved off the AB6 wings, which are now the always-live power panel. -->
     <action name="v_mining_use_consumable1">
-      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - activate mining module slot 1 -->
+      <rebind input="js1_button12"/>  <!-- MHG right hat UP - activate mining module slot 1 -->
     </action>
     <action name="v_mining_use_consumable2">
-      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - activate mining module slot 2 -->
+      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - activate mining module slot 2 -->
     </action>
     <action name="v_mining_use_consumable3">
-      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - activate mining module slot 3 -->
+      <rebind input="js1_button14"/>  <!-- MHG right hat DOWN - activate mining module slot 3 -->
     </action>
     <action name="v_jettison_volatile_cargo">
-      <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 - JETTISON volatile cargo (emergency dump of unstable Quantanium etc.) -->
+      <rebind input="js2_button1" activationMode="delayed_press"/>  <!-- MTQ keypad A1, HOLD (~0.25 s) - JETTISON volatile cargo (emergency dump of unstable ore). Alone on this key in every actionmap. activationMode is the user's choice (2026-11-26): the stock mode is press, and a hold keeps a brush of the key from dumping the load. -->
     </action>
   </actionmap>
 
@@ -532,31 +523,37 @@
     <action name="v_salvage_cycle_modifiers_structural">
       <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle the STRUCTURAL salvage field's mode (game HUD: Fracture Field / Disintegration Field / Suction). Same button as the mining laser's fracture/extract switch, so the rocker centre is the "tool mode" press in both modes. Moved off AB6 right wing 4 (js1_button56) on 2026-11-22 for the Gatac Hyun (scraper heads + disintegration area, like the Salvation). Hull SCRAPING is not a mode of this tool - it is the salvage heads on the trigger. -->
     </action>
-    <!-- AB6 base wings as the SALVAGE control bank (same buttons = targeting in combat / mining in mining mode): focus heads, fire individual beams, gimbal/axis controls. Right wing 4 (56) is unbound here. -->
+    <!-- SALVAGE bank on the MHG right hat (js1 12-16; sub-target / attacker cycling and gimbal lock in combat, all operator-gated): UP = focus ALL heads, LEFT / RIGHT = focus the left / right head, DOWN = flip the beam axis, CENTER PRESS = reset the gimbal. Fire-left / fire-right (regardless of focus) are on MTQ keypad A2 / A3, which carry nothing else. Moved off the AB6 wings, which are now the always-live power panel. -->
     <action name="v_salvage_focus_all_heads">
-      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - focus ALL salvage heads -->
+      <rebind input="js1_button12"/>  <!-- MHG right hat UP - focus ALL salvage heads -->
     </action>
     <action name="v_salvage_focus_left">
-      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - focus LEFT salvage head only -->
+      <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - focus LEFT salvage head only -->
     </action>
     <action name="v_salvage_focus_right">
-      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - focus RIGHT salvage head only -->
+      <rebind input="js1_button13"/>  <!-- MHG right hat RIGHT - focus RIGHT salvage head only -->
     </action>
     <action name="v_salvage_toggle_beam_spacing_axis">
-      <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 - toggle beam axis (parallel horizontal <-> vertical) -->
+      <rebind input="js1_button14"/>  <!-- MHG right hat DOWN - flip the beam axis (parallel horizontal <-> vertical) -->
     </action>
     <action name="v_salvage_toggle_fire_left">
-      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 - toggle-fire LEFT beam (regardless of focus) -->
+      <rebind input="js2_button2"/>  <!-- MTQ keypad A2 - toggle-fire the LEFT beam (regardless of focus) -->
     </action>
     <action name="v_salvage_toggle_fire_right">
-      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - toggle-fire RIGHT beam (regardless of focus) -->
+      <rebind input="js2_button3"/>  <!-- MTQ keypad A3 - toggle-fire the RIGHT beam (regardless of focus) -->
     </action>
     <action name="v_salvage_reset_gimbal">
-      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - reset salvage gimbal to centre -->
+      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - reset the salvage gimbal to centre -->
     </action>
-    <!-- AB6 RIGHT wing 4 (js1_button56) is free in Salvage mode since 2026-11-22: the structural mode cycle moved to the rocker centre (below). -->
+    <!-- TRIAL, UNVERIFIED IN-SHIP: vehicle tractor-beam distance on the MHG lower hat UP / DOWN (scan-angle +/- in Scan mode, operator-gated). For the Golem OX, whose tractor turret hangs off a salvage controller in the game files (CLAUDE.md section 6 item 15). A no-op on ships with no vehicle tractor. Remove if the OX tractor turns out not to run through Salvage mode. -->
+    <action name="tractor_beam_vehicle_increase_distance">
+      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - vehicle tractor beam: push the held object further out -->
+    </action>
+    <action name="tractor_beam_vehicle_decrease_distance">
+      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - vehicle tractor beam: pull the held object closer -->
+    </action>
   </actionmap>
 
-  <!-- ONLY REMAINING UNBOUND js1 hardware = the two AB6 base levers (intentional): each is MIXED-MODE - 3 detent buttons AND a continuous analog axis. Left "Slider" = detents 57 (top/100) / 58 / 59 (bottom/0); right "Dial" = detents 60 (top/full) / 61 / 62 (bottom/0); analog halves are js1_slider1 / js1_slider2 (which lever is which needs joy.cpl confirmation, same counter-intuitive mapping as the MTQ). Reserved for a future modal/analog use - maintained set-and-hold levers suit neither momentary combat actions nor analog values combat doesn't need. Everything else on js1 is now bound: MHG grip 1-29 fully bound; AB6 wings 49-56 are the multi-mode bank (targeting in combat / mining / salvage). -->
-  <!-- DUPE/REUSE POLICY: a physical button carrying several actions is fine ONLY when they sit in operator-gated maps that are never simultaneously active - guns/missiles/mining/salvage/targeting are gated by operator mode, so the trigger, rocker, hats and AB6 wings each do one thing per mode. spaceship_power/defensive/movement/view/general are ALWAYS active, so their controls (WPN-hat power pips, left-hat countermeasures, MTQ throttle/strafe/encoders) are NOT reused for mining/salvage. No action is bound to two different inputs. Intentional same-map "shotgun": MTQ doors (25/26) = unlock+open / lock+close. (The zoom dial 63/64 is no longer a shotgun - its dead 3rd-person view_zoom pair was removed, so each click now fires one action.) -->
+  <!-- UNBOUND js1 hardware = the two AB6 base levers (intentional): each is MIXED-MODE - 3 detent buttons AND a continuous analog axis. Left "Slider" = detents 57 (top/100) / 58 / 59 (bottom/0); right "Dial" = detents 60 (top/full) / 61 / 62 (bottom/0); analog halves are js1_slider1 / js1_slider2 (which lever is which needs joy.cpl confirmation). Maintained set-and-hold levers suit neither momentary combat actions nor analog values combat does not need. Everything else on js1 is bound: MHG grip 1-29; AB6 wings 49-56 = the always-live power panel. -->
+  <!-- DUPE/REUSE POLICY: a physical button carrying several actions is fine ONLY when they sit in operator-gated maps that are never simultaneously active - guns/missiles/mining/salvage/targeting/scanning are gated by operator mode, so the trigger, rocker and MHG hats each do one thing per mode. spaceship_power/defensive/movement/view/general, seat_general and lights are ALWAYS active, so their controls (AB6-wing power panel, WPN-hat shield faces, left-hat countermeasures, MTQ throttle/strafe/encoders) carry nothing else, except a stock tap/hold split ("AP" key, "ALT" key, COM hat press). One action on two inputs: v_strafe_back (js2_rotz + js1_button29). Intentional same-map "shotgun": MTQ doors (25/26) = unlock+open / lock+close. -->
 </ActionMaps>

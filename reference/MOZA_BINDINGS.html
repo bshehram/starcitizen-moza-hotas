@@ -102,16 +102,33 @@
       </table></div>
 
       <div class="card"><h3>Right hat (4-way + press)</h3><table>
-        <tr><td class="btn"><span class="n">12</span> Up</td><td class="fn"><span class="tag t-combat">C</span> Sub-target — forward</td></tr>
-        <tr><td class="btn"><span class="n">14</span> Down</td><td class="fn"><span class="tag t-combat">C</span> Sub-target — back</td></tr>
-        <tr><td class="btn"><span class="n">13</span> Right</td><td class="fn"><span class="tag t-combat">C</span> Attacker — forward</td></tr>
-        <tr><td class="btn"><span class="n">15</span> Left</td><td class="fn"><span class="tag t-combat">C</span> Attacker — back</td></tr>
-        <tr><td class="btn"><span class="n">16</span> Press</td><td class="fn"><span class="tag t-combat">C</span> Gimbal lock toggle</td></tr>
+        <tr><td class="btn"><span class="n">12</span> Up</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Sub-target — forward</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 1</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus all heads</span></td></tr>
+        <tr><td class="btn"><span class="n">14</span> Down</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Sub-target — back</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 3</span>
+          <span class="row"><span class="tag t-salvage">S</span> Beam-axis toggle (H/V)</span></td></tr>
+        <tr><td class="btn"><span class="n">13</span> Right</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Attacker — forward</span>
+          <span class="row"><span class="tag t-mining">M</span> Mining module slot 2</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus right head</span></td></tr>
+        <tr><td class="btn"><span class="n">15</span> Left</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Attacker — back</span>
+          <span class="row"><span class="tag t-salvage">S</span> Focus left head</span></td></tr>
+        <tr><td class="btn"><span class="n">16</span> Press</td><td class="fn">
+          <span class="row"><span class="tag t-combat">C</span> Gimbal lock toggle</span>
+          <span class="row"><span class="tag t-salvage">S</span> Gimbal reset</span></td></tr>
       </table></div>
 
       <div class="card"><h3>Lower hat (4-way + press)</h3><table>
-        <tr><td class="btn"><span class="n">17</span> Up</td><td class="fn"><span class="tag t-util">A</span> Scan angle — narrow</td></tr>
-        <tr><td class="btn"><span class="n">19</span> Down</td><td class="fn"><span class="tag t-util">A</span> Scan angle — widen</td></tr>
+        <tr><td class="btn"><span class="n">17</span> Up</td><td class="fn">
+          <span class="row"><span class="tag t-util">A</span> Scan angle — narrow</span>
+          <span class="row"><span class="tag t-salvage">S</span> Tractor distance + (trial)</span></td></tr>
+        <tr><td class="btn"><span class="n">19</span> Down</td><td class="fn">
+          <span class="row"><span class="tag t-util">A</span> Scan angle — widen</span>
+          <span class="row"><span class="tag t-salvage">S</span> Tractor distance − (trial)</span></td></tr>
         <tr><td class="btn"><span class="n">18</span> Right</td><td class="fn"><span class="tag t-util">A</span> Scan (hold)</td></tr>
         <tr><td class="btn"><span class="n">20</span> Left</td><td class="fn"><span class="tag t-util">A</span> Radar ping</td></tr>
         <tr><td class="btn"><span class="n">21</span> Press</td><td class="fn"><span class="tag t-util">A</span> Cockpit zoom / ADS toggle</td></tr>
@@ -148,37 +165,18 @@
     <h2>AB6 Base <span>· js1 buttons 49–62 · the stick mount</span></h2>
     <div class="grid">
 
-      <div class="card"><h3>Left wing (momentary)</h3><table>
-        <tr><td class="btn"><span class="n">49</span> Wing 1 (top)</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Cycle in-view — forward</span>
-          <span class="row"><span class="tag t-mining">M</span> Mining module slot 1</span>
-          <span class="row"><span class="tag t-salvage">S</span> Focus all heads</span></td></tr>
-        <tr><td class="btn"><span class="n">50</span> Wing 2</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Cycle in-view — back</span>
-          <span class="row"><span class="tag t-mining">M</span> Mining module slot 2</span>
-          <span class="row"><span class="tag t-salvage">S</span> Focus left head</span></td></tr>
-        <tr><td class="btn"><span class="n">51</span> Wing 3</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Lock closest (any)</span>
-          <span class="row"><span class="tag t-mining">M</span> Mining module slot 3</span>
-          <span class="row"><span class="tag t-salvage">S</span> Focus right head</span></td></tr>
-        <tr><td class="btn"><span class="n">52</span> Wing 4 (bottom)</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Lock closest attacker</span>
-          <span class="row"><span class="tag t-mining">M</span> Jettison volatile cargo</span>
-          <span class="row"><span class="tag t-salvage">S</span> Beam-axis toggle (H/V)</span></td></tr>
+      <div class="card"><h3>Left wing — POWER (every mode)</h3><table>
+        <tr><td class="btn"><span class="n">49</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Weapons power toggle</td></tr>
+        <tr><td class="btn"><span class="n">50</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Thruster power toggle</td></tr>
+        <tr><td class="btn"><span class="n">51</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Shield power toggle</td></tr>
+        <tr><td class="btn"><span class="n">52</span> Wing 4 (bottom)</td><td class="fn"><span class="tag t-util">A</span> Power assignment reset</td></tr>
       </table></div>
 
-      <div class="card"><h3>Right wing (momentary)</h3><table>
-        <tr><td class="btn"><span class="n">53</span> Wing 1 (top)</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Cycle friendly — forward</span>
-          <span class="row"><span class="tag t-salvage">S</span> Fire LEFT beam</span></td></tr>
-        <tr><td class="btn"><span class="n">54</span> Wing 2</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Cycle friendly — back</span>
-          <span class="row"><span class="tag t-salvage">S</span> Fire RIGHT beam</span></td></tr>
-        <tr><td class="btn"><span class="n">55</span> Wing 3</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Cycle pinned — back</span>
-          <span class="row"><span class="tag t-salvage">S</span> Gimbal reset</span></td></tr>
-        <tr><td class="btn"><span class="n">56</span> Wing 4 (bottom)</td><td class="fn">
-          <span class="row"><span class="tag t-combat">C</span> Sub-target reset</span></td></tr>
+      <div class="card"><h3>Right wing — POWER (every mode)</h3><table>
+        <tr><td class="btn"><span class="n">53</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Power → weapons +</td></tr>
+        <tr><td class="btn"><span class="n">54</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Power → engines +</td></tr>
+        <tr><td class="btn"><span class="n">55</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Power → shields +</td></tr>
+        <tr><td class="btn"><span class="n">56</span> Wing 4 (bottom)</td><td class="fn"><span class="tag t-util">A</span> Hold → shields to MAX</td></tr>
       </table></div>
 
       <div class="card"><h3>3-position levers</h3><table>
@@ -195,9 +193,9 @@
     <div class="grid">
 
       <div class="card"><h3>Keypad (momentary)</h3><table>
-        <tr><td class="btn"><span class="n">1</span> A1</td><td class="fn"><span class="tag t-util">A</span> Weapons power toggle</td></tr>
-        <tr><td class="btn"><span class="n">2</span> A2</td><td class="fn"><span class="tag t-util">A</span> Thruster power toggle</td></tr>
-        <tr><td class="btn"><span class="n">3</span> A3</td><td class="fn"><span class="tag t-util">A</span> Shield power toggle</td></tr>
+        <tr><td class="btn"><span class="n">1</span> A1</td><td class="fn"><span class="tag t-mining">M</span> Hold → jettison volatile cargo</td></tr>
+        <tr><td class="btn"><span class="n">2</span> A2</td><td class="fn"><span class="tag t-salvage">S</span> Fire LEFT beam</td></tr>
+        <tr><td class="btn"><span class="n">3</span> A3</td><td class="fn"><span class="tag t-salvage">S</span> Fire RIGHT beam</td></tr>
         <tr><td class="btn"><span class="n">4</span> A4</td><td class="fn"><span class="tag t-util">A</span> LAMP night-vision toggle</td></tr>
         <tr><td class="btn"><span class="n">5</span> NAV</td><td class="fn"><span class="tag t-util">A</span> Master mode cycle (SCM/NAV)</td></tr>
         <tr><td class="btn"><span class="n">6</span> HDG</td><td class="fn"><span class="tag t-util">A</span> Starmap</td></tr>
@@ -224,12 +222,12 @@
         <tr><td class="btn"><span class="n">21</span> Pos 5 (CW)</td><td class="fn"><span class="tag t-util">A</span> Salvage mode</td></tr>
       </table></div>
 
-      <div class="card"><h3>“WPN” hat — POWER PIPS</h3><table>
-        <tr><td class="btn"><span class="n">56</span> Up</td><td class="fn"><span class="tag t-util">A</span> Power → weapons +</td></tr>
-        <tr><td class="btn"><span class="n">55</span> Down</td><td class="fn"><span class="tag t-util">A</span> Power → shields +</td></tr>
-        <tr><td class="btn"><span class="n">54</span> Left</td><td class="fn"><span class="tag t-util">A</span> Power → engines +</td></tr>
-        <tr><td class="btn"><span class="n">53</span> Right</td><td class="fn"><span class="tag t-util">A</span> Power reset (balanced)</td></tr>
-        <tr><td class="btn"><span class="n">52</span> Press</td><td class="fn"><span class="tag t-util">A</span> Hold → shields to MAX</td></tr>
+      <div class="card"><h3>“WPN” hat — SHIELD FACES (trial)</h3><table>
+        <tr><td class="btn"><span class="n">56</span> Up</td><td class="fn"><span class="tag t-util">A</span> Raise FRONT shield face</td></tr>
+        <tr><td class="btn"><span class="n">55</span> Down</td><td class="fn"><span class="tag t-util">A</span> Raise REAR shield face</td></tr>
+        <tr><td class="btn"><span class="n">54</span> Left</td><td class="fn"><span class="tag t-util">A</span> Raise LEFT shield face</td></tr>
+        <tr><td class="btn"><span class="n">53</span> Right</td><td class="fn"><span class="tag t-util">A</span> Raise RIGHT shield face</td></tr>
+        <tr><td class="btn"><span class="n">52</span> Press</td><td class="fn"><span class="tag t-util">A</span> Reset shield faces</td></tr>
       </table></div>
 
       <div class="card"><h3>“COM” hat — TARGET ACQUISITION</h3><table>
@@ -275,9 +273,9 @@
 
   <div class="note">
     <b>Notes.</b> Operator mode (Guns / Missile / Scan / Mining / Salvage) is set on the MTQ mode knob (17–21); it decides which action a multi-mode button fires.
-    <b>Power management</b> (WPN hat pips) and <b>shield strength</b> work on every ship — the old directional shield-faceting was removed (it only worked on Size-3-shield ships).
+    <b>Power management</b> (the AB6 wing panel) works on every ship. The <b>WPN-hat shield faces</b> act only on Size 3 Quadrant shields (Liberator, Perseus, Ironclad Assault, Corsair) and are untested in-ship.
     On foot you use an Xbox controller, not this rig.
-    <b>Action-maps validated</b> against the game's own export: the WPN-hat power pips (<code>v_engineering_assignment_*</code>) sit in <code>spaceship_power</code> and Pin Target (<code>v_target_pin_selected</code>) in <code>spaceship_targeting</code> — both accepted by the game on load.
+    <b>Action-maps validated</b> against the game's own export: the power-assignment actions (<code>v_engineering_assignment_*</code>, now on the AB6 wings) sit in <code>spaceship_power</code> and Pin Target (<code>v_target_pin_selected</code>) in <code>spaceship_targeting</code> — both accepted by the game on load.
   </div>
 
 </div>

@@ -159,11 +159,12 @@ on a Mac.
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  131 `<action>`/`<rebind>` pairs across 21 action maps — 121 bindings plus 10 cleared game
-  defaults — with no action bound to two different inputs. Buttons that appear in several maps
-  (the trigger, rocker, hats, AB6 wings) are intentional **operator-mode reuse** — only one of
-  those maps is live at a time, depending on whether the seat is in flight, mining, or salvage
-  mode.
+  130 actions with 132 `<rebind>` entries across 21 action maps — 121 bindings plus 11 cleared
+  game defaults. Reverse is deliberately bound twice (the throttle's reverse axis and the stick
+  press). Buttons that appear in several maps (the trigger, rocker and stick hats) are intentional
+  **operator-mode reuse** — only one of those maps is live at a time, depending on whether the
+  seat is in flight, mining, or salvage mode. The AB6 base wings are a power panel that works the
+  same in every mode.
 - **Validated against the Alpha 4.10.3 game data.** Every action name and actionmap in the
   profile was checked against the game's own `defaultProfile.xml` for build `4.10.201.48085`
   (`python tools/gamedata.py check`): no unknown actions, none in a wrong actionmap. The action
@@ -174,8 +175,10 @@ on a Mac.
   *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
   the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
   cargo loading have not been exercised yet. On 26 November the MHG stick press became full reverse
-  and the decoupled toggle moved back to the MTQ's COM hat press (a hold there pins the target);
-  that change hasn't been loaded in-game yet.
+  and the decoupled toggle moved back to the MTQ's COM hat press (a hold there pins the target).
+  Later the same day the AB6 wings became the power panel, the mining and salvage banks moved to
+  the stick's right hat, and shield faces went on the MTQ's WPN hat as a trial. None of the
+  26 November changes has been loaded in-game yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data

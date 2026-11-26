@@ -268,14 +268,14 @@ def new_card(cfg, browser):
 # so they fit the narrow 40%-width legend columns - same bindings, shorter wording.
 AB6 = [
     {'Header': 'AB6 BASE 49-62'},
-    {'Label': '49', 'Primary': 'Target: cycle in-view fwd', 'Variants': [V('Mine:', 'module 1', C_MINE), V('Salv:', 'focus all', C_SALV)]},
-    {'Label': '50', 'Primary': 'Target: cycle in-view back', 'Variants': [V('Mine:', 'module 2', C_MINE), V('Salv:', 'focus left', C_SALV)]},
-    {'Label': '51', 'Primary': 'Target: lock closest (any)', 'Variants': [V('Mine:', 'module 3', C_MINE), V('Salv:', 'focus right', C_SALV)]},
-    {'Label': '52', 'Primary': 'Target: lock closest attacker', 'Variants': [V('Mine:', 'jettison cargo', C_MINE), V('Salv:', 'beam axis H/V', C_SALV)]},
-    {'Label': '53', 'Primary': 'Target: cycle friendly fwd', 'Variants': [V('Salv:', 'fire left beam', C_SALV)]},
-    {'Label': '54', 'Primary': 'Target: cycle friendly back', 'Variants': [V('Salv:', 'fire right beam', C_SALV)]},
-    {'Label': '55', 'Primary': 'Target: cycle pinned back', 'Variants': [V('Salv:', 'reset gimbal', C_SALV)]},
-    {'Label': '56', 'Primary': 'Target: reset sub-target'},
+    {'Label': '49', 'Primary': 'Weapons power toggle', 'Hint': 'L wing 1'},
+    {'Label': '50', 'Primary': 'Thruster power toggle', 'Hint': 'L wing 2'},
+    {'Label': '51', 'Primary': 'Shield power toggle', 'Hint': 'L wing 3'},
+    {'Label': '52', 'Primary': 'Power assignment reset', 'Hint': 'L wing 4'},
+    {'Label': '53', 'Primary': 'Power to weapons +', 'Hint': 'R wing 1'},
+    {'Label': '54', 'Primary': 'Power to engines +', 'Hint': 'R wing 2'},
+    {'Label': '55', 'Primary': 'Power to shields +', 'Hint': 'R wing 3'},
+    {'Label': '56', 'Primary': 'Shields to MAX (hold)', 'Hint': 'R wing 4'},
     {'Label': '57-59', 'Primary': 'Left "Slider" lever', 'Hint': 'unbound - reserved', 'Unbound': True},
     {'Label': '60-62', 'Primary': 'Right "Dial" lever', 'Hint': 'unbound - reserved', 'Unbound': True},
 ]
@@ -294,17 +294,17 @@ MHG_L = [
     {'Label': '9', 'Primary': 'Countermeasure: noise (chaff)'},
     {'Label': '10', 'Primary': 'Cycle hostiles back', 'Variants': [V('Salv:', 'disintegrate', C_SALV)]},
     {'Label': '11', 'Primary': 'Lock selected target', 'Variants': [V('Salv:', 'cycle modifiers', C_SALV)]},
-    {'Label': '12', 'Primary': 'Cycle sub-target forward'},
-    {'Label': '13', 'Primary': 'Cycle attackers forward'},
-    {'Label': '14', 'Primary': 'Cycle sub-target back'},
-    {'Label': '15', 'Primary': 'Cycle attackers back'},
+    {'Label': '12', 'Primary': 'Cycle sub-target forward', 'Variants': [V('Mine:', 'module 1', C_MINE), V('Salv:', 'focus all', C_SALV)]},
+    {'Label': '13', 'Primary': 'Cycle attackers forward', 'Variants': [V('Mine:', 'module 2', C_MINE), V('Salv:', 'focus right', C_SALV)]},
+    {'Label': '14', 'Primary': 'Cycle sub-target back', 'Variants': [V('Mine:', 'module 3', C_MINE), V('Salv:', 'beam axis H/V', C_SALV)]},
+    {'Label': '15', 'Primary': 'Cycle attackers back', 'Variants': [V('Salv:', 'focus left', C_SALV)]},
 ]
 MHG_R = [
     {'Header': 'GRIP 16-29'},
-    {'Label': '16', 'Primary': 'Gimbal lock toggle'},
-    {'Label': '17', 'Primary': 'Scan angle - narrow'},
+    {'Label': '16', 'Primary': 'Gimbal lock toggle', 'Variants': [V('Salv:', 'reset gimbal', C_SALV)]},
+    {'Label': '17', 'Primary': 'Scan angle - narrow', 'Variants': [V('Salv:', 'tractor dist + (trial)', C_SALV)]},
     {'Label': '18', 'Primary': 'Activate scanning (hold)'},
-    {'Label': '19', 'Primary': 'Scan angle - widen'},
+    {'Label': '19', 'Primary': 'Scan angle - widen', 'Variants': [V('Salv:', 'tractor dist - (trial)', C_SALV)]},
     {'Label': '20', 'Primary': 'Radar ping'},
     {'Label': '21', 'Primary': 'ADS / cockpit zoom toggle'},
     {'Label': '22', 'Primary': 'Weapon preset - next', 'Variants': [V('Msl:', 'type +', C_NOTE), V('Mine:', 'pwr +', C_MINE), V('Salv:', 'gap +', C_SALV)]},
@@ -320,9 +320,9 @@ MHG_R = [
 # ================================================================ MTQ (js2 1-65 + axes)
 MTQ_L = [
     {'Header': 'PANEL BUTTONS 1-30'},
-    {'Label': '1', 'Primary': 'Weapons power toggle', 'Hint': 'keypad A1'},
-    {'Label': '2', 'Primary': 'Thruster power toggle', 'Hint': 'A2'},
-    {'Label': '3', 'Primary': 'Shield power toggle', 'Hint': 'A3'},
+    {'Label': '1', 'Primary': 'Jettison cargo (hold)', 'Hint': 'keypad A1, Mining'},
+    {'Label': '2', 'Primary': 'Fire left salvage beam', 'Hint': 'A2, Salvage'},
+    {'Label': '3', 'Primary': 'Fire right salvage beam', 'Hint': 'A3, Salvage'},
     {'Label': '4', 'Primary': 'LAMP night-vision toggle', 'Hint': 'A4'},
     {'Label': '5', 'Primary': 'Master mode SCM / NAV', 'Hint': 'NAV key'},
     {'Label': '6', 'Primary': 'Starmap', 'Hint': 'HDG key'},
@@ -357,11 +357,11 @@ MTQ_R = [
     {'Label': '49', 'Primary': 'VTOL off', 'Hint': '3-pos switch rest'},
     {'Label': '50', 'Primary': 'VTOL on', 'Hint': '3-pos switch fwd-latch'},
     {'Label': '51', 'Primary': 'Space brake', 'Hint': '3-pos switch back'},
-    {'Label': '56', 'Primary': 'Power to weapons', 'Hint': 'WPN hat up'},
-    {'Label': '55', 'Primary': 'Power to shields', 'Hint': 'WPN hat down'},
-    {'Label': '54', 'Primary': 'Power to engines', 'Hint': 'WPN hat left'},
-    {'Label': '53', 'Primary': 'Power allocation reset', 'Hint': 'WPN hat right'},
-    {'Label': '52', 'Primary': 'Power to shields MAX', 'Hint': 'WPN hat hold'},
+    {'Label': '56', 'Primary': 'Shield face: front', 'Hint': 'WPN hat up'},
+    {'Label': '55', 'Primary': 'Shield face: rear', 'Hint': 'WPN hat down'},
+    {'Label': '54', 'Primary': 'Shield face: left', 'Hint': 'WPN hat left'},
+    {'Label': '53', 'Primary': 'Shield face: right', 'Hint': 'WPN hat right'},
+    {'Label': '52', 'Primary': 'Shield faces reset', 'Hint': 'WPN hat press'},
     {'Label': '61', 'Primary': 'Cycle all contacts fwd', 'Hint': 'COM hat up'},
     {'Label': '60', 'Primary': 'Cycle all contacts back', 'Hint': 'COM hat down'},
     {'Label': '59', 'Primary': 'Cycle pinned forward', 'Hint': 'COM hat left'},
@@ -420,8 +420,8 @@ def main():
         ]},
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MHG_L}, {'X': 1475, 'W': 365, 'Rows': MHG_R + AB6}],
         'Legend': ('Combat (default)  %s  Msl: Missile  %s  Mine: Mining  %s  Salv: Salvage.  One control = a '
-                   'different job per operator mode (set on the MTQ knob); AB6 wings 49-56 are targeting in '
-                   'combat, module/salvage banks in those modes.' % (MID, MID, MID)),
+                   'different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining '
+                   'modules and salvage bank. AB6 wings 49-56 = power panel in every mode.' % (MID, MID, MID)),
     }, browser)
 
     # --- Card 2: MTQ throttle (js2) ---
@@ -441,7 +441,7 @@ def main():
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MTQ_L}, {'X': 1475, 'W': 365, 'Rows': MTQ_R}],
         'Legend': ('Throttle forward = axis RY; reverse = axis RZ, the travel behind the idle detent (MOZA Reverse '
                    'Thrust mode); MHG stick press 29 = full reverse.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
-                   'modes; detent buttons 31-43 are unbound.'),
+                   'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial).'),
     }, browser)
 
     print('Done -> MOZA_MHG_AB6_ref, MOZA_MTQ_ref (.png + .svg) in %s' % CARD_DIR)
