@@ -635,7 +635,10 @@ This is normal and intended - only one of these action maps is "live" at a time.
       - The nine leftovers were deleted from `…\Profiles\default\actionmaps.xml` with the game closed. Backup: `actionmaps.xml.before-leftover-cleanup-2026-11-26.bak` in the same folder.
       - `gamedata.py check` gained `MULTI-BIND`. `validate_actionmaps.py` gained `INPUT-DIFF` and `LEFTOVER` (§10).
     - **State:** `gamedata.py check` gives 131 OK, 0 unknown, 0 wrong-map, 0 multi-bind. The validator against the cleaned export gives 0 leftovers and 2 input-diffs (`v_strafe_back`, `v_autoland`), which is the game still holding the bad load.
-    - **Next:** load `MOZA.xml` again, quit the game, run `validate_actionmaps.py`. Expected: no problems, and `v_strafe_longitudinal` listed on `js1_button29`. Then test the stick press in open space.
+    - **Reloaded and validated the same day (1:09 PM):** `validate_actionmaps.py` gives 128 OK, 0 mismatch, 0 input-diff, 0 leftover, and the usual 3 stock-equal `NOT-IN-EXPORT`. The export lists `v_strafe_back` = `js2_rotz`, `v_autoland` = `js2_button10` and `v_strafe_longitudinal` = `js1_button29`.
+      - The game wrote `<flight_strafe_longitudinal invert="1"/>` under **both** joystick instances, as it already did with `flight_view_pitch`. So a per-instance option in the file ends up on every joystick. Harmless here: nothing on js2 is bound to that action.
+      - That session was the first after the USB re-wire (stick base and throttle moved to other ports, no hubs). The game still enumerated AB6 = joystick 1, MTQ = joystick 2, Razer keyboard = 3.
+    - **Still to do:** fly it. Throttle reverse behind the detent, Autoland on the "AP" hold, and the stick press in open space.
 
 ---
 
@@ -849,8 +852,9 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 > lists all 10 clears as `js1_ `, `v_strafe_back` on `js2_rotz`, and *Request Cargo Loading* with its
 > `delayed_press` mode. That session enumerated AB6 = joystick 1, MTQ = 2, Razer keyboard = 3.
 >
-> **State on 2026-11-26:** step 1 passes (131 OK, 0 unknown, 0 wrong-map, 0 multi-bind). Step 2 is
-> pending a reload: the export still holds the bad first load of that day's rework (§6 item 23).
+> **State on 2026-11-26:** both steps pass. Step 1: 131 OK, 0 unknown, 0 wrong-map, 0 multi-bind.
+> Step 2, after the corrected profile was reloaded at 1:09 PM: 128 OK, 0 mismatch, 0 input-diff,
+> 0 leftover, and the same 3 stock-equal `NOT-IN-EXPORT` (§6 item 23). Not flown yet.
 
 ---
 

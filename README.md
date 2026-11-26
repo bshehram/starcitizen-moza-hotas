@@ -180,8 +180,9 @@ on a Mac.
   hat as a trial. That version was loaded the same day and the wing power panel worked. The load
   also showed that the game keeps only one joystick input per action: a stick-press "full
   reverse" added beside the throttle's reverse axis had replaced it. Reverse is the throttle axis
-  again, and the stick press now tries full reverse through a separate action. That fix, the
-  shield faces and the right-hat banks have not been flown yet.
+  again, and the stick press now tries full reverse through a separate action. The corrected
+  profile was reloaded the same day and the game's saved bindings match it exactly. That fix,
+  the shield faces and the right-hat banks have not been flown yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
