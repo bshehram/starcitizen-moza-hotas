@@ -174,7 +174,8 @@ on a Mac.
   *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
   the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
   cargo loading have not been exercised yet. On 26 November the MHG stick press became full reverse
-  and the decoupled toggle moved to the MTQ's A4 key; that change hasn't been loaded in-game yet.
+  and the decoupled toggle moved back to the MTQ's COM hat press (a hold there pins the target);
+  that change hasn't been loaded in-game yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data

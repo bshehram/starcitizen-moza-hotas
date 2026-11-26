@@ -152,14 +152,14 @@
     </action>
 
     <!-- Flight Control Assists -->
-    <!-- Decoupling toggle on MTQ keypad "A4" TAP (2026-11-26: the user wanted it on the throttle, and the MHG stick press it sat on became reverse). Stock mode "tap", so no attribute. A4 HOLD = LAMP (seat_general), which carries activationMode="delayed_press" so one press can't fire both - the same tap/hold split as the "ALT" and "AP" keys. History: MHG mini-stick press js1_button29 (2026-11-23 to 11-26), MTQ "COM" hat press js2_button57 before that, AB6 left wing 1 (js1_button49) before that. Deliberately NOT on the MTQ 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake. -->
+    <!-- Decoupling toggle on the MTQ "COM" hat CENTER PRESS, TAP (2026-11-26: the user wanted it on the throttle, and the MHG stick press it sat on became full reverse). Stock mode "tap"; a HOLD on the same press is pin target via the game's own hold action v_target_pin_selected_hold (stock delayed_press, in spaceship_targeting), so neither needs an attribute - the same split as the "AP" key (dock tap / autoland hold). Briefly on keypad A4 the same day, but the user uses LAMP there far more, so A4 stays LAMP-only. History: MHG mini-stick press js1_button29 (2026-11-23 to 11-26), this same COM hat press before that, AB6 left wing 1 (js1_button49) before that. Deliberately NOT on the MTQ 3-pos switch 49/50: that switch's rest re-fires on every brake release, which would force-RECOUPLE every brake. -->
     <action name="v_ifcs_vector_decoupling_toggle">
-      <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" TAP - toggle coupled/decoupled flight -->
+      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, TAP - toggle coupled/decoupled flight (hold = pin target) -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
       <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now an AB6 multi-mode wing: targeting/mining/salvage). -->
     </action>
-    <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now decoupling on tap, LAMP on hold); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
+    <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now LAMP); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
 
     <!-- Landing & ATC -->
     <action name="v_atc_request">
@@ -236,7 +236,7 @@
       <rebind input="js2_button21"/>  <!-- MTQ mode knob detent 5 (full CW) - Salvage operator mode (salvage-capable ships) -->
     </action>
     <action name="v_light_amplification_toggle">
-      <rebind input="js2_button4" activationMode="delayed_press"/>  <!-- MTQ keypad "A4" HOLD (~0.25 s) - LAMP canopy night-vision toggle (LAMP-equipped ships). activationMode IS needed: the stock mode is "tap", the same as the decoupling toggle that took A4's TAP on 2026-11-26, so without it one press would fire both. The earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only). -->
+      <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" - LAMP canopy night-vision toggle (LAMP-equipped ships), on its own: the user uses it far more than decoupling, which went to the COM hat press. Back on A4 after ESP was unbound; the earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only). -->
     </action>
     <action name="v_view_look_behind">
       <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera. MUST live in seat_general, NOT spaceship_view: despite the v_view_ prefix, CIG files look-behind under "seats & operator modes" (catalogue confirms), and the first attempt in spaceship_view silently did nothing. REPLACED v_view_freelook_mode (which genuinely IS a spaceship_view action - hence the map swap): freelook detached the view from ship facing, and an unconscious pinky-hold felt like losing control. Look-behind keeps FULL stick/flight control (camera swings rear, snaps back on release). Bare binding - hold is the action's native behavior; add activationMode="hold" only if it doesn't behave as hold. -->
@@ -250,8 +250,8 @@
     <action name="v_target_lock_selected">
       <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
-    <action name="v_target_pin_selected">
-      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS - pin the current target (cycle back to it later via COM hat LEFT). Moved here from the MHG mini-stick press (js1_button29, since then decoupling and now reverse) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPS pin from the advanced map (so pinning did nothing) and files it here with the basic lock action. Confirmed accepted on reload. -->
+    <action name="v_target_pin_selected_hold">
+      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, HOLD (~0.25 s) - pin the current target (cycle back to it later via COM hat LEFT). Since 2026-11-26 this is the game's own HOLD version of pin (stock mode delayed_press, so no attribute): a TAP on the same press is now the decoupling toggle (v_ifcs_vector_decoupling_toggle, stock tap, in spaceship_movement). Until then it was the tap version, v_target_pin_selected. Pin moved here from the MHG mini-stick press (js1_button29) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPPED the tap version of pin from the advanced map (so pinning did nothing) and files it here with the basic lock action; the catalogue lists the hold version in this map too. -->
     </action>
   </actionmap>
 
@@ -280,7 +280,7 @@
     <action name="v_target_cycle_attacker_back">
       <rebind input="js1_button15"/>  <!-- MHG right hat LEFT - cycle ATTACKERS back (completes the right/left pair with 13) -->
     </action>
-    <!-- MTQ Right Module "COM" hat (the larger hat, 4-way + press, 57-61) = TARGET ACQUISITION cluster. Swapped 2026-11-23 with strafe + decoupling, which moved to the MHG top mini-stick (js1 25-29): these were rarely used, so they went to the throttle hand. Complements the MHG left hat's hostile-cycle/lock. NOTE: the hat CENTER PRESS (v_target_pin_selected, js2_button57) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
+    <!-- MTQ Right Module "COM" hat (the larger hat, 4-way + press, 57-61) = TARGET ACQUISITION cluster. Swapped 2026-11-23 with strafe + decoupling, which moved to the MHG top mini-stick (js1 25-29): these were rarely used, so they went to the throttle hand. Complements the MHG left hat's hostile-cycle/lock. NOTE: the hat CENTER PRESS (HOLD = v_target_pin_selected_hold, js2_button57; TAP = the decoupling toggle in spaceship_movement) is bound in the spaceship_targeting actionmap (with v_target_lock_selected) - the game DROPS pin from spaceship_targeting_advanced, so only the 4 directional presses live in this map. -->
     <action name="v_target_cycle_all_fwd">
       <rebind input="js2_button61"/>  <!-- MTQ "COM" hat UP - cycle ALL contacts forward (any vehicle in scanner range, not just hostiles) -->
     </action>
@@ -293,7 +293,7 @@
     <action name="v_target_cycle_pinned_fwd">
       <rebind input="js2_button59"/>  <!-- MTQ "COM" hat LEFT - cycle PINNED targets forward -->
     </action>
-    <!-- v_target_pin_selected (MTQ "COM" hat CENTER PRESS, js2_button57) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
+    <!-- Pin (MTQ "COM" hat CENTER PRESS HOLD, v_target_pin_selected_hold, js2_button57) is bound in the spaceship_targeting actionmap, NOT here - the game DROPS pin from spaceship_targeting_advanced. See that block and the note above. -->
     <!-- AB6 base wings (8 momentary pushbuttons) - in COMBAT a secondary target-acquisition bank (all cycle actions, distinct from the hats); the SAME buttons become the Mining/Salvage control banks in those operator modes (see spaceship_mining / spaceship_salvage). Multi-mode reuse is double-fire-safe because targeting maps go inactive in mining/salvage modes (proven by the left hat's hostile-cycle vs salvage-beam reuse). -->
     <action name="v_target_cycle_in_view_fwd">
       <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 - cycle targets IN VIEW forward (forward-arc contacts) -->
