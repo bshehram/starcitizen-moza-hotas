@@ -133,8 +133,8 @@ tools/              regeneration and validation scripts (run from the project ro
 Each folder above has its own README with the details:
 [`diagrams/`](diagrams/README.md) · [`cards/`](cards/README.md) ·
 [`reference/`](reference/README.md) · [`tools/`](tools/README.md). (You'll also see `CLAUDE.md`
-files scattered through the repo — those are working notes for the Claude AI assistant and aren't
-needed by human readers.)
+files scattered through the repo, and a `STARCITIZEN.md` at the root — those are working notes
+and my session brief for the Claude AI assistant, and aren't needed by human readers.)
 
 ---
 

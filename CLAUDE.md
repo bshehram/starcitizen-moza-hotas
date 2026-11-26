@@ -11,18 +11,20 @@ This document explains, in detail, **what every bound control does**, **how the 
 - **Button-reference cards:** [`cards/MOZA_MHG_AB6_ref.png`](cards/MOZA_MHG_AB6_ref.png) (js1: grip 1-29 **+** base 49-62, combined) and [`cards/MOZA_MTQ_ref.png`](cards/MOZA_MTQ_ref.png) (js2 throttle 1-65) - printable **US-Letter landscape (11×8.5)** "cheat sheets": each manufacturer diagram is split into its sub-views and stacked large in the left ~60%, beside a **button# → function** lookup table in the right ~40%. The `.svg` next to each PNG is its editable source. See [Regenerating the button-reference cards](#8-regenerating-the-button-reference-cards) (§8).
 - **Card generator:** [`tools/regen_cards.py`](tools/regen_cards.py) - rebuilds both cards from the manufacturer diagrams + the binding tables embedded in it. Re-run after any binding change.
 - **All tooling is Python 3** and runs on Windows, macOS or Linux; one-time setup is `python -m pip install -r tools/requirements.txt`. The tools were PowerShell until 2026-11-23. Only the game-data tools (`gamedata.py`, `validate_actionmaps.py`) need the game installed (§10); the cards and the XML can be worked on from any machine.
+- **Session brief:** [`STARCITIZEN.md`](STARCITIZEN.md) - the user's standing brief for starting a new Claude session here (they type `@STARCITIZEN.md`). It covers how to ramp up, their working preferences, what needs approval, and the recurring asks, including the gameplay work (logs, screenshots, mining and crafting plans, the game plan page) that this document doesn't cover. It holds standing preferences and routines only; current state lives in memory and on the game plan page.
 
 > Every action name, actionmap and in-game label below was re-checked against the game's own `defaultProfile.xml` / `global.ini` for build `4.10.201.48085` (2026-11-20); the "what it does" text is from earlier starbinder-era descriptions plus community references. Where the inline comments in `MOZA.xml` are imprecise or wrong, this file says so in a **⚠ Note**.
 
 ### Folder layout
 
-The root holds the files the workflow needs front-and-centre — the profile, plus the public-repo `README.md`/`LICENSE` and this doc; everything else is filed by role. **`MOZA.xml` must stay in this folder** - it's the path Star Citizen loads control profiles from (subfolders are ignored by the game, so they're safe for our own files).
+The root holds the files the workflow needs front-and-centre — the profile, plus the public-repo `README.md`/`LICENSE`, this doc and the session brief `STARCITIZEN.md`; everything else is filed by role. **`MOZA.xml` must stay in this folder** - it's the path Star Citizen loads control profiles from (subfolders are ignored by the game, so they're safe for our own files).
 
 ```
 mappings/
 ├─ MOZA.xml                  ← the profile the game loads (keep in root)
 ├─ README.md                 ← human-facing entry point (links only to other README.md files)
 ├─ CLAUDE.md                 ← this document - the full Claude-facing reference (keep in root)
+├─ STARCITIZEN.md            ← the user's session brief for Claude: ramp-up, preferences, recurring asks
 ├─ LICENSE                   ← MIT
 ├─ .gitignore
 ├─ diagrams/                 ← manufacturer button-number maps (source art - do not delete)
@@ -39,7 +41,8 @@ mappings/
 > notes for whoever Claude is editing that folder). The rule for both: **`README.md` files link
 > only to other `README.md` files** (so the human docs stay self-contained and never send a
 > reader into a Claude doc), while **`CLAUDE.md` files may link to each other and to README
-> files.** Keep that rule when editing either.
+> files.** Keep that rule when editing either. The root `STARCITIZEN.md` counts as a Claude doc:
+> it may link to `CLAUDE.md`, and README files mention it without linking to it.
 
 ---
 
