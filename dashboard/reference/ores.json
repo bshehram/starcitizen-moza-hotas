@@ -3,7 +3,7 @@
     "build": "4.10.201.48085",
     "change": "13220821",
     "generated": "2026-11-27",
-    "generator": "3f2b3cbd1cef",
+    "generator": "336a086a6c30",
     "generated_by": "dashboard/reference/build_reference.py (do not edit by hand; put hand-entered data in ores.hand.json)",
     "sources": {
       "game": "Read from the installed game files for this build: Data\\Game2.dcb records, Data\\Localization\\english\\global.ini, and the solar-system object containers (.socpak) in Data.p4k.",

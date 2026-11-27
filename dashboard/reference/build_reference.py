@@ -59,8 +59,12 @@ DCB_ENTRY = 'Data\\Game2.dcb'
 SYSTEM_ROOTS = ('Data\\ObjectContainers\\PU\\system\\stanton\\stantonsystem.socpak',
                 'Data\\ObjectContainers\\PU\\system\\pyro\\pyrosystem.socpak',
                 'Data\\ObjectContainers\\PU\\system\\nyx\\nyxsystem.socpak')
-OUTPUTS = ('locations', 'resources', 'ores', 'refineries')
-MAIN_MAP = {'locations': 'locations', 'resources': 'resources', 'ores': 'ores', 'refineries': 'stations'}
+OUTPUTS = ('locations', 'resources', 'ores', 'refineries', 'controls')
+MAIN_MAP = {'locations': 'locations', 'resources': 'resources', 'ores': 'ores', 'refineries': 'stations',
+            'controls': 'modes'}
+# NOT WIRED YET (round 2, stopped 2026-11-27 before they were finished and tested): build_ships,
+# fetch_snapshots and build_prices below exist but no output uses them, so a normal run never goes
+# online. See dashboard/data/handoff/activity_survey.md for where that work stopped.
 SOURCES = {
     'game': 'Read from the installed game files for this build: Data\\Game2.dcb records, '
             'Data\\Localization\\english\\global.ini, and the solar-system object containers (.socpak) '
@@ -175,6 +179,30 @@ class Archive:
         self.f.seek(self._data_start(base, lho))
         return _decompress(method, self.f.read(csize))
 
+    def extract_to(self, name, fh):
+        """Stream one zstd entry into an open file in 4 MB pieces (keeps a 341 MB entry out of memory)."""
+        e = self.idx.get(name.lower().replace('/', '\\'))
+        if not e:
+            return False
+        _n, method, csize, _usize, lho = e
+        self.f.seek(self._data_start(0, lho))
+        try:
+            import zstandard
+            dobj = zstandard.ZstdDecompressor().decompressobj()
+        except ImportError:
+            dobj = None
+        if method != 100 or dobj is None:
+            fh.write(_decompress(method, self.f.read(csize)))
+            return True
+        left = csize
+        while left > 0:
+            chunk = self.f.read(min(left, 4 << 20))
+            if not chunk:
+                break
+            left -= len(chunk)
+            fh.write(dobj.decompress(chunk))
+        return True
+
 
 # =========================================================================== DataCore (Game2.dcb, v8)
 _SIZES = {0x1: 1, 0x2: 1, 0x3: 2, 0x4: 4, 0x5: 8, 0x6: 1, 0x7: 2, 0x8: 4, 0x9: 8, 0xA: 4, 0xB: 4,
@@ -244,7 +272,8 @@ class DataCore:
         self.by_guid = {r['guid']: r for r in self.records}
 
     def _cstr(self, base, off):
-        return self.B[base + off:self.B.index(b'\0', base + off)].decode('utf-8', 'replace')
+        # find(), not index(): works on bytes and on an mmap alike
+        return self.B[base + off:self.B.find(b'\0', base + off)].decode('utf-8', 'replace')
 
     def blob(self, off):
         return self._cstr(self.blob0, off)
@@ -366,10 +395,19 @@ class Game:
         self.info = gamedata.build_info(p4k)
         self.build = self._build_id(p4k)
         self.arc = Archive(p4k)
-        raw = self.arc.read(DCB_ENTRY)
-        if raw is None:
+        # Game2.dcb is about 341 MB unpacked. It is streamed to a temporary file and memory-mapped,
+        # so the pages are file-backed (the OS can drop and reread them) rather than held in the
+        # process: memory is tight on this PC while the game runs.
+        import mmap
+        import tempfile
+        self._tmp = tempfile.NamedTemporaryFile(prefix='scdash-dcb-', suffix='.tmp', delete=False)
+        ok = self.arc.extract_to(DCB_ENTRY, self._tmp)
+        self._tmp.flush()
+        if not ok:
+            self.close()
             sys.exit('Data\\Game2.dcb not found in %s' % p4k)
-        self.dc = DataCore(raw)
+        self._map = mmap.mmap(self._tmp.fileno(), 0, access=mmap.ACCESS_READ)
+        self.dc = DataCore(self._map)
         labels_raw = self.arc.read(gamedata.LABELS_ENTRY)
         self.labels = {}
         for line in labels_raw.decode('utf-8-sig', 'replace').splitlines():
@@ -377,6 +415,21 @@ class Game:
             if sep:
                 self.labels[key.split(',')[0].strip().lower()] = val.strip()
         print('  Game2.dcb: %d records; global.ini: %d strings' % (len(self.dc.records), len(self.labels)))
+
+    def close(self):
+        import os
+        self.dc = None
+        if getattr(self, '_map', None) is not None:
+            self._map.close()
+            self._map = None
+        if getattr(self, '_tmp', None) is not None:
+            self._tmp.close()
+            try:
+                os.remove(self._tmp.name)
+            except OSError:
+                pass
+            self._tmp = None
+        self.arc.close()
 
     @staticmethod
     def _build_id(p4k):
@@ -424,13 +477,50 @@ def walk_hierarchy(game):
                     # "selected point <CODE> as ..." cannot show it, so keys are stripped
                     ents.append({'entity': (ch.get('entityName') or '').strip(), 'smr': ch.get('starMapRecord'),
                                  'cls': ch.get('class'), 'pak': (ch.get('name') or '').lower().replace('/', '\\'),
-                                 'parent': par, 'in': stem})
+                                 'parent': par, 'in': stem,
+                                 'pos': _floats(ch.get('pos'), 3, (0.0, 0.0, 0.0)),
+                                 'rot': _floats(ch.get('rot'), 4, (1.0, 0.0, 0.0, 0.0))})
                     if ch.get('external') == '1' and ents[me]['pak'].endswith('.socpak'):
                         queue.append((ents[me]['pak'], me))
                     visit(ch, me)
         visit(root, parent)
+    # global positions: a child's pos and rot are relative to its parent container, and a parent is
+    # always listed before its children, so one forward pass composes the transforms
+    for e in ents:
+        p = e['parent']
+        if p is None:
+            e['gpos'], e['grot'] = e['pos'], e['rot']
+        else:
+            pe = ents[p]
+            r = _qrot(pe['grot'], e['pos'])
+            e['gpos'] = (pe['gpos'][0] + r[0], pe['gpos'][1] + r[1], pe['gpos'][2] + r[2])
+            e['grot'] = _qmul(pe['grot'], e['rot'])
     print('  object containers: %d read, %d entities' % (len(seen_paks), len(ents)))
     return ents
+
+
+def _floats(text, n, default):
+    try:
+        v = tuple(float(x) for x in (text or '').split(','))
+        return v if len(v) == n else default
+    except ValueError:
+        return default
+
+
+def _qmul(a, b):
+    aw, ax, ay, az = a
+    bw, bx, by, bz = b
+    return (aw * bw - ax * bx - ay * by - az * bz, aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx, aw * bz + ax * by - ay * bx + az * bw)
+
+
+def _qrot(q, v):
+    """Rotate vector v by unit quaternion q (w, x, y, z)."""
+    w, x, y, z = q
+    vx, vy, vz = v
+    # t = 2 * cross(q.xyz, v); v' = v + w * t + cross(q.xyz, t)
+    tx, ty, tz = 2 * (y * vz - z * vy), 2 * (z * vx - x * vz), 2 * (x * vy - y * vx)
+    return (vx + w * tx + (y * tz - z * ty), vy + w * ty + (z * tx - x * tz), vz + w * tz + (x * ty - y * tx))
 
 
 GUID_RE = re.compile(rb'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
@@ -476,6 +566,8 @@ REGIONS = {
 # Records that are never a location the log names: hospital and clinic sub-records inside a station or
 # city (a respawn there logs the station or city), and private mining-claim markers.
 LEFT_OUT_KINDS = {'clinic', 'mining claim'}
+# kinds that get a position (`pos`, meters in the system's own coordinates)
+POS_KINDS = {'star', 'planet', 'moon', 'station', 'landing zone', 'gateway', 'field', 'lagrange point'}
 
 
 class Locations:
@@ -678,6 +770,9 @@ class Locations:
                 continue
             places[code] = {'name': self.display_name(s), 'short': self.short(s, kind, system), 'kind': kind,
                             'body': self.body(code), 'system': system}
+            if kind in POS_KINDS and self.ents_of.get(code):
+                gp = self.ents[self.ents_of[code][0]]['gpos']
+                places[code]['pos'] = [int(round(c)) for c in gp]
         # Aaron Halo has a container but no star-map record: add it by its entity name
         if 'OOC_AaronHalo' not in places and any(e['entity'] == 'OOC_AaronHalo' for e in self.ents):
             nm = g.labels.get('aaronhalo', '')
@@ -1144,8 +1239,304 @@ def build_methods(game):
     return {k: out[k] for k in sorted(out)}
 
 
+# =========================================================================== ships
+SCU_CELL = 1.25            # one SCU is a 1.25 m cube; a cargo grid holds whole cells
+
+
+def _components(d):
+    return [c for c in (d or {}).get('Components') or [] if c]
+
+
+def _comp(d, t):
+    return next((c for c in _components(d) if c['_type'] == t), None)
+
+
+def build_ships(game):
+    """Every vehicle entity class: name, maker, cargo grid (SCU), crew, the game's career and role."""
+    dc = game.dc
+    grid_cache = {}
+
+    def grid_scu(cls):
+        """SCU of one cargo-grid item class (0 if it is not a cargo grid)."""
+        if cls in grid_cache:
+            return grid_cache[cls]
+        grid_cache[cls] = 0
+        d = dc.record(cls, 3)
+        att = _comp(d, 'SAttachableComponentParams')
+        inv = _comp(d, 'SCItemInventoryContainerComponentParams')
+        if not att or not inv or (att.get('AttachDef') or {}).get('Type') != 'CargoGrid':
+            return 0
+        cont = dc.record(inv.get('containerParams'), 3) if inv.get('containerParams') else None
+        dim = (cont or {}).get('interiorDimensions') or {}
+        cells = 1
+        for axis in ('x', 'y', 'z'):
+            cells *= int(round(float(dim.get(axis) or 0) / SCU_CELL, 6))
+        grid_cache[cls] = cells
+        return cells
+
+    def loadout_scu(entries):
+        total = 0
+        for e in entries or []:
+            if not e:
+                continue
+            cls = e.get('entityClassReference')
+            if cls:
+                total += grid_scu(cls)
+            sub = (e.get('loadout') or {}).get('entries')
+            if sub:
+                total += loadout_scu(sub)
+        return total
+
+    makers = {}
+    out = {}
+    for r in dc.records:
+        if r['struct'] != 'EntityClassDefinition':
+            continue
+        f = r['file']
+        if '/entities/spaceships/' not in f and '/entities/groundvehicles/' not in f:
+            continue
+        d = dc.record(r, 6)
+        v = _comp(d, 'VehicleComponentParams')
+        if not v:
+            continue
+        name = game.label(v.get('vehicleName'))
+        if not valid_name(name):
+            continue
+        code = short_record(r['name'])
+        mk = v.get('manufacturer')
+        if mk and mk not in makers:
+            md = dc.record(mk, 3) or {}
+            loc = md.get('Localization') or {}
+            makers[mk] = {'code': md.get('Code') or short_record(mk), 'name': game.label(loc.get('Name')) or None}
+        lo = _comp(d, 'SEntityComponentDefaultLoadoutParams')
+        scu = loadout_scu(((lo or {}).get('loadout') or {}).get('entries'))
+        e = {'name': name, 'maker': (makers.get(mk) or {}).get('name'), 'maker_code': (makers.get(mk) or {}).get('code'),
+             'kind': 'ground vehicle' if '/entities/groundvehicles/' in f else 'ship',
+             'cargo_scu': scu, 'crew': v.get('crewSize'),
+             'career': game.label(v.get('vehicleCareer')) or None, 'role': game.label(v.get('vehicleRole')) or None}
+        if re.search(r'_AI_|_PU_AI|_Template$|_Unmanned|_Teach$|_Tutorial|_NoInterior', code, re.I):
+            e['variant'] = 'npc or special'
+        e['src'] = 'game'
+        out[code] = e
+    return out
+
+
+# =========================================================================== online snapshots (--fetch only)
+UEX = 'https://api.uexcorp.space/2.0/'
+SCMDB = 'https://scmdb.net/data/'
+USER_AGENT = 'sc-reference-builder/1.0'          # a generic client name: nothing about the user
+
+
+def _get_json(url):
+    import urllib.request                        # imported here: a normal run never loads it
+    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        return json.loads(r.read().decode('utf-8'))
+
+
+def _write_snapshot(name, doc):
+    p = HERE / name
+    p.write_text(json.dumps(doc, indent=0, ensure_ascii=False, sort_keys=False) + '\n', encoding='utf-8', newline='\n')
+    print('  wrote snapshot %s (%d bytes)' % (name, p.stat().st_size))
+
+
+def fetch_snapshots(change):
+    """The one step that goes online: UEX commodity prices and terminals, and SCMDB's mission list
+    for the installed build (and the newest test build, if SCMDB has one). Saved lean, so a normal
+    run rebuilds prices.json and contracts.json from these files byte for byte."""
+    print('Fetching (the only online step) ...')
+    prices = _get_json(UEX + 'commodities_prices_all')['data']
+    terms = _get_json(UEX + 'terminals')['data']
+    used = {r['id_terminal'] for r in prices}
+    tdoc = {}
+    for t in sorted(terms, key=lambda t: t['id']):
+        if t['id'] in used:
+            tdoc[str(t['id'])] = {'name': t.get('name'), 'display': t.get('displayname'), 'type': t.get('type'),
+                                  'station': t.get('space_station_name'), 'city': t.get('city_name'),
+                                  'outpost': t.get('outpost_name'), 'planet': t.get('planet_name'),
+                                  'moon': t.get('moon_name'), 'system': t.get('star_system_name')}
+    rows = sorted([r['commodity_name'], r['id_terminal'], r.get('price_buy') or 0, r.get('price_sell') or 0,
+                   _day(r.get('date_modified'))] for r in prices)
+    _write_snapshot('prices.hand.json', {
+        '_doc': 'Snapshot of UEX Corp API 2.0 /commodities_prices_all and /terminals, written by '
+                'build_reference.py --fetch and read by every normal run. Rows: [commodity, terminal id, buy, sell, '
+                'last updated]. Prices are aUEC per SCU, crowd-reported by players. Do not edit by hand; fetch again.',
+        'source': 'UEX Corp API 2.0 (api.uexcorp.space)', 'fetched': TODAY, 'terminals': tdoc, 'rows': rows})
+    versions = _get_json(SCMDB + 'game-versions.json')
+    builds = {}
+    for v in versions:
+        ver, fn = v.get('version', ''), v.get('file', '')
+        if ver.endswith('.' + change) or '-ptu.' in ver:
+            d = _get_json(SCMDB + fn)
+            lean = []
+            for c in (d.get('contracts') or []) + (d.get('legacyContracts') or []):
+                names = sorted(set([c.get('debugName')] + list(c.get('debugNames') or [])) - {None})
+                lean.append({'names': names, 'type': c.get('missionType'), 'category': c.get('category'),
+                             'giver': c.get('contractorName'), 'title': c.get('title')})
+            builds[ver] = sorted(lean, key=lambda c: (c['names'][:1], c['type'] or '', c['title'] or ''))
+    _write_snapshot('contracts.scmdb.hand.json', {
+        '_doc': 'Snapshot of SCMDB (scmdb.net) mission data: per build, every contract with its internal names '
+                '(the `contract [...]` in a mission marker line), mission type, contractor and title. Written by '
+                'build_reference.py --fetch; do not edit by hand.',
+        'source': 'SCMDB (scmdb.net/data), community extract of the game files', 'fetched': TODAY, 'builds': builds})
+
+
+def _day(ts):
+    if not ts:
+        return None
+    return datetime.datetime.fromtimestamp(int(ts), datetime.timezone.utc).date().isoformat()
+
+
+def build_prices(locs_entries, resources, snap):
+    """prices.json from the UEX snapshot: per commodity, every terminal's buy and sell price and date."""
+    if not snap:
+        return {}, {}
+    by_name = {}
+    for k, v in locs_entries.items():
+        if v.get('place'):
+            for n in (v['name'], v['short']):
+                by_name.setdefault(n.lower(), v['place'])
+    terms = {}
+    unmatched = set()
+    for tid, t in snap['terminals'].items():
+        place = None
+        for n in (t.get('station'), t.get('city'), t.get('outpost'), t.get('display')):
+            if n and n.lower() in by_name:
+                place = by_name[n.lower()]
+                break
+        if place is None:
+            unmatched.add(tid)
+        terms[tid] = {'terminal': t.get('name'), 'place': place,
+                      'where': t.get('station') or t.get('city') or t.get('outpost') or t.get('display'),
+                      'body': t.get('moon') or t.get('planet'), 'system': t.get('system')}
+    names = {}
+    for rid, r in resources.items():
+        names.setdefault(r['name'].lower(), (r['name'], rid))
+    out = {}
+    for cname, tid, buy, sell, date in snap['rows']:
+        t = terms.get(str(tid))
+        if not t:
+            continue
+        game = names.get(cname.lower())
+        key = game[0] if game else cname
+        e = out.setdefault(key, {'resource': game[1] if game else None, 'terminals': [], 'src': 'ref'})
+        row = dict(t)
+        row.update({'buy': buy or None, 'sell': sell or None, 'date': date})
+        e['terminals'].append(row)
+    for e in out.values():
+        e['terminals'].sort(key=lambda r: (r['system'] or '', r['where'] or '', r['terminal'] or ''))
+        if e['resource'] is None:
+            e['note'] = 'No game commodity has this exact name; it is the UEX name.'
+    return out, {'terminals': len(terms), 'terminals_without_place': len(unmatched)}
+
+
+# =========================================================================== controls (from the card tables)
+CARD_FILE = ROOT / 'tools' / 'regen_cards.py'
+CARD_TABLES = {'js1': ('AB6', 'MHG_L', 'MHG_R'), 'js2': ('MTQ_L', 'MTQ_R')}
+VARIANT_TAGS = {'mining': 'Mine:', 'salvage': 'Salv:', 'missile': 'Msl:'}
+
+
+def read_card_tables(path=CARD_FILE):
+    """The card tables of tools/regen_cards.py, read with `ast` (nothing in that file is run).
+    Returns {'js1': {label: row}, 'js2': {label: row}}; a row has Label, Primary, Hint, Variants."""
+    import ast
+    tree = ast.parse(Path(path).read_text(encoding='utf-8'))
+    consts = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) \
+                and isinstance(node.value, ast.Constant):
+            consts[node.targets[0].id] = node.value.value
+
+    def ev(n):
+        if isinstance(n, ast.Constant):
+            return n.value
+        if isinstance(n, ast.List):
+            return [ev(x) for x in n.elts]
+        if isinstance(n, ast.Dict):
+            return {ev(k): ev(v) for k, v in zip(n.keys, n.values)}
+        if isinstance(n, ast.Name) and n.id in consts:
+            return consts[n.id]
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'V' and len(n.args) == 3:
+            tag, text, color = (ev(a) for a in n.args)
+            return {'Tag': tag, 'Text': text, 'Color': color}
+        raise ValueError('unexpected expression in a card table, line %d' % getattr(n, 'lineno', 0))
+
+    raw = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            if any(node.targets[0].id in t for t in CARD_TABLES.values()):
+                raw[node.targets[0].id] = ev(node.value)
+    out = {}
+    for dev, tables in CARD_TABLES.items():
+        rows = {}
+        for t in tables:
+            if t not in raw:
+                raise ValueError('card table %s not found in %s' % (t, path))
+            for row in raw[t]:
+                if 'Label' in row:
+                    if row['Label'] in rows:
+                        raise ValueError('card label %s %s appears twice' % (dev, row['Label']))
+                    rows[row['Label']] = dict(row, table=t)
+        out[dev] = rows
+    return out
+
+
+def card_text(row, variant):
+    """The card's wording for a row in a mode: the mode's variant if the row has one, else Primary."""
+    tag = VARIANT_TAGS.get(variant)
+    for v in row.get('Variants') or []:
+        if tag and v.get('Tag') == tag:
+            return v['Text']
+    return row['Primary']
+
+
+def build_controls(hand):
+    cards = read_card_tables()
+    modes = {}
+    problems = []
+    for mode, m in sorted((hand.get('modes') or {}).items()):
+        items = []
+        for it in m.get('items') or []:
+            variant = it.get('variant', m.get('variant'))
+            parts = []
+            for ref in it['controls']:
+                dev, _, label = ref.partition(' ')
+                row = cards.get(dev, {}).get(label)
+                if row is None:
+                    problems.append('%s: %r is not on the cards' % (mode, ref))
+                    continue
+                p = {'control': ref, 'text': card_text(row, variant), 'primary': row['Primary']}
+                if row.get('Hint'):
+                    p['hint'] = row['Hint']
+                if row.get('Unbound'):
+                    p['unbound'] = True
+                parts.append(p)
+            out = {'where': it['where'], 'controls': list(it['controls']),
+                   'text': ' · '.join(p['text'] for p in parts), 'parts': parts}
+            for k in ('status', 'note'):
+                if it.get(k):
+                    out[k] = it[k]
+            out['src'] = 'user'
+            items.append(out)
+        knob = m.get('knob')
+        entry = {'title': m.get('title') or mode, 'variant': m.get('variant')}
+        if knob:
+            dev, _, label = knob.partition(' ')
+            row = cards.get(dev, {}).get(label)
+            if row is None:
+                problems.append('%s: knob %r is not on the cards' % (mode, knob))
+            else:
+                entry['knob'] = {'control': knob, 'text': row['Primary'], 'hint': row.get('Hint')}
+        entry['items'] = items
+        entry['src'] = 'user'
+        modes[mode] = entry
+    if problems:
+        sys.exit('controls.hand.json names controls the cards do not have:\n  ' + '\n  '.join(problems))
+    return modes
+
+
 # =========================================================================== writing
-ENTRY_ORDER = ('prefix', 'name', 'short', 'kind', 'body', 'system', 'place', 'candidates', 'record', 'refined',
+ENTRY_ORDER = ('prefix', 'name', 'short', 'kind', 'body', 'system', 'place', 'pos', 'candidates', 'record', 'refined',
                'src', 'source', 'date', 'note')
 
 
@@ -1401,7 +1792,21 @@ def main():
     ref_doc = {'_meta': meta(game, 'refineries', ref_meta_extra), 'methods': build_methods(game),
                'stations': sort_map(stations)}
 
-    docs = {'locations': loc_doc, 'resources': res_doc, 'ores': ore_doc, 'refineries': ref_doc}
+    # ---- controls per operator mode, worded from the card tables in tools/regen_cards.py
+    hc = hand['controls']
+    ctl_modes = build_controls(hc)
+    hand_keys['controls'] = set(ctl_modes)
+    ctl_doc = {'_meta': meta(game, 'controls', {
+        'lookup': 'modes.<mode>.items is the strip of controls a view shows, in order. `where` is the physical '
+                  'control, `text` the card wording (joined with " · " when one item is several controls), '
+                  '`parts` the card row behind each control. `status`: flown (confirmed in a ship), unverified '
+                  '(bound, not yet confirmed in a ship), trial (the docs call it a trial); no status means the '
+                  'docs raise no doubt. Source: the card tables in tools/regen_cards.py and CLAUDE.md sections 4 '
+                  'to 6; the selection is in controls.hand.json.',
+        'cards': 'tools/regen_cards.py', 'counts': {'modes': len(ctl_modes)}}), 'modes': ctl_modes}
+
+    docs = {'locations': loc_doc, 'resources': res_doc, 'ores': ore_doc, 'refineries': ref_doc,
+            'controls': ctl_doc}
     for name, doc in docs.items():
         doc['_meta']['hand_keys'] = sorted(hand_keys.get(name, set()))
     loc_doc['_meta']['hand_patterns'] = sorted(p['prefix'] for p in hl.get('patterns') or [])
@@ -1413,7 +1818,7 @@ def main():
         print('  preset containers not placed in this build\'s hierarchy: %s'
               % ', '.join('%s (%s)' % (p.rsplit('\\', 1)[-1], '/'.join(v)) for p, v in unplaced))
     rc = write_outputs(game, docs, hand_keys, args.check, args.force)
-    game.arc.close()
+    game.close()
     return rc
 
 

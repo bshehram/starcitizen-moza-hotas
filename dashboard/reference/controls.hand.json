@@ -1,0 +1,84 @@
+{
+ "_doc": "Which stick and throttle controls each activity view shows, chosen by hand; build_reference.py fills in the wording from the card tables in tools/regen_cards.py (lists AB6, MHG_L, MHG_R on js1; MTQ_L, MTQ_R on js2), so the strip cannot drift from the printed cards. A control is named `<device> <card label>`, as the card prints it. `where` is the physical control, in words from CLAUDE.md section 3. `variant` picks which card wording applies (mining -> 'Mine:', salvage -> 'Salv:', missile -> 'Msl:'); without it the mode's own variant is used, else the primary function. `status` is what CLAUDE.md says about the binding: flown (confirmed in a ship), unverified (bound and loaded, not yet confirmed in a ship), trial (the docs call it a trial). No status means the docs raise no doubt. tests/test_reference.py fails when a label here no longer exists on the cards.",
+ "source": "CLAUDE.md sections 4 to 6 and the card tables in tools/regen_cards.py, read 2026-11-27",
+ "modes": {
+  "combat": {
+   "title": "Combat, guns mode",
+   "knob": "js2 17",
+   "variant": null,
+   "items": [
+    {"where": "Trigger", "controls": ["js1 1"]},
+    {"where": "Trigger stage 2", "controls": ["js1 6"], "note": "Group 2 fires only once the guns are split into two groups in the weapons screen (CLAUDE.md section 4, Weapons)."},
+    {"where": "Left hat up", "controls": ["js1 7"]},
+    {"where": "Left hat down", "controls": ["js1 9"]},
+    {"where": "Left hat right / left", "controls": ["js1 8", "js1 10"]},
+    {"where": "Left hat press", "controls": ["js1 11"]},
+    {"where": "COM hat right", "controls": ["js2 58"]},
+    {"where": "COM hat press (tap / hold)", "controls": ["js2 57"], "status": "unverified", "note": "Moved here 2026-11-26 and accepted by the game on load; not yet reported from a flight (CLAUDE.md section 6, items 21 and 23)."},
+    {"where": "Left wing 1 / 2 / 3", "controls": ["js1 49", "js1 50", "js1 51"], "status": "flown", "note": "The power panel worked on the first load of 2026-11-26 (CLAUDE.md section 6, item 23)."},
+    {"where": "Right wing 4 (hold)", "controls": ["js1 56"], "status": "flown", "note": "Part of the power panel (CLAUDE.md section 6, item 23)."}
+   ]
+  },
+  "mining": {
+   "title": "Mining mode",
+   "knob": "js2 20",
+   "variant": "mining",
+   "items": [
+    {"where": "Trigger", "controls": ["js1 1"]},
+    {"where": "FLAPS lever", "controls": ["js2 Slider"], "status": "flown", "note": "Confirmed in the Golem: rest is the laser's 20 % floor, FULL is 100 % (CLAUDE.md section 3.3)."},
+    {"where": "Rocker up / down", "controls": ["js1 22", "js1 23"]},
+    {"where": "Rocker press", "controls": ["js1 24"], "status": "unverified", "note": "Moved here 2026-11-21; not yet tried in a ship (CLAUDE.md section 6, item 18)."},
+    {"where": "Right hat up / right / down", "controls": ["js1 12", "js1 13", "js1 14"], "status": "unverified", "note": "The mining bank moved to the right hat 2026-11-26; module activation still to be tested in the Golem (CLAUDE.md section 6, item 22). The Golem's laser has 2 module slots, so slot 3 does nothing there."},
+    {"where": "Keypad A1 (hold)", "controls": ["js2 1"], "status": "unverified", "note": "Never tried in a ship (CLAUDE.md section 4, Mining)."},
+    {"where": "Lower hat left", "controls": ["js1 20"]}
+   ]
+  },
+  "salvage": {
+   "title": "Salvage mode",
+   "knob": "js2 21",
+   "variant": "salvage",
+   "items": [
+    {"where": "Trigger", "controls": ["js1 1"]},
+    {"where": "Trigger stage 2", "controls": ["js1 6"]},
+    {"where": "SPEEDBRAKE lever", "controls": ["js2 Dial"], "status": "flown", "note": "Confirmed in the Salvation: the lever opens and closes the gap over its full travel (CLAUDE.md section 3.3)."},
+    {"where": "Rocker up / down", "controls": ["js1 22", "js1 23"]},
+    {"where": "Rocker press", "controls": ["js1 24"], "status": "unverified", "note": "Moved here 2026-11-22 for the Gatac Hyun; not yet tried in a ship (CLAUDE.md section 6, item 19)."},
+    {"where": "Right hat up", "controls": ["js1 12"], "status": "unverified", "note": "The salvage bank moved to the right hat 2026-11-26; none of it confirmed in a ship yet (CLAUDE.md section 4, Salvage)."},
+    {"where": "Right hat left / right", "controls": ["js1 15", "js1 13"], "status": "unverified", "note": "As above (CLAUDE.md section 4, Salvage)."},
+    {"where": "Right hat down", "controls": ["js1 14"], "status": "unverified", "note": "As above (CLAUDE.md section 4, Salvage)."},
+    {"where": "Keypad A2 / A3", "controls": ["js2 2", "js2 3"], "status": "unverified", "note": "As above (CLAUDE.md section 4, Salvage)."},
+    {"where": "Left hat left / right", "controls": ["js1 10", "js1 8"]}
+   ]
+  },
+  "cargo": {
+   "title": "Landing and loading",
+   "knob": null,
+   "variant": null,
+   "items": [
+    {"where": "ALT key (tap / hold)", "controls": ["js2 8"], "note": "Tap requests landing; a hold of about 0.25 s requests a cargo-loading slot (CLAUDE.md section 4)."},
+    {"where": "AP key (tap / hold)", "controls": ["js2 10"], "status": "unverified", "note": "Docking added 2026-11 for the Liberator; Autoland on the hold was restored 2026-11-26 and not yet reported from a flight (CLAUDE.md section 6, items 12 and 23)."},
+    {"where": "Gear lever up / down", "controls": ["js2 29", "js2 30"]},
+    {"where": "Toggle A up / down", "controls": ["js2 25", "js2 26"], "note": "On the Liberator, opening the garage doors vents that space (CLAUDE.md section 11)."},
+    {"where": "Right Module switch forward / rest", "controls": ["js2 50", "js2 49"]},
+    {"where": "Right Module switch back", "controls": ["js2 51"]},
+    {"where": "Top mini-stick press (hold)", "controls": ["js1 29"], "status": "flown", "note": "Confirmed in flight 2026-11-26 (CLAUDE.md section 6, item 24)."},
+    {"where": "Lower hat up / down (Salvage mode)", "controls": ["js1 17", "js1 19"], "variant": "salvage", "status": "trial", "note": "Vehicle tractor distance for the Golem OX; a trial binding, unverified in a ship (CLAUDE.md section 6, item 15)."}
+   ]
+  },
+  "travel": {
+   "title": "Travel",
+   "knob": null,
+   "variant": null,
+   "items": [
+    {"where": "Rocker right", "controls": ["js2 24"]},
+    {"where": "NAV key", "controls": ["js2 5"]},
+    {"where": "HDG key", "controls": ["js2 6"]},
+    {"where": "SPD key (hold)", "controls": ["js2 7"]},
+    {"where": "FD key", "controls": ["js2 9"]},
+    {"where": "Upper encoder turn / press", "controls": ["js2 11", "js2 12", "js2 13"]},
+    {"where": "Left Module button", "controls": ["js2 65"]},
+    {"where": "Right Module switch back", "controls": ["js2 51"]}
+   ]
+  }
+ }
+}

@@ -14,7 +14,8 @@ import unittest
 from pathlib import Path
 
 REF = Path(__file__).resolve().parent.parent / 'reference'
-TABLES = ('locations', 'resources', 'ores', 'refineries')
+CARDS = Path(__file__).resolve().parent.parent.parent / 'tools' / 'regen_cards.py'
+TABLES = ('locations', 'resources', 'ores', 'refineries', 'controls')
 SRC = {'game', 'ref', 'seen', 'user'}
 PLACE_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 GUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
@@ -40,6 +41,38 @@ def _no_dupes(pairs):
 def load(name):
     with open(REF / name, encoding='utf-8') as f:
         return json.load(f, object_pairs_hook=_no_dupes)
+
+
+def read_cards(path):
+    """The card tables of tools/regen_cards.py, read with ast (nothing in it is run), by device:
+    js1 = AB6 + MHG_L + MHG_R, js2 = MTQ_L + MTQ_R. {device: {label: row}}."""
+    import ast
+    tree = ast.parse(Path(path).read_text(encoding='utf-8'))
+    consts = {n.targets[0].id: n.value.value for n in tree.body
+              if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+              and isinstance(n.value, ast.Constant)}
+
+    def ev(n):
+        if isinstance(n, ast.Constant):
+            return n.value
+        if isinstance(n, ast.List):
+            return [ev(x) for x in n.elts]
+        if isinstance(n, ast.Dict):
+            return {ev(k): ev(v) for k, v in zip(n.keys, n.values)}
+        if isinstance(n, ast.Name):
+            return consts[n.id]
+        if isinstance(n, ast.Call) and getattr(n.func, 'id', None) == 'V':
+            tag, text, color = (ev(a) for a in n.args)
+            return {'Tag': tag, 'Text': text, 'Color': color}
+        raise ValueError('unexpected card expression')
+
+    tables = {n.targets[0].id: ev(n.value) for n in tree.body
+              if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+              and n.targets[0].id in ('AB6', 'MHG_L', 'MHG_R', 'MTQ_L', 'MTQ_R')}
+    out = {}
+    for dev, names in (('js1', ('AB6', 'MHG_L', 'MHG_R')), ('js2', ('MTQ_L', 'MTQ_R'))):
+        out[dev] = {row['Label']: row for t in names for row in tables[t] if 'Label' in row}
+    return out
 
 
 class ReferenceTables(unittest.TestCase):
@@ -235,6 +268,48 @@ class ReferenceTables(unittest.TestCase):
                         self.assertIn(r['src'], SRC)
                         self.assertTrue(r['source'])
                         self.assertIn(r['source'], ref['_meta'].get('report_sources', {}))
+
+    # ------------------------------------------------------------------ positions
+    def test_positions(self):
+        n = 0
+        for k, v in self.locs.items():
+            if 'pos' in v:
+                n += 1
+                with self.subTest(code=k):
+                    self.assertEqual(len(v['pos']), 3)
+                    self.assertTrue(all(isinstance(c, int) for c in v['pos']))
+        self.assertGreater(n, 0)
+        for pid, entries in self.places.items():
+            ps = {tuple(v['pos']) for _k, v in entries if 'pos' in v}
+            with self.subTest(place=pid):
+                self.assertLessEqual(len(ps), 1, 'one place, one position')
+
+    # ------------------------------------------------------------------ controls (card tables)
+    def test_controls_match_the_cards(self):
+        """Every control named in controls.hand.json exists on the cards, and controls.json still
+        carries the cards' wording. Fails when a card label is renamed or a row's wording changes."""
+        cards = read_cards(CARDS)
+        hand = load('controls.hand.json')
+        for mode, m in hand['modes'].items():
+            refs = [c for it in m['items'] for c in it['controls']] + ([m['knob']] if m.get('knob') else [])
+            for ref in refs:
+                with self.subTest(mode=mode, control=ref):
+                    dev, _, label = ref.partition(' ')
+                    self.assertIn(label, cards.get(dev, {}), '%s is not on the cards' % ref)
+        out = self.t['controls']['modes']
+        self.assertEqual(set(out), set(hand['modes']))
+        tags = {'mining': 'Mine:', 'salvage': 'Salv:', 'missile': 'Msl:'}
+        for mode, m in out.items():
+            for it in m['items']:
+                for p in it['parts']:
+                    with self.subTest(mode=mode, control=p['control']):
+                        dev, _, label = p['control'].partition(' ')
+                        row = cards[dev][label]
+                        self.assertEqual(p['primary'], row['Primary'])
+                        self.assertIn(p['text'], [row['Primary']] + [x['Text'] for x in row.get('Variants') or []
+                                                                     if x['Tag'] in tags.values()])
+                self.assertIn(it['src'], SRC)
+                self.assertIn(it.get('status', 'flown'), ('flown', 'unverified', 'trial'))
 
     # ------------------------------------------------------------------ privacy
     def test_no_personal_data(self):
