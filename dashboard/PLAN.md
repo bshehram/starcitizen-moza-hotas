@@ -23,9 +23,11 @@ A small background program that reads Star Citizen's own log file while the user
 what matters right now on a second monitor: where they are, what the plan says to do next, the
 numbers they need for the job in hand, timers, and alerts.
 
-The side monitor is a 15.6-inch 1920x1080 screen **without touch**. The user's hands are on a
-stick and throttle, so nobody operates the dashboard during play. It has to run itself: pick the
-right view from what the log shows, and be readable at a glance from a seat away.
+The side monitor is a 15.6-inch 1920x1080 screen **without touch**. The user stands it either
+way up, landscape (1920x1080) or portrait (1080x1920), as they feel like on the day, so the page
+has a layout for each (§11). The user's hands are on a stick and throttle, so nobody operates the
+dashboard during play. It has to run itself: pick the right view from what the log shows, and be
+readable at a glance from a seat away.
 
 ## 2. What the user asked for
 
@@ -38,6 +40,7 @@ right view from what the log shows, and be readable at a glance from a seat away
 | "idempotent" | Every command can be repeated with the same end result, and the same log always produces the same state. §7. |
 | "safe to run" | It cannot harm the game, the PC, the account or the user's privacy. §8. |
 | "performant as much as possible" | Memory is tight on this PC while the game runs, and adding RAM is not an option. Every megabyte and every wake-up is a cost. §9. |
+| "it will be in either portrait or landscape mode ... depending on my mood" (2026-11-27) | The page has two layouts, 1920x1080 and 1080x1920, and picks one from the shape of its window. There is no setting to change. §11. |
 
 ## 3. What it can and cannot know
 
@@ -700,10 +703,20 @@ files, all local, all bounded.
 
 ## 11. The page
 
-- One page, designed for 1920x1080 at arm's length and beyond: large type, high contrast, a dark
-  theme, few things per view. If it cannot be read in two seconds, it has too much on it.
-- Layout: the status strip across the top, the current view in the main area, alerts and timers
-  down the side, the feed at the bottom.
+- One page, read at arm's length and beyond: large type, high contrast, a dark theme, few things
+  per view. If it cannot be read in two seconds, it has too much on it.
+- **Two layouts, landscape (1920x1080) and portrait (1080x1920): the user's requirement of
+  2026-11-27.** The monitor is stood either way up from one day to the next. The page chooses by
+  the shape of its own window (the CSS `orientation` media query), so rotating the display in
+  Windows is all the user does: no setting, no reload, no second page. Each view is designed for
+  both shapes and checked in both, not designed for one and squeezed into the other.
+  - Landscape: the status strip across the top, the current view in the main area, alerts and
+    timers down the side, the feed at the bottom.
+  - Portrait: the status strip across the top (it may take two rows), alerts under it, the
+    current view at full width, then timers, then the feed at the bottom. A view that sets things
+    side by side in landscape stacks them in portrait.
+  - The type sizes in each layout are set for that layout. Do not scale the whole page by the
+    window's width: at 1080 wide everything would shrink to just over half.
 - Numbers the user acts on (scan values, quality figures, countdowns) get the largest type.
 - Times are local. American spelling and month-first dates, as everywhere in this project.
 - No sound: browsers block it until someone clicks the page.
@@ -721,6 +734,10 @@ msedge.exe --user-data-dir=<%LOCALAPPDATA%\scdash\browser> --app=http://127.0.0.
   already running, and the placement switches are dropped.
 - `<x>,<y>` is any point well inside the side monitor. Full screen then fills that monitor. F11
   leaves full screen and Alt+F4 closes the window.
+- Take the side monitor's bounds from Windows each time the window is opened, never from a
+  stored size: a monitor turned to portrait reports 1080x1920 and can sit at a different place on
+  the desktop. Whether a full-screen window follows a rotation made while it is open, without
+  being reopened, is not known **[verify in stage 4]**.
 - Do not use `--kiosk`: it ignores placement and is awkward to leave.
 - `--disable-background-networking`, `--disable-component-update`, `--disable-sync` and
   `--no-default-browser-check` are required: they keep the new profile from going online by
@@ -770,11 +787,15 @@ check that can actually fail.
 3. **Views and plan data.** The reference files, `plan.json`, the views, the view rules, alerts,
    timers.
    *Done when:* a replay of a mining session shows Preflight, Travel, Mining and Refinery at the
-   right moments, and a deliberately wrong joystick order in a test log raises the red alert.
+   right moments, a deliberately wrong joystick order in a test log raises the red alert, and
+   every view has been captured at 1920x1080 and at 1080x1920 (a headless browser screenshot of
+   the replay) and looked at: nothing clipped, nothing overlapping, and the numbers still the
+   largest thing on the screen.
 4. **Autostart and the window.** `install`, `uninstall`, `open`, opening on the side monitor,
    closing after the game exits.
    *Done when:* after signing out and back in the service is running, starting the game opens the
-   window on the side monitor, the game keeps focus and stick input when it opens, a `stop` is
+   window on the side monitor, the window fills it in landscape and in portrait, the game keeps
+   focus and stick input when it opens, a `stop` is
    still stopped ten minutes later, and the measured figures are inside the budgets in §9 or the
    overrun is written down with its cause. The side monitor was not connected yet on 2026-11-27,
    so this stage waits for it.
@@ -926,6 +947,7 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | The game's telemetry stream (§3) | **Supported**, as stage 6 (§12), with 5.0 close. | Leaving it out. |
 | How the telemetry reader learns the stream's layout | **Read it from the installed game's program file**, read-only, at start: "most reliable", in their words. It follows a patch by itself. | Field numbers written into the code by hand. |
 | Community tools in general | **No precompiled binaries.** A community tool has to be open source and built or run from source here; otherwise we build our own. Now a standing rule in [`../STARCITIZEN.md`](../STARCITIZEN.md). | - |
+| Which way up the side monitor stands | **Either: landscape or portrait, "depending on my mood".** The page has a layout for each and picks by the shape of its window (§11). | A page designed for landscape only, which is what this plan said before. |
 
 One thing is still to settle when stage 6 starts: **which way the stream is switched on.** The
 environment variable on the launcher touches no game file and can be set for a single session;
