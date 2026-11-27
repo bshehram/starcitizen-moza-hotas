@@ -52,11 +52,22 @@ _NOTICE_FAST = b"[Notice] <"
 _ECHO = b'   "'                                     # the indented echo of a HUD notice
 
 
+# A time outside these years is not a real log time [my reasoning: the oldest log here is from
+# 2026-02], and some platforms cannot even show it as a date (a year 9999 or 0001 made
+# `datetime.fromtimestamp` fail).
+MIN_T = calendar.timegm((2015, 1, 1, 0, 0, 0, 0, 0, 0))
+MAX_T = calendar.timegm((2100, 1, 1, 0, 0, 0, 0, 0, 0))
+
+
 def parse_ts(ts):
-    """'2026-11-26T23:17:10.584' (UTC) -> seconds since the epoch, to the millisecond."""
+    """'2026-11-26T23:17:10.584' (UTC) -> seconds since the epoch, to the millisecond.
+    ValueError for broken digits or a time outside 2015-2099."""
     secs = calendar.timegm((int(ts[0:4]), int(ts[5:7]), int(ts[8:10]),
                             int(ts[11:13]), int(ts[14:16]), int(ts[17:19]), 0, 0, 0))
-    return secs + int(ts[20:23]) / 1000.0
+    t = secs + int(ts[20:23]) / 1000.0
+    if not MIN_T <= t < MAX_T:
+        raise ValueError("time out of range")
+    return t
 
 
 UNREADABLE = "?unreadable"          # the key of a record standing for a line that could not be read

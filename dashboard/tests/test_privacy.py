@@ -18,7 +18,8 @@ import scdash_testlib as lib
 import sanitize
 from scdash import config
 
-BUDGET_S = 4.0                     # learning stops after this long; the newest logs come first
+MIN_LOGS = 15                      # always learn from at least the newest 15 logs, however slow
+BUDGET_S = 4.0                     # then go on, newest first, until this long has passed
 NAMES = [re.compile(p.encode("utf-8")) for p in sanitize.NAME_CONTEXTS]
 IDS = {
     "windows user": [rb"username (\S+) signedIn"],
@@ -52,7 +53,7 @@ def identifiers():
     found.update({k: set() for k in IDS})
     start, read = time.monotonic(), 0
     for path in logs(live):
-        if time.monotonic() - start > BUDGET_S:
+        if read >= MIN_LOGS and time.monotonic() - start > BUDGET_S:
             break
         try:
             if path.stat().st_size > 32 * 1024 * 1024:
@@ -74,6 +75,8 @@ def identifiers():
                         v = (g or b"").decode("utf-8", "replace").strip()
                         if len(v) >= 3 and v not in NOT_SECRET and v.strip("0.") != "":
                             found[kind].add(v)
+    identifiers.logs_read = read
+    identifiers.logs_available = len([p for p in logs(live) if p.stat().st_size <= 32 * 1024 * 1024])
     if not read:
         return None
     found["windows user"].update(v for v in (os.environ.get("USERNAME"), Path.home().name) if v)
@@ -129,6 +132,17 @@ class PrivacyTest(unittest.TestCase):
         for kind in ("player name", "player or character id", "shard", "session id", "server address"):
             self.assertTrue(self.ids[kind], "could not read any %s: the test would be blind" % kind)
         self.assertGreater(len(self.ids["player name"]), 20, "too few names learned: contexts broken?")
+
+    def test_a_slow_machine_still_learns_from_the_minimum(self):
+        if self.ids is None:
+            self.skipTest("no local game log")
+        global BUDGET_S
+        saved, BUDGET_S = BUDGET_S, 0.0                 # as if the clock ran out at once
+        try:
+            identifiers()
+        finally:
+            BUDGET_S = saved
+        self.assertGreaterEqual(identifiers.logs_read, min(MIN_LOGS, identifiers.logs_available))
 
 
 class SanitizerTest(unittest.TestCase):

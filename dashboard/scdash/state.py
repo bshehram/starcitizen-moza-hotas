@@ -34,7 +34,7 @@ from collections import deque
 
 from . import config
 from .names import LocationNames
-from .words import compatible, duration, iso, money, ship_class
+from .words import compatible, duration, fit, iso, money, ship_class
 
 ALERT, MAJOR, MINOR = "alert", "major", "minor"
 
@@ -57,6 +57,7 @@ ACTIVE_KINDS = {"quantum_target", "seat_left", "channel_joined", "ship_retrieved
 # Names that are not anyone's, when a killer or an actor is logged [my reasoning].
 NOT_A_NAME = {"", "unknown", "none", "null", "invalid"}
 OTHER_PLAYER = "another player"
+YOU = "you"                                         # the user's own handle, in public output
 
 
 class State:
@@ -189,17 +190,24 @@ class State:
 
     def scrub(self, obj):
         """`obj` (JSON-like) with every other player's name seen in this session replaced by
-        "another player", in every text, whatever it is."""
-        if not self._others:
+        "another player", and the user's own handle by "you", in every text, whatever it is and
+        wherever it came from."""
+        handle = self.me["handle"]
+        if not self._others and not handle:
             return obj
         if self._others_re is None:
-            alts = "|".join(re.escape(n) for n in sorted(self._others, key=len, reverse=True))
+            names = set(self._others) | ({handle} if handle else set())
+            alts = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
             self._others_re = re.compile(r"(?<![A-Za-z0-9_])(?:%s)(?![A-Za-z0-9_])" % alts, re.I)
         rx = self._others_re
+        mine = handle.lower() if handle else None
+
+        def name_for(m):
+            return YOU if m.group(0).lower() == mine else OTHER_PLAYER
 
         def walk(x):
             if isinstance(x, str):
-                return rx.sub(OTHER_PLAYER, x)
+                return rx.sub(name_for, x)
             if isinstance(x, dict):
                 return {k: walk(v) for k, v in x.items()}
             if isinstance(x, (list, tuple)):
@@ -279,6 +287,8 @@ class State:
 
     def _on_login(self, ev):
         self.me["handle"] = ev.handle
+        self._others.discard(ev.handle)
+        self._others_re = None                      # the scrubber now knows the handle too
         return MINOR, "Logged in"
 
     def _on_character(self, ev):
@@ -453,11 +463,22 @@ class State:
         if q and q["target"] == ev.code and q["vehicle_id"] != ev.vehicle_id and ev.t - q["selected"] < 1.0:
             # Two ships log the same selection at once: a ship and the carrier it sits in [seen:
             # an M80 and the Liberator carrying it, 2026-11-20 8:11:25 PM, the same millisecond].
-            # One travel, which belongs to the ship the user boarded.
-            if self._flies(ev.vehicle_class) and not self._flies(q["vehicle_class"]):
+            # One travel, which belongs to the ship the user boarded: the class that fits its name
+            # best (an exact fit beats a shorter class the name merely contains).
+            if self._fit(ev.vehicle_class) > self._fit(q["vehicle_class"]):
+                old = q["vehicle_id"]
                 q["vehicle_id"], q["vehicle_class"] = ev.vehicle_id, ev.vehicle_class
-                self._vehicle(ev.vehicle_id, ev.vehicle_class)
-                self._ship_seen(ev, ev.vehicle_id, ev.vehicle_class)
+                v = self._vehicle(ev.vehicle_id, ev.vehicle_class)
+                sh = self.ship
+                if sh and sh["own"] and old is not None and sh["vehicle_id"] == old:
+                    ov = self.vehicles.get(old)
+                    if ov is not None and ov["name"] == sh["name"]:
+                        ov["name"] = None               # it was given the wrong ship's name
+                    sh["vehicle_id"], sh["class"] = ev.vehicle_id, ev.vehicle_class
+                    if v is not None and not v["name"]:
+                        v["name"] = sh["name"]
+                else:
+                    self._ship_seen(ev, ev.vehicle_id, ev.vehicle_class)
             return None
         v = self._vehicle(ev.vehicle_id, ev.vehicle_class)
         if v is not None and v["status"] == "seen":
@@ -469,8 +490,14 @@ class State:
 
     def _flies(self, cls):
         """Does this vehicle class fit the ship the user boarded (by its channel name)?"""
+        return self._fit(cls) > 0
+
+    def _fit(self, cls):
+        """How well a class fits the boarded ship's name: 2 exactly, 1 roughly, 0 not."""
         sh = self.ship
-        return bool(sh and sh["own"] and sh["aboard"] and cls and compatible(sh["name"], cls))
+        if not (sh and sh["own"] and sh["aboard"] and cls):
+            return 0
+        return fit(sh["name"], cls)
 
     def _new_jump(self, ev, code, vid, cls):
         q = self.quantum

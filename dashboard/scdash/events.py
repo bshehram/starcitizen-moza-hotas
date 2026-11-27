@@ -19,6 +19,7 @@ and the live feed only; nothing here keeps the Windows user name, the PC name, t
 session ids or server addresses, and the parser never captures them.
 """
 import hashlib
+import math
 import re
 from dataclasses import asdict, dataclass, fields
 from typing import ClassVar, Optional
@@ -551,7 +552,33 @@ STORAGE_RE = re.compile(r"InventoryDataRequest Successful for .*?Inventory\[\d+:
 GADGET_RE = re.compile(r"placed '(Mining_Gadget_[A-Za-z0-9_]+?)_\d+' \[\d+\] (?:on entity '([A-Za-z0-9_]+?)_\d+'|loosely)")
 CELLS_RE = re.compile(r"^\s*(\d+) .*?name: (\S+)")
 TERRAIN_RE = re.compile(r"Planet (\S+) invalidated")
+OWNER_RE = re.compile(r"^.*?'s\s+(\S.*)$", re.S)     # "<owner>'s XL Hangar": the owner is dropped
 TEAM_TAIL_RE = re.compile(r"\s*(?:\[Team_[^\]]*\](?:\[[^\]]*\])*)?\s*$")
+
+
+MAX_DIGITS = 30     # longer than any number in the user's logs [seen: the longest are 13-digit ids]
+
+
+def _num(text):
+    """A float from the log, or ValueError, which makes the line unreadable: never inf or nan,
+    and never from an absurdly long string (400 digits would become inf)."""
+    if text is None:
+        return None
+    if len(text) > MAX_DIGITS:
+        raise ValueError("number too long")
+    x = float(text)
+    if not math.isfinite(x):
+        raise ValueError("number not finite")
+    return x
+
+
+def _int(text):
+    """An int from the log, or ValueError for an absurdly long string."""
+    if text is None:
+        return None
+    if len(text) > MAX_DIGITS:
+        raise ValueError("number too long")
+    return int(text)
 
 
 def _vehicle(text):
@@ -574,7 +601,7 @@ def _h_joystick(rec, base):
     m = JOYSTICK_RE.match(rec.text)
     if m:
         guid = m.group(3).strip("{}") if m.group(3) else None
-        return Joystick(*base, int(m.group(1)), m.group(2), guid)
+        return Joystick(*base, _int(m.group(1)), m.group(2), guid)
 
 
 def _h_login(rec, base):
@@ -620,14 +647,14 @@ def _disconnect(process):
     def handler(rec, base):
         m = DISCONNECT_RE.match(rec.text)
         if m:
-            return Disconnected(*base, int(m.group(1)), m.group(2), process)
+            return Disconnected(*base, _int(m.group(1)), m.group(2), process)
     return handler
 
 
 def _h_quit(rec, base):
     m = QUIT_RE.search(rec.text)
     if m:
-        return Quit(*base, int(m.group(1)), m.group(2).strip())
+        return Quit(*base, _int(m.group(1)), m.group(2).strip())
     return Quit(*base, 0, "")
 
 
@@ -640,7 +667,7 @@ def _h_qt_target(rec, base):
 def _h_route(rec, base):
     m = ROUTE_FUEL_RE.search(rec.text)
     if m:
-        return RouteFuel(*base, _vehicle(rec.text)[1], m.group(1), float(m.group(2)))
+        return RouteFuel(*base, _vehicle(rec.text)[1], m.group(1), _num(m.group(2)))
     m = ROUTE_START_RE.search(rec.text)
     if m:
         return RouteStart(*base, _vehicle(rec.text)[1], m.group(1), m.group(2))
@@ -664,8 +691,8 @@ def _h_loc_inventory(rec, base):
 
 def _h_cells(rec, base):
     m = CELLS_RE.match(rec.text)
-    if m and int(m.group(1)) > 0:
-        return PlanetCells(*base, m.group(2), int(m.group(1)))
+    if m and _int(m.group(1)) > 0:
+        return PlanetCells(*base, m.group(2), _int(m.group(1)))
 
 
 def _h_terrain(rec, base):
@@ -681,9 +708,10 @@ def _h_spawn_info(rec, base):
     hangar = None
     if m.group(2):
         area = TEAM_TAIL_RE.sub("", m.group(2))
-        if "'s\n" in area:                  # "<handle>'s\nXL Hangar": keep the hangar, drop the name
-            hangar = area.split("'s\n", 1)[1].strip()
-        elif area.endswith("'s"):           # the hangar piece never arrived
+        owned = OWNER_RE.match(area)
+        if owned:                           # "<handle>'s\nXL Hangar", or all on one line
+            hangar = owned.group(1).strip() or None
+        elif area.rstrip().endswith("'s"):  # the hangar piece never arrived
             hangar = None
         else:
             hangar = re.sub(r"\s*\[\d+\]", "", area).strip() or None
@@ -700,7 +728,7 @@ def _h_destroyed(rec, base):
     m = DESTROYED_RE.search(rec.text)
     if m:
         return VehicleDestroyed(*base, m.group(2), m.group(1), m.group(3), m.group(4),
-                                int(m.group(5)), int(m.group(6)), m.group(7), m.group(8))
+                                _int(m.group(5)), _int(m.group(6)), m.group(7), m.group(8))
 
 
 def _h_fatal(rec, base):
@@ -744,8 +772,8 @@ def _shop(cls):
     def handler(rec, base):
         m = SHOP_RE.search(rec.text)
         if m:
-            qty = int(m.group(4)) if m.group(4) else None
-            return cls(*base, m.group(1), m.group(3), float(m.group(2)), qty)
+            qty = _int(m.group(4)) if m.group(4) else None
+            return cls(*base, m.group(1), m.group(3), _num(m.group(2)), qty)
     return handler
 
 
@@ -760,13 +788,13 @@ def _h_commodity_sell(rec, base):
     if m:
         b = BOX_RE.search(rec.text)
         box = "%s x %s" % (b.group(2), b.group(1)) if b else None
-        return CommoditySell(*base, m.group(1), m.group(3), float(m.group(2)), m.group(4), box)
+        return CommoditySell(*base, m.group(1), m.group(3), _num(m.group(2)), m.group(4), box)
 
 
 def _h_commodity_buy(rec, base):
     m = COMMODITY_BUY_RE.search(rec.text)
     if m:
-        return CommodityBuy(*base, m.group(1), m.group(3), float(m.group(2)), m.group(4))
+        return CommodityBuy(*base, m.group(1), m.group(3), _num(m.group(2)), m.group(4))
 
 
 def _h_refinery_sell(rec, base):
@@ -778,7 +806,7 @@ def _h_refinery_sell(rec, base):
 def _h_rental(rec, base):
     m = SHOP_RE.search(rec.text)
     if m:
-        return Rental(*base, m.group(1), m.group(3), float(m.group(2)))
+        return Rental(*base, m.group(1), m.group(3), _num(m.group(2)))
 
 
 def _h_offer(rec, base):
@@ -795,7 +823,7 @@ def _h_reuse_channel(rec, base):
 def _h_storage(rec, base):
     m = STORAGE_RE.search(rec.text)
     if m:
-        return StorageCount(*base, m.group(1), int(m.group(2)))
+        return StorageCount(*base, m.group(1), _int(m.group(2)))
 
 
 def _h_gadget(rec, base):
@@ -822,11 +850,10 @@ NOTICE_KINDS = [
     (re.compile(r"^New Objective:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveNew(*b, m.group(1), mid, oid)),
     (re.compile(r"^Objective Complete:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveComplete(*b, m.group(1), mid, oid)),
     (re.compile(r"^Joined hangar queue\.(?:\s*Your place: (\d+)\. Max\. estimated wait: ([\d.]+) s)?"),
-     lambda b, m, mid, oid: HangarQueue(*b, int(m.group(1)) if m.group(1) else None,
-                                        float(m.group(2)) if m.group(2) else None)),
+     lambda b, m, mid, oid: HangarQueue(*b, _int(m.group(1)), _num(m.group(2)))),
     (re.compile(r"^Hangar Request Completed"), lambda b, m, mid, oid: HangarReady(*b)),
     (re.compile(r"^(?:A|(\d+)) Refinery Work Orders? (?:has|have) been Completed at (.+)$"),
-     lambda b, m, mid, oid: RefineryDone(*b, int(m.group(1) or 1), m.group(2))),
+     lambda b, m, mid, oid: RefineryDone(*b, _int(m.group(1) or "1"), m.group(2))),
     (re.compile(r"^Received Blueprint:\s*(.+)$"), lambda b, m, mid, oid: BlueprintReceived(*b, m.group(1))),
     (re.compile(r"^Quantum Travel: Your destination is obstructed"), lambda b, m, mid, oid: QuantumObstructed(*b)),
     (re.compile(r"^Entered (.+?) Jurisdiction$"), lambda b, m, mid, oid: Jurisdiction(*b, m.group(1))),
@@ -837,7 +864,7 @@ NOTICE_KINDS = [
     (re.compile(r"^Incapacitated:"), lambda b, m, mid, oid: Incapacitated(*b)),
     (re.compile(r"^Standby, Local Emergency Services Are En Route"), lambda b, m, mid, oid: EmergencyServices(*b)),
     (re.compile(r"^(Minor|Moderate|Severe|Critical) Injury Detected - (.+?) - Tier (\d)"),
-     lambda b, m, mid, oid: Injury(*b, m.group(1), m.group(2), int(m.group(3)))),
+     lambda b, m, mid, oid: Injury(*b, m.group(1), m.group(2), _int(m.group(3)))),
     (re.compile(r"^Regeneration - Location"), lambda b, m, mid, oid: RegenSet(*b)),
     (re.compile(r"^Medical Bed:"), lambda b, m, mid, oid: MedicalBed(*b)),
 ]

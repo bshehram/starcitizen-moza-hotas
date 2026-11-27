@@ -14,11 +14,15 @@ MAKERS = {"AEGS": "Aegis", "ANVL": "Anvil", "ARGO": "Argo", "BANU": "Banu", "CNO
 
 
 def iso(t):
-    """Seconds since the epoch -> '2026-11-26T23:11:20.067Z', or None."""
+    """Seconds since the epoch -> '2026-11-26T23:11:20.067Z', or None. Never raises: a time no
+    date can show (inf, nan, year 9999 on Windows) gives None."""
     if t is None:
         return None
-    dt = datetime.fromtimestamp(t, timezone.utc)
-    return dt.strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (dt.microsecond // 1000)
+    try:
+        dt = datetime.fromtimestamp(t, timezone.utc)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (dt.microsecond // 1000)
+    except (OverflowError, OSError, ValueError, TypeError):
+        return None
 
 
 def local(t, tz=None):
@@ -59,28 +63,54 @@ def money(x):
     return "{:,.0f}".format(x)
 
 
+ROMAN = {"i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6"}
+MK_RE = re.compile(r"mk(i{1,3}|iv|vi?|\d+)")
+
+
 def _model_words(text, skip_first):
+    """Lower-case words without accents; "Mk II", "MkII", "Mk 2" and "Mk2" all become "mk2"."""
     t = unicodedata.normalize("NFKD", text or "")
     t = "".join(c for c in t if not unicodedata.combining(c)).lower()
     words = [w for w in re.split(r"[^a-z0-9]+", t) if w]
-    return set(words[1:] if skip_first else words)
+    out, i = [], 0
+    while i < len(words):
+        w = words[i]
+        m = MK_RE.fullmatch(w)
+        if m:
+            w = "mk" + ROMAN.get(m.group(1), m.group(1))
+        elif w == "mk" and i + 1 < len(words) and (words[i + 1] in ROMAN or words[i + 1].isdigit()):
+            w = "mk" + ROMAN.get(words[i + 1], words[i + 1])
+            i += 1
+        out.append(w)
+        i += 1
+    return set(out[1:] if skip_first else out)
 
 
-def compatible(name, cls):
-    """Could a ship channel's name ('Anvil C8R Pisces Rescue') be this vehicle class
-    ('ANVL_C8R_Pisces')? The class's model words, after the maker, must all be in the name, and
-    the name may add one more word only when the class has two or more model words, so
-    'Drake Golem OX' is not a 'DRAK_Golem' [names and classes seen together in 2026-11: Pisces,
-    Golem, Golem OX, Liberator, M80, Ursa Medivac, Avenger Titan, Salvation, Perseus, ROC, Hyun,
-    Corsair]."""
+def fit(name, cls):
+    """How well a ship channel's name ('Anvil C8R Pisces Rescue') fits a vehicle class
+    ('ANVL_C8R_Pisces'): 2 exactly, 1 with one extra word in the name, 0 not at all.
+
+    The class's model words, after the maker, must all be in the name; the name may add one more
+    word only when the class has two or more model words, so 'Drake Golem OX' is not a
+    'DRAK_Golem' [names and classes seen together in 2026-11: Pisces, Golem, Golem OX, Liberator,
+    M80, Ursa Medivac, Avenger Titan, Salvation, Perseus, ROC, Hyun, Corsair]. A longer variant
+    name ('Aegis Avenger Titan Renegade') still fits the shorter class with 1, so where two
+    classes compete the exact one (2) wins. An unknown name or class fits with 1."""
     if not name or not cls:
-        return True
+        return 1
     model = _model_words(cls.replace("_", " "), True)
     have = _model_words(name, True)
     if not model or not model <= have:
-        return False
+        return 0
     extra = have - model
-    return not extra or (len(model) >= 2 and len(extra) <= 1)
+    if not extra:
+        return 2
+    return 1 if (len(model) >= 2 and len(extra) <= 1) else 0
+
+
+def compatible(name, cls):
+    """Could a ship channel's name be this vehicle class? (`fit` above it, for a yes or no.)"""
+    return fit(name, cls) > 0
 
 
 def ship_class(cls):
