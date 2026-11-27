@@ -39,7 +39,9 @@ right view from what the log shows, and be readable at a glance from a seat away
 
 ## 3. What it can and cannot know
 
-The game exposes no live data feed. Everything comes from files.
+The dashboard reads files only. The game does have a live data feed, but it is off by default
+and undocumented, and using it is the user's decision: see *The game's telemetry stream* at the
+end of this section.
 
 **Can know, from `LIVE\Game.log` [seen]:** the markers below are in the user's logs. Memory note
 `sc-game-log-reading` has the full list with caveats; derive the real patterns from recent files
@@ -48,8 +50,8 @@ in `LIVE\logbackups\`, not from the wording here.
 | Event | Marker in the log |
 | --- | --- |
 | Joysticks found at launch, in order | `Connected joystick0: <name> {GUID}` |
-| Session start, and its backup name | first line `BackupNameAttachment=" Build(<n>) <date> (<HH MM SS>)"`, then `Log started on ...` |
-| Entered the game world | `[CSessionManager::OnClientSpawned] Spawned!` |
+| Session start, and its backup name | first line `<time> BackupNameAttachment=" Build(<n>) <date> (<HH MM SS>)"  -- used by backup system`, then `Log started on ...`. Like every line, it starts with the UTC time in angle brackets. |
+| Entered the game world, and every respawn after it | `[CSessionManager::OnClientSpawned] Spawned!` (215 times in 63 November logs, so not once per session) |
 | Quantum target chosen | `<Player Selected Quantum Target - Local> ... selected point <CODE>` |
 | Route start and fuel estimate | `<Calculate Route> ... Projected Start Location is <name> for route to destination <CODE>` and `... fuel estimate <n>` |
 | Quantum arrival | `<Quantum Drive Arrived - Arrived at Final Destination>` |
@@ -57,26 +59,73 @@ in `LIVE\logbackups\`, not from the wording here.
 | Ship retrieved | `SetVehicleSpawningInformations - VehicleEntityId: [<id>]` |
 | Ship name | notice `You have joined channel '<Ship name> : <handle>'` |
 | Left the pilot seat, with ship class | `<Vehicle Control Flow> ... ClearDriver ... '<CLASS>_<id>'` |
-| HUD notices | `<SHUDEvent_OnNotification> Added notification "<text>"`: jurisdiction, armistice, monitored space, hangar queue and "Hangar Request Completed", "A Refinery Work Order has been Completed at <station>", "destination is obstructed", medical bed, "Regeneration - Location", "Local Emergency Services" |
+| HUD notices | `<SHUDEvent_OnNotification> Added notification "<text>"`: jurisdiction, armistice, monitored space, hangar queue and "Hangar Request Completed", "A Refinery Work Order has been Completed at <station>", "destination is obstructed", medical bed, "Regeneration - Location", "Local Emergency Services". Each notice is logged up to three times and can span lines: see *Reading the lines* below. |
+| Contract accepted, completed | notices `Contract Accepted:  <title>: ` and `Contract Complete: <title>: `, each line carrying `MissionId: [<guid>]` (272 and 77 in the November logs) **[seen 2026-11-27]** |
+| Objectives | notices `New Objective: <text>` and `Objective Complete: <text>` (468 and 172) **[seen 2026-11-27]** |
+| Contract ended, and how | `<EndMission> Ending mission for player. MissionId[<guid>] ... CompletionType[Complete]` or `[Abandon]`, then `Reason[...]` (20) **[seen 2026-11-27]** |
+| Fatal crash into something | `<FatalCollision> Fatal Collision occured for vehicle <CLASS>_<id> [Part: ..., Zone: <zone>, PlayerPilot: 1] after hitting entity: ...` (4) **[seen 2026-11-27]** |
 | Blueprint received | `Received Blueprint` |
 | Ship destroyed | `<Vehicle Destroyed> Vehicle '<CLASS>_<id>' ... reason [<r>] ... killer '<name>'` (other players' ships appear too: match the entity id) |
-| Death and lost items | `[ActorState] Dead`, one `ItemRecoveryEntitlement` line per item |
+| Thrown out of a destroyed ship | `<[ActorState] Dead> ... Actor '<handle>' ... ejected from zone '<CLASS>_<id>' ... due to previous zone being in a destroyed vehicle` (19 in November) **[seen 2026-11-27]**. It is not a death marker by itself: another tool's notes say only about 60% of these coincide with a death **[ref]**. |
+| Death with gear lost | a burst of `ItemRecoveryEntitlement` lines, one per item. A fall that only downs the user logs neither this nor the line above (memory note `sc-game-log-reading`). Another tool warns the burst can also be for a body nearby **[ref: CSR]**. |
+| Downed, injured | notices `Incapacitated: ...` (35) and `<Minor/Moderate/Severe> Injury Detected - <part> - Tier <n> Treatment Required` (2) **[seen 2026-11-27]** |
+| Refinery order(s) done | notice `A Refinery Work Order has been Completed at <station>` or, for several at once, `<n> Refinery Work Orders have been Completed at <station>` (51 and 7) **[seen 2026-11-27]** |
+| Clean exit from the game | `<SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via console command, exitCode=0`, in 63 of the 65 November logs **[seen 2026-11-27]**. A log that ends without it ended in a crash or a kill. |
+| The user's own handle | `<Legacy login response> [CIG-net] User Login Success - Handle[<handle>]`, once per launch **[seen 2026-11-27]** |
+| A planet or moon coming into range | `<InvalidateAllTerrainCells> Planet OOC_Stanton_4_Microtech invalidated all terrain cells` (376 in 16 logs) **[seen 2026-11-27]**. Fires on loading and on unloading, so it says "near", not "at". |
+| Commodity names at a trade kiosk | `LoadShopInventoryData ... AddingCommodityBox ... shopName[...] commodityName[ResourceType.<Name>]` when the kiosk lists its goods (153 lines in one log) **[seen 2026-11-27]**. Whether the line also carries the resource id is **[verify]**. |
+| Which contract a mission id is | `<CLocalMissionPhaseMarker::CreateMarker> ... missionId [<guid>], generator name [<giver>_<kind>], contract [<internal name>]` (110) **[seen 2026-11-27]** |
 | Shop purchases and sales | `SendShopBuyRequest` / `SendShopSellRequest` (shop, price, item) and `ShopFlowResponse ... result[...]` |
 | Ore sold to a refinery | `OnRefineryRequest ... SShopRefineryRequest ... shopName[SCShop_RefineryAdmin_ORE]` |
 | Commodity sold or bought at a trade terminal | `SendCommoditySellRequest` / `SendCommodityBuyRequest`: shop name, amount in aUEC, a resource id, quantity and box size. Seen 2026-11-26 at the New Babbage TDD. The commodity is an id, not a name. |
 | Joined a server | `<Join PU> ... shard[...]` |
-| Ship stowed | `[STOWING ON UNREGISTER] ... Attempting to stow current vehicle [<id>]` |
+| A ship stowed: the user's, or anyone's nearby | `[STOWING ON UNREGISTER] ... Attempting to stow current vehicle [<id>]`. Logged for every hangar around, 1,042 times in the November logs. It is the user's ship only when `<id>` matches their own `SetVehicleSpawningInformations` **[seen 2026-11-27]**. |
 | Storage item count | `Freight Inventory Grid InventoryDataRequest Successful ... Item Count:[<n>]` |
 | Mining gadget placed, with the rock's ore | `placed 'Mining_Gadget_<name>_<id>' on entity 'MineableRock_<kind>_<ore>_<id>'` |
 | Which planet or moon, every 10 minutes | `PHYSICS INSTANCE STATS` block, the `planet cells:` line with a non-zero count |
 | Screenshot taken | `ScreenShot: ScreenShots/<name>.jpg` |
-| Session end and why | `<Channel Disconnected> cause=<n>`: 30016 when the user quit, 30028 inactivity kick. 30010 also appears between the menu and the game and is not an end. `<Channel Process Disconnection>` is in the logs too; other tools prefer it because it also carries crashes (cause 30013), and they note that 30016 is logged for a server drop as well as a deliberate quit **[ref, §14]**. |
+| Leaving the game world, and why | `<Channel Disconnected> cause=<n> reason="..."`, with a twin `<Channel Process Disconnection>` line. Counted in the November logs **[seen 2026-11-27]**: 30016 "Player requested disconnect" (54) is a quit. 30016 "DisconnectCmd: disconnect light ExitToMenu" (2) is a return to the menu, so the session goes on. 30028 "player inactive" (1) is the inactivity kick. 30010 "Nub destroyed" (160) appears between the menu and the game and is not an end. 30013 appears only on `<Channel Process Disconnection>` (3), with a reason starting "Remote Disconnect - Signal raised ...": the *server* crashed. A crash of the game itself leaves no line at all (the log just stops), so that case is read from the process going away. Other tools say 30016 is also logged for a server drop **[ref, §14]**. |
 
-Markers other tools use that the user's logs have not yet been checked for **[ref, §14]**:
-contract notices whose text starts `Contract Accepted:`, `Contract Complete:` or
-`Contract Failed:`, objective notices (`New Objective:`, `Objective Complete:`), `<EndMission>`,
-`granted control token for '<CLASS>_<id>'` on taking the pilot seat, and
-`Fatal Collision occured for vehicle`. Confirm each in a real log before using it.
+Markers other tools use that are **not** in the user's November logs **[seen 2026-11-27]**:
+`Contract Failed:` (perhaps only because no contract failed), `granted control token for
+'<CLASS>_<id>'` on taking the pilot seat (the logs have only the *releasing* line on leaving it,
+so taking a seat is still read from the `You have joined channel` notice), and `<Actor Death>` /
+`CActor::Kill` (another tool's code says the publisher removed these in late 2025). Don't build on
+them.
+
+**Reading the lines [seen 2026-11-27: 65 November logs, 528,724 lines].**
+
+- **Encoding.** UTF-8 with no byte-order mark. Every line decoded cleanly, and the longest was
+  1,181 bytes. Decode with replacement all the same, never strictly: another tool's notes record
+  a stray Windows-1252 byte in mission text that stalled its reader for good **[ref: StarStats]**.
+- **A notice can span lines.** When a notice's text contains a line break, the log splits it, and
+  each piece gets its own time prefix but only the first has the `[Notice] <Tag>` part:
+
+  ```
+  <time> [Notice] <SHUDEvent_OnNotification> Added notification "Joined hangar queue.
+  <time> Your place: 2. Max. estimated wait: 200.000000 s.: " [3] to queue. New queue size: 1, MissionId: [...]
+  ```
+
+  The second line holds the wait estimate that the stuck-queue alert needs. So a timed line with
+  no `[Level]` part continues the record above it, and a notice is complete only once its closing
+  quote has arrived.
+- **A notice is logged up to three times:** the `<SHUDEvent_OnNotification> Added notification`
+  record, an indented echo of the quoted text, and an `<UpdateNotificationItem>` line. Match the
+  first only, or every notice counts two or three times.
+- **Some lines have no time at all:** 7,789 of them (1.5%), ending in a bare LF where timed lines
+  end in CR LF. They are the inner lines of multi-line debug dumps. Skip them.
+- **Two families of location code.** Quantum targets look like `LOC_RR_S3_L1` and
+  `OOC_Stanton_3b_Wala`. Inventory locations look like `RR_ARC_L1` and `Stanton4_NewBabbage`.
+  `locations.json` needs both, and a leg in `plan.json` may list codes from either.
+- **Size and speed.** November logs run from 32 KB to 5.4 MB (median 1.4 MB) and grow at about
+  0.6 KB a second over a session, with 18 KB written in the first 10 seconds of a launch and
+  160 KB in the first 30. Five older logs are far larger: 376 MB, 208 MB, 54 MB, 48 MB and 13 MB,
+  all from February and March 2026, from error floods that reached about 3.7 MB a second. A plain
+  Python loop with one compiled filter read all of these at about 120 MB a second on this PC.
+- **More than the handle is personal.** A log also carries the Windows user name (`username ...
+  signedIn`), the PC's name (`<Hostname>`), the account id and character id
+  (`<AccountLoginCharacterStatus_Character>`), the player id on many lines, session ids, and
+  server addresses. §8 and §13 cover what that means for test samples.
 
 Location codes look regular **[verify against `global.ini`]**: `LOC_RR_S3_L4` was ARC-L4 and
 `LOC_RR_S4_L2` was MIC-L2, so `S1`-`S4` look like Hurston, Crusader, ArcCorp and microTech. Some
@@ -85,9 +134,53 @@ names mislead: Stanton's Nyx Gateway is `RR_JP_StantonMagnus`.
 **Can know, from other files:** new Game Bar captures in `%USERPROFILE%\Videos\Captures` (name and
 time only), and the plan data Claude maintains (§10).
 
-**Cannot know [seen]:** speed, fuel, shields, cargo, what was mined, the quality of anything, or
-the start of a refinery order. The log only records a refinery order when it completes. Show
-nothing for these; a gap is better than a guess.
+**Cannot know from the log [seen]:** speed, fuel, shields, cargo, what was mined, the quality of
+anything, or the start of a refinery order. The log only records a refinery order when it
+completes. Show nothing for these; a gap is better than a guess. The telemetry stream below
+covers speed and fuel and nothing else on this list.
+
+**The game's telemetry stream [ref, 2026-11-27: other tools' code and notes, and the names of
+settings read from the installed game's program file; it has never been switched on here].**
+
+- **What it is.** Since about 4.10.2 the game holds a small local server,
+  `sc.game.telemetry.v1.GameTelemetryService`, at `127.0.0.1:2942`: gRPC over plain HTTP/2, no
+  sign-in, read-only in this build. The publisher built it. It grew out of the motion-seat
+  support announced in May 2026, where staff wrote that telemetry output would be expanded "to
+  support other channels and integrations". It is not in any patch notes, and no statement
+  permits or forbids outside programs using it.
+- **How it is switched on.** Two ways are reported for the user's build. An environment variable
+  on the launcher, `GRPC_CLIENT_SERVER_ENABLED=true` (CommandGlass, Wingman AI and others), which
+  touches no file. Or a line in `LIVE\user.cfg`, `grpc.client.server.enabled = true` (CSR's
+  notes, dated 2026-11-24 on build 13220821). Neither was tried here. On this PC `user.cfg` does
+  not exist, the variable is not set, and the logs show the service was never registered
+  **[seen 2026-11-27]**. The earlier note that a `user.cfg` line switches it on was half right:
+  the other line in circulation, `server.game.telemetry.enabled`, belongs to the 5.0 test builds.
+- **What it would add** (build 4.10.201): the aUEC balance, hydrogen fuel, speed, health and the
+  other vitals, taking and leaving a seat as events (the log only has leaving), landing gear and
+  VTOL state, coupled or decoupled, the ship's warning lights, which systems are powered, and
+  countermeasure counts. About 15 to 18 full snapshots a second.
+- **What it still would not give:** position or location, shield or hull values, cargo, anything
+  about mining, contracts. So it does not close the gaps that matter most to the mining and
+  crafting plans.
+- **Where it stands (the user, 2026-11-27).** 5.0 is expected within weeks and is expected to
+  make this stream much bigger. The 5.0 test builds add shields, master mode, quantum state and
+  destination, a named location, jurisdiction and the tracked contract **[ref]**. The user wants
+  the dashboard able to use it. So it is designed in from the start as a second, optional source
+  (§5) with its own build stage (§12), and the dashboard must work fully without it.
+- **Cautions that still hold.**
+  - It is undocumented, and the terms of service have a clause against using "features which are
+    not documented" for advantage and one against connections "not expressly approved". Whether
+    either reaches a read-only local display is unsettled. No trouble has been reported.
+  - It may change or vanish: the publisher switched it off in the two newest 5.0 test builds. So
+    every telemetry panel disappears cleanly when the stream is not there, and nothing else
+    depends on it.
+  - In the 5.0 test builds the same port also accepts game actions. The dashboard never uses
+    them: it calls the one read-only stream method and nothing else (§8).
+  - Switching it on changes something outside this repo (an environment variable for the
+    launcher, or a line in the game's `user.cfg`), so the user is asked first, with both ways
+    explained (§15).
+  - Python's standard library has no HTTP/2 client. CSR has a small one, with a protobuf decoder,
+    under the MIT license.
 
 **Others have built this before [ref, §14].** Several community tools follow `Game.log` live and
 were updated for 4.10 in November 2026: CSR (`github.com/archelium/csr`), StarStats
@@ -134,6 +227,23 @@ local service with nothing online.
 **Views switch by themselves.** A small table of rules maps the state to a view (§11). A view
 picked by hand stays until the context next changes.
 
+### With the telemetry stream (its own stage, §12)
+
+Everything above works from the log alone. When the game's telemetry stream (§3) is on, the
+dashboard adds:
+
+14. **Ship state on the status strip.** Hydrogen fuel, speed, the aUEC balance, coupled or
+    decoupled, landing gear, VTOL, which systems are powered, and countermeasures left. Several
+    of these are things the rig switches with no light of its own: the AB6 wing power panel, the
+    decoupled toggle, the gear lever ([`../CLAUDE.md`](../CLAUDE.md) §4).
+15. **Taking the pilot seat as an event.** The log only records leaving it.
+16. **Whatever 5.0 adds that the views can use:** a named location, quantum destination and
+    state, the tracked contract. To be read from the stream itself once 5.0 is installed, not
+    from this list.
+
+These parts are hidden whenever the stream is not connected. Nothing in the log-driven views
+waits for them.
+
 ### Later, each only if the user asks
 
 - Switching views from the keyboard while the game has focus, through a system-wide hotkey
@@ -145,7 +255,8 @@ picked by hand stays until the context next changes.
 - Switching views from the stick base's two unbound levers. The page cannot read them: the browser
   exposes at most 32 buttons per device and these are numbered 57 to 62 **[ref: Chromium source,
   §14]**. The service would have to read the stick itself through DirectInput.
-- Contract tracking, once the markers for accepting and completing a contract are confirmed.
+- Contract tracking. The markers are now confirmed in the user's logs (§3), so whether it moves
+  into the first version is a decision in §15.
 
 ## 5. Shape
 
@@ -157,6 +268,7 @@ dashboard/
     config.py          paths and defaults
     tail.py            log follower
     events.py          log line -> event
+    telemetry.py       the game's telemetry stream -> events (optional second source, §3)
     state.py           events -> state (a pure function)
     server.py          local web server and event stream
     service.py         main loop, single instance, lifecycle
@@ -170,6 +282,13 @@ dashboard/
 Data flows one way: `Game.log` -> follower -> events -> state -> page. The state is always a pure
 function of the log read so far plus the plan data. That one property gives most of the
 idempotence in §7.
+
+**Two sources, one state.** The telemetry stream, when it is on, is a second producer of events
+into the same state: stream -> reader -> events -> state. The state and the views never ask where
+an event came from. Telemetry values are live readings, not history, so they are shown while the
+stream is connected and dropped when it is not; they are never written into the session records
+as if the log had said them. The reader decodes about one snapshot a second and lets the rest go
+by, since the stream sends 15 or more.
 
 **Standard library only**, so there is nothing to install and nothing extra in memory. The repo's
 tools must stay usable on a Mac ([`../tools/CLAUDE.md`](../tools/CLAUDE.md)), so keep every
@@ -191,6 +310,10 @@ user's own settings. The project also asks the user before anything that needs a
 
 - **Process:** `pythonw.exe dashboard\scdash.py run --background`. No console window. Under
   `pythonw` the standard output streams can be missing, so everything is logged to a file.
+  `pythonw.exe` is at `%LOCALAPPDATA%\Programs\Python\Python312\` on this PC, and the `pyw.exe`
+  launcher is installed too **[seen 2026-11-27]**. The task names the interpreter by its full
+  path, which stops working when Python moves to a new folder on an upgrade: `install` records
+  the path it used, and `status` says so when that path is gone.
 - **Starts by itself:** a Task Scheduler task registered from an XML file **[ref, §14]**:
   - The logon trigger names the user's own account. That is the only form a non-admin may
     register. `schtasks /Create /SC ONLOGON` means "any user" and is refused with "Access is
@@ -207,8 +330,22 @@ user's own settings. The project also asks the user before anything that needs a
 - **Stays up by itself:** do not count on the task's `RestartOnFailure`. Field reports say it
   does not fire after a crash or a kill. The main loop catches its own errors, logs them and
   carries on, and the repeating trigger is the backstop.
+- **One way in, and a stop that stays stopped.** The repeating trigger has two side effects to
+  design around (found in review, 2026-11-27):
+  - The scheduler only knows about an instance it started itself. A copy started any other way
+    would make it launch a second one every five minutes, each finding the lock and exiting. So
+    when the task is installed, `start` goes through it (`schtasks /Run`).
+  - A deliberate `stop` would be undone within five minutes. So `stop` also writes a marker file
+    in `data/`, a background start that finds the marker exits at once, and `start` removes it.
 - **Idles cheaply:** with no game running it does nothing but look for the game process every 10
-  seconds.
+  seconds. Read the process list with the Toolhelp snapshot calls (`CreateToolhelp32Snapshot`,
+  `Process32NextW`) through `ctypes`: they return the names without opening any process. Do not
+  run `tasklist`, PowerShell or a WMI query for this: starting a program every 10 seconds costs
+  far more than the whole budget in §9.
+- **Priority is inherited.** A program started by a below-normal process starts below normal
+  too **[seen 2026-11-27 with a Python parent and child]**, so the browser window the service
+  opens runs below normal as well. That suits a display that should yield to the game; just
+  don't be surprised by it when measuring.
 - **Follows the game:** when the game starts it begins reading the log, and can open the
   dashboard window on the side monitor. When the game has been closed for a few minutes it can
   close the window it opened, to give the memory back. Both are settings (§15).
@@ -218,8 +355,9 @@ user's own settings. The project also asks the user before anything that needs a
   `allow_reuse_address = False` and `SO_EXCLUSIVEADDRUSE`, which the same test showed refuses a
   second bind. The scheduler's `IgnoreNew` only stops copies the scheduler itself starts, so the
   mutex has to cover a manual `start` as well. `data/run.json` records the process id, port,
-  start time and a random token. A health endpoint returns the program's name and that token, so
-  a foreign program on the port is never mistaken for the service.
+  start time and a random token. A health endpoint returns the program's name, process id and
+  start time, which the commands compare with `run.json`, so a foreign program on the port is
+  never mistaken for the service. It does not return the token (§8).
 
 | Command | What it does | When repeated |
 | --- | --- | --- |
@@ -250,6 +388,19 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
   state. Nothing is counted twice.
 - **Restart mid-session:** the service reads the current log from the top and arrives at the same
   state as if it had watched live.
+- **What the state depends on besides the log.** Three things: the plan data, what the user set
+  on the page (quick timers, a view picked by hand), and the clock (countdowns, a queue that has
+  waited too long). So the precise promise is: the same log, plan, user settings and clock give
+  the same state. To keep it, everything derived from an event uses the event's own time, never
+  the time it was read. Two things go wrong otherwise when a restart rereads the log:
+  - An alert for something that happened two hours ago pops up again. Alerts expire by event
+    time.
+  - An old "work order completed" notice clears a newer timer at the same station. A notice
+    clears a timer only when the timer's `ready_at` is at or before the notice's time, give or
+    take a few minutes. The notice names the station and nothing else ("... Completed at MIC-L2
+    Long Forest Station"), so with two orders at one station it clears the earliest that fits.
+- **The one thing that cannot be rebuilt** is what the user entered on the page. Quick timers
+  live only in `data/state.json`, so that file is their record, not a cache.
 - **Files it writes:** written to a temporary file and then renamed into place, so a crash never
   leaves half a file. Only `data/` is ever written.
 - **Plan data:** Claude rewrites `data/plan.json` whole each time. The dashboard never edits it.
@@ -260,7 +411,9 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 
 **The game.**
 
-- Read-only, always. Nothing under `LIVE\` is ever written, moved or locked.
+- Read-only toward the game, always. None of the game's own files is ever written, moved or
+  locked. This repo sits inside `LIVE\user\`, so the dashboard's own files are the one thing
+  written under `LIVE\`; §10 (*Where its own files live*) keeps those few and small.
 - It stays outside the game process: no memory reading, no injection, no overlay in the game
   window, no input sent to the game. It never opens a handle to `StarCitizen.exe`; it only looks
   for the name in the process list.
@@ -270,30 +423,52 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
   Nothing was found that mentions reading the log, in either direction, and no report of trouble
   from a tool that only reads it. That is an absence of objection, not an approval, so stay
   strictly read-only.
+- **Telemetry, when it is on (§3).** The reader connects only to `127.0.0.1` on the game's
+  telemetry port and calls only the read-only stream method. It never calls a method that makes
+  the game do something, whatever a later build offers. It caps the size of what it will accept
+  and treats every byte as untrusted. It does not switch the stream on: that is a step the user
+  takes.
 - Other players' names appear in the log. Show them at most in the live feed, and never write
   them to the session records.
 - **The log must never be held open.** At each launch the game copies the old `Game.log` into
   `logbackups\` and starts `Game.log` again **[seen 2026-11-26: each backup's creation time is the
-  next launch's start, and it has its own file id]**. Whether it truncates the file in place or
-  deletes and recreates it is **[verify]**. A reader that holds the file open without allowing
-  deletion could block the second case, and Python's own `open()` does not allow it on Windows.
-  So open the file through `CreateFileW` with read, write and delete sharing, read the new bytes,
-  and close it again on every poll. Other tools reopen the file on every read too, and no report
-  of one blocking the game turned up **[ref]**. Then prove it: run the follower across a real game
+  next launch's start, and it has its own file id]**. It empties `Game.log` in place; it does not
+  delete and recreate it **[seen 2026-11-27: the file id was still `0x...2800000001d25f` after the
+  6:23 PM launch on 2026-11-26, the same id noted before that launch, and the file's creation
+  time is still 2026-02-02, the date of the oldest backup]**. So in this build there is no delete
+  for a reader to block. Keep the careful form anyway, in case a patch changes that: open the file
+  through `CreateFileW` with read, write and delete sharing, read the new bytes, and close it
+  again on every poll. Other tools reopen the file on every read too, and no report of one
+  blocking the game turned up **[ref]**. Then prove it: run the follower across a real game
   launch and confirm the backup appears and the new log starts.
-- A session is identified by the first line of the log (`BackupNameAttachment=...`). When that
-  line changes or the file gets shorter, start a new session from offset 0.
+- **Take the size from the open file.** Each poll opens the log, seeks to the saved offset, reads
+  to the end and closes. Don't check `os.stat` first and skip the read: Windows can report an old
+  size for a file another program is still writing **[verify; reading this way avoids the
+  question]**.
+- A session is identified by the first line of the log (`BackupNameAttachment=...`). Compare that
+  line on **every** poll, and start a new session from offset 0 when it has changed or the file
+  is shorter than the saved offset. The size test alone is not enough: a new log passes 18 KB
+  within 10 seconds of a launch and 160 KB within 30, and the shortest November log is 32 KB, so
+  after any pause the new log can already be longer than the old offset **[seen 2026-11-27]**.
 
 **The PC.**
 
 - No administrator rights, at install or at run time.
 - The server binds to `127.0.0.1` only, so nothing else on the network can reach it.
 - It makes no outbound connections, and the page loads nothing from the internet: system fonts,
-  no CDN.
+  no CDN. That covers the service and the page. The browser that shows the page is another
+  matter: a new browser profile contacts its maker by itself (updates, safety checks) unless told
+  not to. So the switches in §11 that turn that off are required, and what still goes out is
+  checked once with the window open **[verify]**.
 - It serves a fixed list of its own files. No path from a request is ever used to open a file.
-- Requests that change anything (timers, forced view, shutdown) need the token in a custom header
-  and a JSON body, and the `Host` header must be the local address. Together these stop another
-  web page in the user's browser from driving the dashboard.
+- **Every** request, reads included, must carry a `Host` header of `127.0.0.1:<port>` or
+  `localhost:<port>`; anything else is refused. Without that check on reads, a web page that
+  points its own domain name at 127.0.0.1 could read the state and the event stream, which hold
+  the user's handle and location.
+- Requests that change anything (timers, forced view, shutdown) also need the token in a custom
+  header and a JSON body. The page finds the token in the HTML the service serves to it; no
+  endpoint hands it out. Together with the `Host` check, this stops another web page in the
+  user's browser from reading or driving the dashboard.
 - Bounded everything: line length, feed length, session records kept, its own log size.
 - It runs at below-normal priority, so it yields to the game.
 - It only ever closes a browser window it opened itself, identified by process id and start time.
@@ -302,9 +477,13 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 
 - The user's handle appears in log lines (channel names, hangar names). It stays in memory and in
   `data/`, and never goes into a tracked file.
-- `dashboard/data/` is git-ignored. Test samples use an invented handle.
-- Before each commit, search the staged changes for the real handle. A test can do this too,
-  reading the handle from the local config and skipping when there is none.
+- `dashboard/data/` is git-ignored.
+- A log line carries more than the handle (§3, *Reading the lines*): the Windows user name, the
+  PC's name, the account id, the character and player ids, session ids and server addresses.
+  Test samples have every one of these replaced with invented values, not just the handle.
+- Before each commit, search the staged changes for the real handle, Windows user name, PC name,
+  account id and player id. A test can do this too, reading them from the local config and the
+  current log, and skipping when there is none.
 - `data/plan.json` holds the user's progress and is never committed. `plan.example.json` shows
   the schema with invented content.
 
@@ -312,18 +491,25 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 
 Budgets to measure against, not promises. Record the measured figures in `dashboard/CLAUDE.md`.
 
-| What | Budget |
-| --- | --- |
-| Service memory | 30 MB or less |
-| Service CPU, game running | 0.2% of one core or less, averaged over 10 minutes |
-| Service CPU, no game | effectively zero: one process check every 10 seconds |
-| Reading a whole 5 MB log at startup | 1 second or less |
-| Dashboard window, whole browser process tree | 250 MB or less. Expect 100 to 200 MB **[ref: an estimate from measurements of the same engine, §14; measure it]** |
+| What | Budget | Measured 2026-11-27 with a stand-in, game not running **[seen]** |
+| --- | --- | --- |
+| Service memory | 30 MB or less | 12 MB private, 22 MB working set: Python with a web server, one event stream, `json`, `re`, `ctypes` |
+| Service CPU, game running | 0.2% of one core or less, averaged over 10 minutes | No measurable CPU over 10 seconds while pushing one update a second to one page. Log reading not included. |
+| Service CPU, no game | effectively zero: one process check every 10 seconds | not measured |
+| Reading a whole 5 MB log at startup | 1 second or less | About 0.04 seconds (120 MB a second). The 376 MB log took about 3 seconds. |
+| Dashboard window, whole browser process tree | 250 MB or less of *private working set*, the figure Task Manager shows as memory | Edge app window with its own profile, 1100x700: 11 processes, **108 MB** private working set, 292 MB committed, 0.6% of one core for an update a second. The summed working sets read 552 MB, because shared pages are counted in every process: don't use that figure. |
+| For comparison, a native window | none set | The same content drawn by Python's own `tkinter`: one process, **12 MB** private working set, 15 MB committed (§15) |
+| Telemetry reader, when the stream is on | 1% of one core or less, and no more than 5 MB added to the service | not built. One other tool's author reports about 59 MB and 1% of a core for a whole Node service doing this **[ref: SC Companion's README]**. |
+
+The stand-in scripts were scratch files and are not in the repo. The figures need taking again on
+the real program, with the game running and the window on the side monitor.
 
 How to stay inside them:
 
-- **Read only what is new.** Check the log's size once a second with `os.stat`, then read just
-  the appended bytes. Never reread the file.
+- **Read only what is new.** Once a second, open the log, read just the bytes past the saved
+  offset, and close it (§8). Never reread the file. Read in pieces of at most 1 MB, so that an
+  error flood (§3: up to 3.7 MB a second) or a restart on a very large log cannot grow the
+  service's memory. A flood costs a few percent of one core while it lasts; that is accepted.
 - **Filter before matching.** One compiled pattern decides whether a line matters at all. Most
   lines are discarded after that single test.
 - **Push, never poll.** The page holds one event stream open. The server sends the state only
@@ -340,9 +526,18 @@ How to stay inside them:
 If the window goes over budget, measure with the browser's own task manager (Shift+Esc) before
 changing anything. Showing the page in the browser the user already has open would cost roughly
 one page less **[ref]**, but the placement switches are then ignored and their extensions run in
-the page. The research turned up no way to show an HTML page in tens of megabytes.
+the page. The research turned up no way to show an HTML page in tens of megabytes. A native
+window does fit in tens of megabytes, at the price of not being a web page: that choice is the
+user's, in §15.
 
 ## 10. Data
+
+**Where its own files live.** `dashboard/data/` (git-ignored) holds only small text files: the
+plan, the config, the state, session records and the service's log. The browser's profile folder
+does not go there. It goes in `%LOCALAPPDATA%\scdash\browser`: one 35-second run left 284 files
+and 18 MB in it **[seen 2026-11-27]**, and it keeps changing for as long as the window is open.
+Inside the repo it would sit in the game's folder and in the VS Code workspace, where the
+editor's file watcher would follow every change (the watcher part is my reasoning, not measured).
 
 **`data/plan.json`: the user's plan, local only.** Claude writes it in the same routine that
 updates the game plan page, so the page, memory and the dashboard always agree. The dashboard
@@ -386,7 +581,17 @@ last good copy and shows a small notice.
 ```
 
 The location codes in this example are guesses from the pattern in §3. Use the codes the log
-actually prints.
+actually prints, from either family (§3, *Reading the lines*).
+
+Two things the page has to be honest about:
+
+- **Held amounts are only as fresh as `updated`.** The log cannot see what is mined or carried
+  (§3), so nothing moves `held_scu` during play. The page prints the `updated` time beside every
+  held figure.
+- **Times carry their offset.** Read them with `datetime.fromisoformat` and convert with
+  `astimezone()` and no argument. Python's `zoneinfo` has no time-zone data on Windows without an
+  extra package, so a zone name such as `America/Los_Angeles` would break the
+  standard-library-only rule **[ref: Python's `zoneinfo` documentation]**.
 
 **`reference/`: generic game data, committed.** Nothing here is personal. Every file carries its
 source and date, and marks each figure as read from the game's files or taken from a community
@@ -420,8 +625,10 @@ files, all local, all bounded.
 **Opening the window [ref, §14].** Use the browser's app mode with a profile folder of its own:
 
 ```
-msedge.exe --user-data-dir=<dashboard\data\browser> --app=http://127.0.0.1:<port>/
+msedge.exe --user-data-dir=<%LOCALAPPDATA%\scdash\browser> --app=http://127.0.0.1:<port>/
            --window-position=<x>,<y> --start-fullscreen --no-first-run
+           --no-default-browser-check --disable-background-networking
+           --disable-component-update --disable-sync
 ```
 
 - The separate profile folder is required. Without it the launch is handed to the browser that is
@@ -429,9 +636,10 @@ msedge.exe --user-data-dir=<dashboard\data\browser> --app=http://127.0.0.1:<port
 - `<x>,<y>` is any point well inside the side monitor. Full screen then fills that monitor. F11
   leaves full screen and Alt+F4 closes the window.
 - Do not use `--kiosk`: it ignores placement and is awkward to leave.
-- `--disable-background-networking`, `--disable-component-update` and
-  `--no-default-browser-check` are low-risk for a page served from this PC. Leave `--disable-gpu`
-  and `--single-process` alone.
+- `--disable-background-networking`, `--disable-component-update`, `--disable-sync` and
+  `--no-default-browser-check` are required: they keep the new profile from going online by
+  itself (§8). The stand-in window in §9 ran with them **[seen 2026-11-27]**. Leave
+  `--disable-gpu` and `--single-process` alone.
 - A window that is visible but not focused keeps updating at full rate. One that is minimized or
   fully covered is slowed down, which costs nothing here.
 - The game should run in borderless window mode, so a click on the side screen does not minimize
@@ -440,6 +648,12 @@ msedge.exe --user-data-dir=<dashboard\data\browser> --app=http://127.0.0.1:<port
   known for 4.10. An old report (2020) had the throttle latching when the game lost focus. Until
   it has been tested on the ground, the user should not click the side screen while flying, and
   the dashboard must never take focus by itself.
+- Opening the window did not take focus in one test: a background process started the Edge app
+  window while another program was in front, and that program was still in front 3 and 25
+  seconds later **[seen 2026-11-27; the game was not running]**. Stage 4 repeats it with the game
+  in front.
+- A service that restarts mid-session must not open a second window. The old page reconnects by
+  itself within seconds, so wait for that before deciding a window is needed.
 
 View rules, kept as a small table in code so they are easy to tune:
 
@@ -465,8 +679,8 @@ check that can actually fail.
 2. **Service and a minimal page.** `run`, `start`, `stop`, `status`, single instance, the event
    stream, the status strip and the feed, `replay`.
    *Done when:* `start` twice leaves one instance, `stop` twice is clean, `replay` of a past log
-   shows the session unfolding, and the follower has been run across a real game launch without
-   disturbing the log rotation.
+   shows the session unfolding, a 100 MB flood of junk lines does not grow the service's memory,
+   and the follower has been run across a real game launch without disturbing the log rotation.
 3. **Views and plan data.** The reference files, `plan.json`, the views, the view rules, alerts,
    timers.
    *Done when:* a replay of a mining session shows Preflight, Travel, Mining and Refinery at the
@@ -474,26 +688,41 @@ check that can actually fail.
 4. **Autostart and the window.** `install`, `uninstall`, `open`, opening on the side monitor,
    closing after the game exits.
    *Done when:* after signing out and back in the service is running, starting the game opens the
-   window on the side monitor, and the measured figures are inside the budgets in §9 or the
-   overrun is written down with its cause.
+   window on the side monitor, the game keeps focus and stick input when it opens, a `stop` is
+   still stopped ten minutes later, and the measured figures are inside the budgets in §9 or the
+   overrun is written down with its cause. The side monitor was not connected yet on 2026-11-27,
+   so this stage waits for it.
 5. **A flown session.** The user plays one session with it running.
    *Done when:* its session summary agrees with Claude's own reading of the same log, and the user
    has said what they want changed.
-6. **Docs and routines** (§16).
+6. **The telemetry source.** `telemetry.py`, the ship-state parts of the strip, and the seat
+   event. It starts with the user's go-ahead to switch the stream on (§15), and with a fresh read
+   of what the installed build really sends, because 5.0 changes the list (§3).
+   *Done when:* with the stream on, the strip shows fuel, speed and the coupled, gear and power
+   states and they match the cockpit; with the stream off or refused, those parts are simply
+   absent and everything else works; the reader stays inside its budget in §9; and a recorded
+   stream replays through the tests without the game.
+7. **Docs and routines** (§16).
 
 ## 13. Tests
 
 Use `unittest` from the standard library, run from the project root.
 
 - Events: one test per marker, on sanitized lines copied from real logs.
-- State: the session life cycle, quantum travel, arrivals, a destroyed ship that is not the
-  user's, death and respawn.
+- Records: a notice split across lines is read as one notice with its whole text, a notice
+  logged three times counts once, and lines with no time are skipped (§3, *Reading the lines*).
+- State: the session life cycle, quantum travel, arrivals, a destroyed or stowed ship that is not
+  the user's, death and respawn, a return to the menu that is not a session end.
+- Restart: rereading a session from the top does not raise old alerts again, and an old
+  completion notice does not clear a newer timer (§7).
+- Flood: 100 MB of lines that match nothing is read in pieces, without the memory growing.
 - Incremental reading: random-sized pieces give the same state as one pass. A partial last line
   is held until its newline arrives.
 - Rotation: the log getting shorter, or its first line changing, starts a new session.
 - Service: second `start`, `stop` with nothing running, the port already taken by something else.
 - Server: a changing request without the token is refused, and so is one with a foreign `Host`.
-- Privacy: no tracked file under `dashboard/` contains the handle from the local config.
+- Privacy: no tracked file under `dashboard/` contains the user's handle, Windows user name, PC
+  name, account id or player id (§8).
 - Speed: a 5 MB log parses inside the budget.
 
 ## 14. To check before relying on it
@@ -513,7 +742,13 @@ build confirms them on this PC; each names its source.
    That `RestartOnFailure` does not fire after a crash comes from other projects' issue trackers,
    not from Microsoft. Still open: whether the task's command needs quotes around a path with
    spaces, which file encoding `schtasks /XML` accepts, and whether PowerShell's
-   `Register-ScheduledTask -AtLogOn -User <self>` also works without elevation.
+   `Register-ScheduledTask -AtLogOn -User <self>` also works without elevation. The quoting
+   question decides whether the task runs at all here, because the repo's path has spaces in it.
+   Giving the script as a relative path (`dashboard\scdash.py`) with the working directory set
+   keeps spaces out of the arguments; expect the working directory itself to be wanted without
+   quotes **[verify]**. Also open: whether Task Scheduler lowers a task's priority by itself (its
+   default task priority is said to be below normal, with lower disk and memory priority too),
+   which would make the service's own priority call redundant **[verify]**.
 2. **Answered, the window [ref].** Placement switches are read only from a browser process's own
    command line, which is why the separate profile folder is needed
    ([Chromium source](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/ui/browser_window_state.cc),
@@ -539,15 +774,27 @@ build confirms them on this PC; each names its source.
    example), so a marker can vanish in a patch: after each patch, run the tests against a fresh
    log. Still open:
    - Whether the game takes stick input while unfocused. Test it on the ground.
-   - Two community sources describe an opt-in local data stream in 4.10, switched on by a line in
-     the game's `user.cfg` and served on this PC. Unverified, and switching it on means editing a
-     game file, so ask the user before looking into it. It could supply what the log cannot.
-4. Whether the game truncates `Game.log` in place or deletes and recreates it at launch. Compare
-   the file id before and after a launch.
-5. The markers for accepting and completing a contract, and whether anything is logged when a
-   refinery order is confirmed. Look around a known time in a real log.
-6. The location code pattern in §3, against `global.ini`.
-7. Whether below-normal priority has any drawback for a process that wakes once a second.
+   - **Answered [ref, 2026-11-27]:** the opt-in local data stream is real. §3 (*The game's
+     telemetry stream*) has what it is, how it is switched on, what it gives and why the first
+     version leaves it alone. Still open: any word from the publisher on whether outside programs
+     may use it, and whether it survives into the next release.
+4. **Answered [seen 2026-11-27].** The game empties `Game.log` in place at launch: the same file
+   id before and after a launch, and a creation time that has not changed since February (§8).
+5. **Answered in part [seen 2026-11-27].** Contract and objective notices and `<EndMission>` are
+   in the user's logs (§3). Nothing marks a refinery order being placed: `OnRefineryRequest`
+   appears once in the 65 November logs (the day raw ore was sold at a refinery kiosk) against 58
+   completion notices. Still open: what a failed contract logs.
+6. The location code pattern in §3, against `global.ini`. Two other tools' tables agree that
+   `S1` to `S4` and `HUR` / `CRU` / `ARC` / `MIC` are the four Stanton planets' sectors **[ref:
+   StarStats, CSR]**. CSR's `tools/place_names.py` builds outpost names from `global.ini` the way
+   this repo's `tools/gamedata.py` could.
+7. Whether below-normal priority has any drawback for a process that wakes once a second. One
+   effect is known: the browser window the service starts inherits it (§6) **[seen
+   2026-11-27]**.
+8. Whether `os.stat` can report an old size for the live log. §8 avoids the question by reading
+   through an open file.
+9. Whether opening the window takes focus from the game, and whether a second window can appear
+   after a mid-session restart (§11). One test without the game was clean.
 
 ## 15. The user's decisions
 
@@ -562,6 +809,15 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Port | 47826 |
 | Commit the generic reference data | Yes |
 | Keyboard hotkeys for views | Not in the first version |
+
+Raised by the review on 2026-11-27, and waiting for the user's answer:
+
+| Decision | Default until they answer | The other choice |
+| --- | --- | --- |
+| What draws the display | A web page in an Edge app window, as agreed: about 108 MB in 11 processes (§9), easy to restyle, and it needs the local web server and its safeguards (§8). | A native window drawn by the service itself with Python's `tkinter`: about 12 MB, one process, no web server, no port, no browser. Plainer to look at, and not HTML. |
+| The game's telemetry stream (§3) | Designed in, and built as stage 6 (§12): the user said on 2026-11-27 that the dashboard must be able to use it, with 5.0 close. Still theirs to decide when that stage starts: switching the stream on, and which way. | The environment variable on the launcher touches no game file and can be set for one session only. The `user.cfg` line is a file in the game folder that stays until removed. |
+| Contract tracking | In the first version, now that the markers are confirmed in the user's logs (§3): the active contract and its current objective on the Now view. | Leave it for later, as first planned. |
+| Where the browser profile lives | `%LOCALAPPDATA%\scdash\browser`, outside the repo and the game folder (§10). | Inside `dashboard/data/`, as first planned. |
 
 ## 16. When it ships
 
