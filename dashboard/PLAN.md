@@ -57,26 +57,26 @@ in `LIVE\logbackups\`, not from the wording here.
 | --- | --- |
 | Joysticks found at launch, in order | `Connected joystick0: <name> {GUID}` |
 | Session start, and its backup name | first line `<time> BackupNameAttachment=" Build(<n>) <date> (<HH MM SS>)"  -- used by backup system`, then `Log started on ...`. Like every line, it starts with the UTC time in angle brackets. |
-| Entered the game world, and every respawn after it | `[CSessionManager::OnClientSpawned] Spawned!` (215 times in 63 November logs, so not once per session) |
+| Reached the main menu, entered the game world, or respawned | `[CSessionManager::OnClientSpawned] Spawned!`. The same line means three things **[seen 2026-11-27, 69 November logs: 99 at the menu, 80 world entries, 44 respawns]**. At every launch and every return to the menu it marks the menu. The first one after `<Join PU>` is entering the game world. One while already in the world is a respawn, and all 44 followed a downing or a death. On a respawn, `Update Inventory Location` is logged a few milliseconds *before* it, not after. |
 | Quantum target chosen | `<Player Selected Quantum Target - Local> ... selected point <CODE>` |
-| Route start and fuel estimate | `<Calculate Route> ... Projected Start Location is <name> for route to destination <CODE>` and `... fuel estimate <n>` |
-| Quantum arrival | `<Quantum Drive Arrived - Arrived at Final Destination>`. The line can be for someone else's ship: on 2026-11-27 one named a Golem OX that was not the user's, while the user's own jump logged a target and no arrival. Match the vehicle id **[seen 2026-11-27]**. |
-| Arrival at a station or landing zone | `RequestLocationInventory Location[<name>]`, `Update Inventory Location` |
-| Ship retrieved | `SetVehicleSpawningInformations - VehicleEntityId: [<id>]` |
+| Route start and fuel estimate | `<Calculate Route> ... Projected Start Location is <name> for route to destination <CODE>` and `... fuel estimate <n>`. These are also logged when a route is only plotted on the map (`Player Requested Fuel to Quantum Target`), so a route line by itself is not a chosen target: only the selection line above is **[seen 2026-11-27: 114 route targets for 99 selections]**. |
+| Quantum arrival | `<Quantum Drive Arrived - Arrived at Final Destination>`. The line can be for someone else's ship: on 2026-11-27 one named a Golem OX that was not the user's, while the user's own jump logged a target and no arrival. Match the vehicle id **[seen 2026-11-27]**. Of 83 arrivals in the November logs, 4 were other players' ships. |
+| Arrival at a station or landing zone | `RequestLocationInventory Location[<name>]`, `Update Inventory Location`. The first is also written every time the storage screen is opened (93 of 322), so it says where the user is, not that they just arrived **[seen 2026-11-27]**. |
+| Ship retrieved | `SetVehicleSpawningInformations - VehicleEntityId: [<id>]`. Usually split over two lines (78 of 80): the first ends with `LandingArea: <handle>'s`, and the second, with its own time prefix, holds the hangar size **[seen 2026-11-27]**. |
 | Ship name | notice `You have joined channel '<Ship name> : <handle>'` |
 | Left the pilot seat, with ship class | `<Vehicle Control Flow> ... ClearDriver ... '<CLASS>_<id>'` |
 | HUD notices | `<SHUDEvent_OnNotification> Added notification "<text>"`: jurisdiction, armistice, monitored space, hangar queue and "Hangar Request Completed", "A Refinery Work Order has been Completed at <station>", "destination is obstructed", medical bed, "Regeneration - Location", "Local Emergency Services". Each notice is logged up to three times and can span lines: see *Reading the lines* below. |
-| Contract accepted, completed | notices `Contract Accepted:  <title>: ` and `Contract Complete: <title>: `, each line carrying `MissionId: [<guid>]` (272 and 77 in the November logs) **[seen 2026-11-27]** |
-| Objectives | notices `New Objective: <text>` and `Objective Complete: <text>` (468 and 172) **[seen 2026-11-27]** |
+| Contract accepted, completed | notices `Contract Accepted:  <title>: ` and `Contract Complete: <title>: `, each line carrying `MissionId: [<guid>]` (39 and 13 notices in the November logs; counted as lines they are 272 and 77, because each notice is logged up to three times) **[seen 2026-11-27]** |
+| Objectives | notices `New Objective: <text>` and `Objective Complete: <text>` (85 and 33 notices) **[seen 2026-11-27]** |
 | Contract ended, and how | `<EndMission> Ending mission for player. MissionId[<guid>] ... CompletionType[Complete]` or `[Abandon]`, then `Reason[...]` (20) **[seen 2026-11-27]** |
 | Fatal crash into something | `<FatalCollision> Fatal Collision occured for vehicle <CLASS>_<id> [Part: ..., Zone: <zone>, PlayerPilot: 1] after hitting entity: ...` (4) **[seen 2026-11-27]** |
 | Blueprint received | `Received Blueprint` |
 | Ship destroyed | `<Vehicle Destroyed> Vehicle '<CLASS>_<id>' ... reason [<r>] ... killer '<name>'` (other players' ships appear too: match the entity id) |
 | Thrown out of a destroyed ship | `<[ActorState] Dead> ... Actor '<handle>' ... ejected from zone '<CLASS>_<id>' ... due to previous zone being in a destroyed vehicle` (19 in November) **[seen 2026-11-27]**. It is not a death marker by itself: another tool's notes say only about 60% of these coincide with a death **[ref]**. |
 | Death with gear lost | a burst of `ItemRecoveryEntitlement` lines, one per item. A fall that only downs the user logs neither this nor the line above (memory note `sc-game-log-reading`). Another tool warns the burst can also be for a body nearby **[ref: CSR]**. |
-| Downed, injured | notices `Incapacitated: ...` (35) and `<Minor/Moderate/Severe> Injury Detected - <part> - Tier <n> Treatment Required` (2) **[seen 2026-11-27]** |
-| Refinery order(s) done | notice `A Refinery Work Order has been Completed at <station>` or, for several at once, `<n> Refinery Work Orders have been Completed at <station>` (51 and 7) **[seen 2026-11-27]** |
-| Clean exit from the game | `<SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via console command, exitCode=0`, in 63 of the 65 November logs **[seen 2026-11-27]**. A log that ends without it ended in a crash or a kill. |
+| Downed, injured | notices `Incapacitated: ...` (36) and `<Minor/Moderate/Severe> Injury Detected - <part> - Tier <n> Treatment Required` (2) **[seen 2026-11-27]**. Downed is not dead: of the 36, 27 were followed by a respawn, 8 by normal activity with no respawn, and 1 by a quit. The "Local Emergency Services" notice was followed by a respawn 23 times out of 23. |
+| Refinery order(s) done | notice `A Refinery Work Order has been Completed at <station>` or, for several at once, `<n> Refinery Work Orders have been Completed at <station>` (8 notices and 1) **[seen 2026-11-27]** |
+| Clean exit from the game | `<SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via console command, exitCode=0`, in 68 of the 69 November logs **[seen 2026-11-27]**. The reason reads `User closed the application` instead in 12 of them. A log that ends without the line ended in a crash or a kill. |
 | The user's own handle | `<Legacy login response> [CIG-net] User Login Success - Handle[<handle>]`, once per launch **[seen 2026-11-27]** |
 | A planet or moon coming into range | `<InvalidateAllTerrainCells> Planet OOC_Stanton_4_Microtech invalidated all terrain cells` (376 in 16 logs) **[seen 2026-11-27]**. Fires on loading and on unloading, so it says "near", not "at". |
 | What a supply shop offers | `LoadShopInventoryData ... AddingCommodityBox ... shopName[...] commodityName[ResourceType.<Name>]` when a shop lists its goods (153 lines in one log, at a base's admin shop: fuel, ammunition, RMC, metals) **[seen 2026-11-27]**. The line has the name but no resource id, so it cannot name the ids in a sale line: `resources.json` still comes from `Game2.dcb` (§10). |
@@ -87,11 +87,11 @@ in `LIVE\logbackups\`, not from the wording here.
 | Commodity sold or bought at a trade terminal | `SendCommoditySellRequest` / `SendCommodityBuyRequest`: shop name, amount in aUEC, a resource id, quantity and box size. Seen 2026-11-26 at the New Babbage TDD. The commodity is an id, not a name. |
 | Joined a server | `<Join PU> ... shard[...]` |
 | A ship stowed: the user's, or anyone's nearby | `[STOWING ON UNREGISTER] ... Attempting to stow current vehicle [<id>]`. Logged for every hangar around, 1,042 times in the November logs. It is the user's ship only when `<id>` matches their own `SetVehicleSpawningInformations` **[seen 2026-11-27]**. |
-| Storage item count | `Freight Inventory Grid InventoryDataRequest Successful ... Item Count:[<n>]` |
+| Storage item count | `Freight Inventory Grid InventoryDataRequest Successful ... Item Count:[<n>]`. The count follows the storage screen's filter (156, 34, 42, 156 within 71 seconds with nothing moved), so a change in it is not cargo being loaded or unloaded **[seen 2026-11-27]**. |
 | Mining gadget placed, with the rock's ore | `placed 'Mining_Gadget_<name>_<id>' on entity 'MineableRock_<kind>_<ore>_<id>'` |
 | Which planet or moon, every 10 minutes | `PHYSICS INSTANCE STATS` block, the `planet cells:` line with a non-zero count |
 | Screenshot taken | `ScreenShot: ScreenShots/<name>.jpg` |
-| Leaving the game world, and why | `<Channel Disconnected> cause=<n> reason="..."`, with a twin `<Channel Process Disconnection>` line. Counted in the November logs **[seen 2026-11-27]**: 30016 "Player requested disconnect" (54) is the user leaving the server: a quit when `<SystemQuit>` follows (row above), otherwise a return to the menu. 30016 "DisconnectCmd: disconnect light ExitToMenu" (2) is also a return to the menu. After either return the session goes on. 30028 "player inactive" (1) is the inactivity kick. 30010 "Nub destroyed" (160) appears between the menu and the game and is not an end. 30013 appears only on `<Channel Process Disconnection>` (3), with a reason starting "Remote Disconnect - Signal raised ...": the *server* crashed. A crash of the game itself leaves no line at all (the log just stops), so that case is read from the process going away. Other tools say 30016 is also logged for a server drop **[ref, §14]**. |
+| Leaving the game world, and why | `<Channel Disconnected> cause=<n> reason="..."`, with a twin `<Channel Process Disconnection>` line. Counted in the November logs **[seen 2026-11-27]**: 30016 "Player requested disconnect" (54) is the user leaving the server: a quit when `<SystemQuit>` follows (row above), otherwise a return to the menu. 30016 "DisconnectCmd: disconnect light ExitToMenu" (2) is also a return to the menu. After either return the session goes on. 30028 "player inactive" (1) is the inactivity kick. 30010 "Nub destroyed" (160) appears between the menu and the game and is not an end. 30013 appears only on `<Channel Process Disconnection>` (3), with a reason starting "Remote Disconnect - Signal raised ...": the *server* crashed. A crash of the game itself leaves no line at all (the log just stops), so that case is read from the process going away. Other tools say 30016 is also logged for a server drop **[ref, §14]**. One more cause turned up on 2026-11-27, in two launches: 41058 "Player Query failed". |
 
 Markers other tools use that are **not** in the user's November logs **[seen 2026-11-27]**:
 `Contract Failed:` (perhaps only because no contract failed), `granted control token for
@@ -115,12 +115,20 @@ them.
 
   The second line holds the wait estimate that the stuck-queue alert needs. So a timed line with
   no `[Level]` part continues the record above it, and a notice is complete only once its closing
-  quote has arrived.
+  quote has arrived. The continuation is nearly always the very next line with the same time,
+  but not always: once in 2,086 notices a complete `<Vehicle Destroyed>` line sat between the
+  two pieces, and 12 of 191 pieces carry a time one millisecond later. Other records split the
+  same way (the ship-retrieved line in the table above).
 - **A notice is logged up to three times:** the `<SHUDEvent_OnNotification> Added notification`
   record, an indented echo of the quoted text, and an `<UpdateNotificationItem>` line. Match the
   first only, or every notice counts two or three times.
-- **Some lines have no time at all:** 7,789 of them (1.5%), ending in a bare LF where timed lines
-  end in CR LF. They are the inner lines of multi-line debug dumps. Skip them.
+- **Some lines have no time at all:** 7,983 of them (1.5%). They are the inner lines of
+  multi-line debug dumps. Skip them, and tell them by the missing time prefix only: the line
+  ending does not separate them (2,981 untimed lines end in CR LF, and 2,981 timed lines end in
+  a bare LF).
+- **No line may stop the reader.** A line that cannot be read (a damaged time prefix, a number
+  that is not a number) is skipped and counted, and the offset moves on. The first build of the
+  reader stalled for good on one such line; review caught it.
 - **Checked because other tools get these wrong.** Across 2,021 notices: every continuation
   piece carried a time prefix (191 of 191), the longest notice was three physical lines, and the
   number after a notice's closing quote never repeated or went backwards inside one log. All 302
@@ -402,9 +410,11 @@ Data flows one way: `Game.log` -> follower -> events -> state -> page. The state
 function of the log read so far plus the plan data. That one property gives most of the
 idempotence in §7.
 
-**Two sources, one state.** The telemetry stream, when it is on, is a second producer of events
-into the same state: stream -> reader -> events -> state. The state and the views never ask where
-an event came from. Telemetry values are live readings, not history, so they are shown while the
+**Two sources, one state.** The telemetry stream, when it is on, is a second producer into the
+same state: stream -> reader -> readings -> state. It comes in through an entry point of its own
+and fills a slot of its own, so that it can never move what belongs to the log: the session's
+last-event time, the event count, and the end time written for a crashed session. The views read
+one state and never ask where a value came from. Telemetry values are live readings, not history, so they are shown while the
 stream is connected and dropped when it is not; they are never written into the session records
 as if the log had said them. The reader decodes about one snapshot a second and lets the rest go
 by, since the stream sends 15 or more.
@@ -417,7 +427,7 @@ nothing. Line numbers are for CSR at commit `ba6dad0`.
 | --- | --- | --- |
 | `tail.py` | §8 as written. sc-log-tracker's tailer shows the same design working (head bytes compared on every poll, bounded reads, the partial last line kept). Idea only. | - |
 | Joining a notice's lines | CSR `sc_livelog.py`, lines 42-48 and 173-182 | Require the time prefix on each continuation piece. End only on the closing `" [<id>] to queue`. Never swallow a line that has its own level part, whatever its shape. |
-| `events.py` | Written here as small typed records, one per marker in §3. SC Game-log Parser shows the pattern (idea only). | One cheap test before any pattern: take the tag that follows the fixed-width time prefix and look it up in a table. |
+| `events.py` | Written here as small typed records, one per marker in §3. SC Game-log Parser shows the pattern (idea only). Its notice-cleaning helper and several of its line patterns are CSR's (`sc_livelog.py` lines 16-119), credited like the rest: this plan first named only the two ranges above and `LogState`, and was widened on 2026-11-27 when review found those pieces in use. | One cheap test before any pattern: take the tag that follows the fixed-width time prefix and look it up in a table. |
 | `state.py` | CSR's `LogState`, `sc_livelog.py` lines 128-434: contracts by mission id, objectives by objective id, quantum target, place history, size caps. | Feed it events, not lines. Remove its fall-back to the wall clock for untimed lines, which breaks §7. Keep one contract per mission id. Add what it lacks: session, ship, hangar queue, refinery, trade, the preflight check. |
 | `telemetry.py` | CSR `sc_telemetry.py`, lines 1-450 | §12, stage 6. |
 | `server.py` | Written here. sc-log-tracker's checks are the model (idea only): `Host` on every request, a custom header on writes, no address reuse on Windows, and noticing a closed page by peeking at its socket. | - |
