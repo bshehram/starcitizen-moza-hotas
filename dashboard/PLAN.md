@@ -41,6 +41,7 @@ readable at a glance from a seat away.
 | "safe to run" | It cannot harm the game, the PC, the account or the user's privacy. §8. |
 | "performant as much as possible" | Memory is tight on this PC while the game runs, and adding RAM is not an option. Every megabyte and every wake-up is a cost. §9. |
 | "it will be in either portrait or landscape mode ... depending on my mood" (2026-11-27) | The page has two layouts, 1920x1080 and 1080x1920, and picks one from the shape of its window. There is no setting to change. §11. |
+| "a terminal window running claude inside of this dashboard ... so instead of it being a read only dashboard i can alt-tab to it while in quantum and ask questions"; "i dont want to type in claude to start it" (2026-11-27) | A terminal panel in the page that runs Claude Code, and only Claude Code, started by the dashboard itself in this folder. §4 (*The Claude terminal*), §8, §12 stage 4b. |
 
 ## 3. What it can and cannot know
 
@@ -309,6 +310,41 @@ dashboard adds:
 These parts are hidden whenever the stream is not connected. Nothing in the log-driven views
 waits for them.
 
+### The Claude terminal (its own stage, §12 stage 4b)
+
+The user asked for this on 2026-11-27, after the build had started: the dashboard should not be
+a read-only display only. They want to alt-tab to it, in quantum for example, and ask Claude a
+question with this project's context, without a second window and without typing anything to
+get Claude going.
+
+17. **A terminal panel that runs Claude Code.** A real terminal drawn in the page, connected to a
+    Claude Code process that the service starts in the project root. It is the same program the
+    user runs today, so everything works as they know it: `@STARCITIZEN.md`, approvals, a log
+    check that updates memory and the game plan page.
+    - **Dedicated.** The panel runs that one program. It is not a general shell, and nothing the
+      page sends can choose a different program or different arguments (§8).
+    - **It starts with the session brief already loaded** (the user, 2026-11-27: "that
+      particular claude that starts in the dashboard uses our starcitizen.md file"). The service
+      hands [`../STARCITIZEN.md`](../STARCITIZEN.md) to Claude Code as an addition to its system
+      prompt when it starts it, read fresh from the file each time, so the user types a question
+      and nothing before it. Loading the brief this way does not set off the ramp-up the brief
+      describes for a session opened with the file alone: that takes minutes and would run every
+      time the window opens. One line added in front of the brief says so: this session was
+      started by the dashboard, the brief applies to every message, and a ramp-up happens only
+      when asked for. That line lives in the config, so the user can change it.
+    - **Starts with the dashboard window** (the user's choice, §15): Claude is up and waiting by
+      the time the user first looks at it. When Claude exits, the panel offers to start it again
+      with one key.
+    - **Takes the keyboard only when the user comes to it.** The dashboard still never takes
+      focus by itself (§11). When the user switches to the window, the terminal has the keyboard.
+    - **Does not cost the views their room for nothing.** Each layout gives the terminal a fixed
+      region (§11). The views are designed around it, not hidden behind it.
+    - **Nothing it shows is kept.** The dashboard does not log, store or parse what passes
+      through the terminal. Scrollback lives in the page and is bounded.
+
+The log-driven views work with the terminal switched off (a setting), and `replay` never starts
+one.
+
 ### Later, each only if the user asks
 
 - Switching views from the keyboard while the game has focus, through a system-wide hotkey
@@ -337,8 +373,10 @@ dashboard/
     state.py           events -> state (a pure function)
     server.py          local web server and event stream
     service.py         main loop, single instance, lifecycle
+    terminal.py        the Claude terminal: one pseudo-console, one fixed program (§4, stage 4b)
     winutil.py         the Windows-only calls, each with a harmless fallback elsewhere
   web/                 index.html, app.js, style.css: no outside resources
+    vendor/xterm/      the one outside library, a pinned release of xterm.js (§5, stage 4b)
   reference/           generic game data, committed (§10)
   tests/               unit tests and sanitized log samples
   data/                git-ignored: the user's plan data, config, state, session records, logs
@@ -376,6 +414,19 @@ with no license.
 **Standard library only**, so there is nothing to install and nothing extra in memory. The repo's
 tools must stay usable on a Mac ([`../tools/CLAUDE.md`](../tools/CLAUDE.md)), so keep every
 Windows-only call in `winutil.py`: the parser, `timeline` and the tests then run anywhere.
+
+**The one outside library: xterm.js, for the Claude terminal.** Drawing a terminal that Claude
+Code's interface works in means handling cursor movement, colors, the alternate screen, pasted
+text and a long list of control sequences. Writing that by hand would be the riskiest code in the
+project, so the page uses xterm.js (MIT), the terminal that VS Code itself is built on. The user
+chose how it comes in (§15): the file its authors publish for one pinned version, copied into
+`web/vendor/xterm/` with its license, and its SHA-256 recorded in `THIRD_PARTY_NOTICES`, with a
+test that the file still matches. It is served from the repo like the rest of the page; nothing
+is fetched at run time. The same goes for its small fit add-on (same project, same license),
+which sizes the terminal to its panel. The Python side stays standard library only: the
+pseudo-console is reached through `ctypes` (`CreatePseudoConsole`, in Windows since 2018), in
+`winutil.py` with the other Windows calls. Elsewhere the standard `pty` module does the same
+job, so the panel can work on a Mac too, but that is not a goal.
 
 **The event stream on `http.server` [ref, §14].** Keep the server's default HTTP/1.0 responses:
 HTTP/1.1 would need an exact length on every response. Each connected page holds one thread. A
@@ -560,6 +611,36 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 - It runs at below-normal priority, so it yields to the game.
 - It only ever closes a browser window it opened itself, identified by process id and start time.
 
+**The Claude terminal (§4).** This is the one part of the dashboard that is not read-only, so it
+is fenced on every side.
+
+- **One fixed program.** The service starts Claude Code's own executable, from a path in the
+  local config, with the project root as its working directory. The program and its arguments
+  come from the config file and nowhere else: no request carries a command, a path, an argument
+  or an environment variable. A test proves that nothing sent to the server can change what is
+  started. The session brief it is given (§4) is the file the config names, inside the repo, read
+  by the service itself.
+- **It is Claude Code that acts, under its own rules.** What the terminal can do to the PC is
+  what Claude Code can do in any terminal, with the user's own permission settings and approval
+  prompts. The dashboard adds no permissions and skips none: it never starts Claude with a flag
+  that turns approvals off.
+- **Only the dashboard's own page can reach it.** The terminal's endpoints need the token, the
+  `Host` check and a matching `Origin`, like every changing request. Keystrokes are a changing
+  request. If the token were known to another page it could type into Claude, which is why no
+  endpoint hands the token out and why the server answers 127.0.0.1 only.
+- **Still nothing toward the game.** The terminal sends no input to the game and reads nothing
+  from it. Claude reads the log files the way it always has.
+- **No leftovers.** When the window closes, the service stops, or the user ends the panel, the
+  Claude process and everything it started are ended (a Windows job object does this even if the
+  service is killed). Closing the pseudo-console is not enough by itself **[verify]**.
+- **Nothing kept.** No terminal output or input is written to the service log, the state file or
+  the session records.
+- **Off switch.** `terminal.enabled` in the config. With it off, the endpoints do not exist.
+- **Claude Code itself** is not installed as a program of its own on this PC: the only copy is
+  inside the VS Code extension, in a folder whose name changes with each update **[seen
+  2026-11-27]**. The stage installs Anthropic's own per-user copy (no administrator rights) and
+  the config points at it. If it is missing, the panel says so and nothing else is tried.
+
 **Privacy.** The repo is public.
 
 - The user's handle appears in log lines (channel names, hangar names). It stays in memory and in
@@ -587,6 +668,8 @@ Budgets to measure against, not promises. Record the measured figures in `dashbo
 | Dashboard window, whole browser process tree | 250 MB or less of *private working set*, the figure Task Manager shows as memory | Edge app window with its own profile, 1100x700: 11 processes, **108 MB** private working set, 292 MB committed, 0.6% of one core for an update a second. The summed working sets read 552 MB, because shared pages are counted in every process: don't use that figure. |
 | For comparison, a native window | none set | The same content drawn by Python's own `tkinter`: one process, **12 MB** private working set, 15 MB committed (§15) |
 | Telemetry reader, when the stream is on | 1% of one core or less, and no more than 5 MB added to the service | not built. One other tool's author reports about 59 MB and 1% of a core for a whole Node service doing this **[ref: SC Companion's README]**. |
+| The Claude terminal: what it adds to the service and the window | 5 MB or less in the service; 40 MB or less in the window, with scrollback capped | not built |
+| The Claude Code process the terminal runs | None set: it is the user's choice to have it, and it is not the dashboard's own memory. Measure it and write it down. | About **200 MB** private working set each for the two Claude Code processes of a busy VS Code session (194 and 234 MB) **[seen 2026-11-27]**. A fresh one is not measured. |
 
 The stand-in scripts were scratch files and are not in the repo. The figures need taking again on
 the real program, with the game running and the window on the side monitor.
@@ -717,6 +800,12 @@ files, all local, all bounded.
     side by side in landscape stacks them in portrait.
   - The type sizes in each layout are set for that layout. Do not scale the whole page by the
     window's width: at 1080 wide everything would shrink to just over half.
+- **The Claude terminal has a fixed region in each layout** (§4): a column down the right side in
+  landscape, a band across the bottom in portrait, about two fifths of the long side either way,
+  to be tuned by looking at it. The views are laid out in what remains and stay fully visible
+  while the terminal is in use. With the terminal switched off, the views take the whole screen.
+  The terminal's type is sized for someone sitting at the keyboard; the views' type is still
+  sized for the pilot's seat.
 - Numbers the user acts on (scan values, quality figures, countdowns) get the largest type.
 - Times are local. American spelling and month-first dates, as everywhere in this project.
 - No sound: browsers block it until someone clicks the page.
@@ -799,6 +888,34 @@ check that can actually fail.
    still stopped ten minutes later, and the measured figures are inside the budgets in §9 or the
    overrun is written down with its cause. The side monitor was not connected yet on 2026-11-27,
    so this stage waits for it.
+   **4b. The Claude terminal** (§4, §8). Built after the window works, because it lives in that
+   window. `terminal.py`, the pseudo-console calls in `winutil.py`, the xterm.js files, the
+   panel in both layouts, the settings.
+   - **Carrying the bytes.** Output goes to the page on an event stream of its own, and
+     keystrokes come back as small posts, both with what the server already has. Try that first:
+     everything is on 127.0.0.1, so the delay should not be felt **[verify by typing in it]**. A
+     hand-written WebSocket is the fallback if it is.
+   - **Start and end.** The service starts Claude when the dashboard window's page connects, and
+     ends it when that page has been gone for a minute (a reload must not kill it). A service
+     that restarts mid-session cannot keep the old process, so the panel says the session ended
+     and offers to continue the last conversation (`claude --continue`).
+   - **The window must not close under a conversation.** The setting that closes the window a
+     few minutes after the game exits (§6) waits while the terminal has had a key press in the
+     last 30 minutes or Claude is still writing.
+   - **Size.** The terminal is told its size in rows and columns whenever its panel changes
+     shape, so turning the monitor re-fits it.
+   - **The brief.** Find out from the installed Claude Code's own help which option adds a file
+     or a text to the system prompt of an interactive session, and use that. If only a text
+     option exists, the service reads the file and passes its text as one argument (the brief is
+     about 15 KB; a Windows command line holds 32 KB).
+   *Done when:* opening the window brings Claude up in the project root with nothing typed; a
+   plain question with no `@STARCITIZEN.md` in front is answered by a session that already has
+   the brief (ask it what needs the user's approval and compare with the file), and it did not
+   start a ramp-up by itself; an approval prompt can be answered from the panel; keys, paste, arrow keys and Ctrl+C behave as in a normal terminal; it re-fits in
+   landscape and portrait; closing the window leaves no Claude process or child behind; a request
+   without the token, with a foreign `Host` or with a foreign `Origin` cannot reach it; the test
+   that nothing sent can change the program passes; and the measured memory of each part is
+   written down.
 5. **A flown session.** The user plays one session with it running.
    *Done when:* its session summary agrees with Claude's own reading of the same log, and the user
    has said what they want changed.
@@ -847,6 +964,10 @@ Use `unittest` from the standard library, run from the project root.
   `THIRD_PARTY_NOTICES` (§5).
 - Service: second `start`, `stop` with nothing running, the port already taken by something else.
 - Server: a changing request without the token is refused, and so is one with a foreign `Host`.
+- Terminal: the program started is the configured one whatever a request holds; the endpoints
+  refuse a missing token, a foreign `Host` and a foreign `Origin`; they do not exist when the
+  terminal is switched off or in `replay`; ending the panel ends the whole process tree (with a
+  harmless stand-in program, not Claude); the xterm.js files match their recorded SHA-256.
 - Privacy: no tracked file under `dashboard/` contains the user's handle, Windows user name, PC
   name, account id or player id (§8).
 - Speed: a 5 MB log parses inside the budget.
@@ -921,6 +1042,14 @@ build confirms them on this PC; each names its source.
    directory listing lags (§8).
 9. Whether opening the window takes focus from the game, and whether a second window can appear
    after a mid-session restart (§11). One test without the game was clean.
+10. For the Claude terminal (stage 4b), all **[verify]**: that Claude Code's interface runs
+    correctly under a pseudo-console created through `ctypes` by a windowless (`pythonw`) parent;
+    that it is usable at the below-normal priority it would inherit from the service (§6), or
+    whether it should be started at normal priority; how Anthropic's installer places the
+    program and whether it updates itself in place; which xterm.js release to pin; and what a
+    fresh Claude Code process really costs in memory. The open question in point 3 matters more
+    now: the user will switch away from the game on purpose, so test on the ground whether the
+    game still takes stick and throttle input while the dashboard has the keyboard.
 
 ## 15. The user's decisions
 
@@ -956,6 +1085,11 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Registering the logon task (§6) | **Claude registers it** once that stage is built and tested, tells the user, and shows them `uninstall`. | The user running `install` themselves; no autostart at all. |
 | How the telemetry stream is switched on (§3) | **The launcher variable, permanently:** a per-user Windows environment variable, `GRPC_CLIENT_SERVER_ENABLED=true` (`setx`). No game file is touched. It takes effect the next time the RSI Launcher is started. Set it when the reader exists (stage 6) and tell the user when it is done. | The variable for one session only (the recommendation); a line in the game's `user.cfg`; leaving the stream off until 5.0. |
 
+| Claude inside the dashboard (§4) | **A real terminal in the page**, running Claude Code and nothing else, started by the dashboard. | A question box that can only read; a separate Windows Terminal window placed beside the dashboard. |
+| When that Claude starts | **With the dashboard window**, so it is always ready. It holds about 200 MB for the whole play session. | Starting it the first time the user switches to the window (the recommendation, to save the memory in sessions where nothing is asked). |
+| How xterm.js comes into the repo (§5) | **The pinned published release file**, with its license and a recorded checksum. | Installing Node.js and building it from source here. |
+| What the dashboard's Claude knows when it starts | **`STARCITIZEN.md`, loaded by the dashboard**, so nothing is typed before the question. (Loading it without setting off a ramp-up is Claude's design, §4.) | - |
+
 What "permanent" means, so nobody is surprised later: while the game runs, any program on this PC
 can read the stream, not only the dashboard. To undo it, delete the variable
 (`reg delete HKCU\Environment /v GRPC_CLIENT_SERVER_ENABLED`) and restart the launcher.
@@ -980,5 +1114,8 @@ can read the stream, not only the dashboard. To undo it, delete the variable
 
 - Anything that reads or writes the game's memory, draws over the game, or sends it input.
 - Reading the screen (OCR) to recover what the log leaves out.
-- Anything served beyond this PC, or any account or online feature.
-- Telemetry of any kind.
+- Anything served beyond this PC, or any account or online feature. (Claude Code in the terminal
+  panel talks to Anthropic as it always does; that is the user's own program, not the dashboard.)
+- Usage reporting of any kind: the dashboard sends nothing about itself or the user anywhere.
+  (Reading the *game's* telemetry stream is in scope: §3, stage 6.)
+- A general shell in the page. The terminal panel runs Claude Code and nothing else (§8).
