@@ -293,9 +293,34 @@ What the audits change in how it is built:
    decision, §15).
 4. **Travel view.** Destination, the legs of the current run with the finished ones marked, and
    what to do on arrival.
-5. **Mining view.** For the run's target ores: the scan numbers for each cluster size in large
-   type, the quality figure to take a rock at and the one to skip, look-alike readings for that
-   spot, and where to refine with the bonus.
+5. **Activity views: Mining, Salvage, Combat and Cargo.** One family of four, shown according to
+   what the user is doing (§11). The first plan had Mining only; on 2026-11-27 the user asked
+   for "the other stuff like salvaging and combat and cargo hauling etc". The four share one
+   skeleton, so the same kind of thing is always in the same place.
+   - **Mining.** For the run's target ores: the scan numbers for each cluster size in large
+     type, the quality figure to take a rock at and the one to skip, look-alike readings for
+     that spot, and where to refine with the bonus.
+   - **Salvage.** The plan's goal as needed against held (RMC for repairs, for example), the
+     next step, the ship's hold in SCU, where to sell RMC and construction materials and at
+     what price, and the salvage contract with its current objective when there is one.
+   - **Combat.** The active bounty or combat contract with its reward and its current objective
+     in large type; the session so far (ships destroyed, times downed, ships lost); the
+     jurisdiction and whether the user is in an armistice zone or monitored space.
+   - **Cargo.** A hauling contract as a checklist of pickups and drop-offs with the SCU at each
+     stop, the current stop and the next, and the total against the ship's cargo grid. For a
+     trade run: what was bought, how much and at what price, where the plan says to sell it and
+     the expected return, and the session's earnings.
+   - **Each carries the controls for its mode:** a short strip of the handful of stick and
+     throttle controls that matter there, because this rig's bindings change with the operator
+     mode ([`../CLAUDE.md`](../CLAUDE.md) §5). It is built from the same tables as the printed
+     reference cards, so it cannot drift from them.
+   - **What they cannot show (§3).** The log has contracts, objectives, places, ships,
+     purchases, sales and deaths. It has nothing on cargo aboard, how much was salvaged,
+     shields, hull or targets. So these views lean on the contract, the plan and reference
+     figures, and show no gauge for anything that cannot be measured. With the telemetry stream
+     on, Combat also shows countermeasures left and which systems are powered (feature 14).
+   - More activities (medical runs in the Pisces, crafting at the fabricator) get a view when
+     the user asks; until then the Now view covers them.
 6. **Refinery view.** Which lines to refine and which to leave out, the method the user prefers,
    and the timers.
 7. **Selling view.** The sell list with prices, when the plan has one for the current location.
@@ -928,17 +953,24 @@ msedge.exe --user-data-dir=<%LOCALAPPDATA%\scdash\browser> --app=http://127.0.0.
 - A service that restarts mid-session must not open a second window. The old page reconnects by
   itself within seconds, so wait for that before deciding a window is needed.
 
-View rules, kept as a small table in code so they are easy to tune:
+View rules, kept as a small table in code so they are easy to tune. The first row that fits
+wins:
 
 | State | View |
 | --- | --- |
 | No game running | Now, with the last session's summary |
 | Game starting or in the menu | Preflight |
-| Quantum target chosen, until arrival | Travel |
-| Arrived at a leg of the current run | The view that leg names |
-| At a place with a sell list | Selling |
 | Downed or dead | Now, with the alert on top |
+| Quantum target chosen, until arrival | Travel |
+| Arrived at a leg of the current run | The view that leg names: Mining, Salvage, Combat, Cargo, Refinery or Selling |
+| At a place with a sell list | Selling |
+| An active contract of a known kind (bounty, hauling, salvage) | Combat, Cargo or Salvage. The kind comes from the contract's generator name in the mission marker line (§3) **[verify: which names occur]**. |
+| In the pilot seat of a ship that has one job | That job's view: the Golem is Mining, the Salvation Salvage, the Golem OX Cargo, the M80 Combat. A ship with two jobs (the Hyūn mines and salvages) decides nothing. The ship-to-job table is in `reference/`, with the fleet in [`../CLAUDE.md`](../CLAUDE.md) §11 as its source. |
 | Anything else in game | Now, for the current location |
+
+The log does not say which operator mode the seat is in, so the rules above are the best
+available signal for the activity. The telemetry stream may say more (§3); if it does, it goes
+above the contract row.
 
 ## 12. Build order
 
@@ -955,9 +987,30 @@ check that can actually fail.
    shows the session unfolding, a 100 MB flood of junk lines does not grow the service's memory,
    and the follower has been run across a real game launch without disturbing the log rotation.
 3. **Views and plan data.** The reference files, `plan.json`, the views, the view rules, alerts,
-   timers.
+   timers. The look comes from the direction the user picked (§11, §15).
+   - **Before the Salvage, Combat and Cargo views: find out what those activities leave in the
+     log.** The stage 1 survey was built around mining sessions. Go through all the logs, not
+     only November's, for sessions with bounty, hauling and salvage contracts and with commodity
+     trades, and list what is there: objective texts for pickups and drop-offs, the contract's
+     generator name, the user's own kills in `<Vehicle Destroyed>` lines, jurisdiction and
+     armistice notices, anything on cargo or salvage. CSR's reader tracks hauling drops from the
+     log; stage 1 left that out because no November log has one. Add events for what is found,
+     with tests, and mark what could not be seen in any log as unverified until the user flies
+     it.
+   - **Reference data the new views need:** a ship table (class name in the log, display name,
+     job, cargo grid in SCU), commodity prices with their date, which shop name in a sale line
+     is which place, and a controls table per operator mode generated from the card tables in
+     [`../tools/regen_cards.py`](../tools/regen_cards.py), with a test that it still matches
+     them.
+   - **Plan data for every activity.** `plan.json` (§10) was drawn up for a mining run. A leg's
+     `view` can name any activity view, and the run carries what that view shows: targets for
+     mining, a goal and a sell point for salvage, the trade for a cargo run. Settle the shape in
+     this stage and write `plan.example.json` with one run of each kind.
    *Done when:* a replay of a mining session shows Preflight, Travel, Mining and Refinery at the
-   right moments, a deliberately wrong joystick order in a test log raises the red alert, and
+   right moments, a replay of a session with a contract shows Combat, Cargo or Salvage as its
+   kind requires (a real session where the logs have one, a built sample where they don't, and
+   the report says which), a deliberately wrong joystick order in a test log raises the red
+   alert, and
    every view has been captured at 1920x1080 and at 1080x1920 (a headless browser screenshot of
    the replay) and looked at: nothing clipped, nothing overlapping, and the numbers still the
    largest thing on the screen.
@@ -1170,6 +1223,8 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Claude inside the dashboard (§4) | **A real terminal in the page**, running Claude Code and nothing else, started by the dashboard. | A question box that can only read; a separate Windows Terminal window placed beside the dashboard. |
 | When that Claude starts | **With the dashboard window**, so it is always ready. It holds about 200 MB for the whole play session. | Starting it the first time the user switches to the window (the recommendation, to save the memory in sessions where nothing is asked). |
 | How xterm.js comes into the repo (§5) | **The pinned published release file**, with its license and a recorded checksum. | Installing Node.js and building it from source here. |
+| Which activities get a view (§4) | **Mining, salvage, combat and cargo hauling**: "the other stuff like salvaging and combat and cargo hauling etc". Medical runs and crafting stay on the Now view until asked for (Claude's reading of "etc"). | Mining only, which is what this plan had. |
+| How the page looks (§11) | **"Good and modern."** The user picks one of three mocked-up directions. *Not picked yet when this row was written.* | - |
 | What the dashboard's Claude knows when it starts | **`STARCITIZEN.md`, loaded by the dashboard**, so nothing is typed before the question. (Loading it without setting off a ramp-up is Claude's design, §4.) | - |
 
 What "permanent" means, so nobody is surprised later: while the game runs, any program on this PC
