@@ -14,7 +14,7 @@ from .names import LocationNames
 from .pipeline import read_whole
 from .records import parse_ts
 from .winutil import open_shared
-from .words import clock, day, duration, local, money, ship_class
+from .words import clean_all, clean_text, clock, day, duration, local, money, ship_class
 
 TS_RE = re.compile(rb"<(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3})Z>")
 QUIT_MARK = b"<SystemQuit>"
@@ -90,7 +90,8 @@ def render_text(reader, summary, tz=None, show_all=False):
         out.append("%s %11s  %s" % (mark, clock(x["t"], tz), x["text"]))
     out.append("")
     out.extend(render_summary(summary, st, tz))
-    return "\n".join(out) + "\n"
+    # Text from the log never steers the console: no control or bidi characters (words.clean_text).
+    return "\n".join(clean_text(x) for x in out) + "\n"
 
 
 def render_summary(sm, st, tz=None):
@@ -267,7 +268,7 @@ def render_list(rows, tz=None):
         out.append("%-22s %-12s %-9s %-30s %s%s" % (
             start, duration(r["length_s"]), size_s, r["ended"], r["session"],
             "  (Game.log)" if r["current"] else ""))
-    return "\n".join(out) + "\n"
+    return "\n".join(clean_text(x) for x in out) + "\n"
 
 
 def rows_json(rows, tz=None):
@@ -292,4 +293,4 @@ def find_log(arg, live):
 
 
 def dumps(obj):
-    return json.dumps(obj, indent=2, ensure_ascii=False)
+    return json.dumps(clean_all(obj), indent=2, ensure_ascii=False)

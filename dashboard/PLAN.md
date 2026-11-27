@@ -8,7 +8,7 @@ decisions are in §15. The build started later that day.
 | --- | --- |
 | Reference tables (§10) | Built, checked, committed. |
 | 1. Parser and state | Built, reviewed twice by an independent agent, committed. `python dashboard/scdash.py timeline` works. |
-| 2. Service and a minimal page | Built in the chosen look and reviewed: nothing got through the request guard, and hostile text from a log is shown as text. The review's robustness fixes were being made when this row was written; committed once they are confirmed. The launch check with the service itself is still to do. |
+| 2. Service and a minimal page | Built in the chosen look, reviewed twice, committed. `run`, `start`, `stop`, `status` and `replay` work; the page shows the status strip, the joystick check and the feed. Nothing got through the request guard in review, and hostile text from a log is shown as text. Still to do: the launch check with the service itself running, and two small races the review asked to close before stage 4b (reading a process's start time without opening a handle, and the tests' own process cleanup). |
 | 3. Views and plan data | Not started. The look is chosen: direction B, mocked up in every screen (§11). |
 | 4. Autostart and the window | Not started. Waits for the side monitor. |
 | 4b. The Claude terminal | Not started. |

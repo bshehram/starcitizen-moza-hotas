@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en-US" data-terminal="__SCDASH_TERMINAL__" data-mode="__SCDASH_MODE__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="scdash-token" content="__SCDASH_TOKEN__">
+<title>SC Dashboard</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<!-- Icons: inline symbols, drawn in the text color (no image files). From the design mockup. -->
+<svg class="sprite" width="0" height="0" aria-hidden="true">
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.2 22 20.5H2Z"/><path d="M12 9.5v5"/><path d="M12 17.6v.01"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><path d="M8.1 2.5h7.8l5.6 5.6v7.8l-5.6 5.6H8.1l-5.6-5.6V8.1Z"/><path d="M12 7.5v5.5"/><path d="M12 16.4v.01"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.6 12.4 3 3 5.8-6.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.5s-7-6.3-7-11.7a7 7 0 0 1 14 0c0 5.4-7 11.7-7 11.7Z"/><circle cx="12" cy="9.8" r="2.4"/></symbol>
+  <symbol id="i-ship" viewBox="0 0 24 24"><path d="M12 2.8 19.5 20 12 16.2 4.5 20Z"/></symbol>
+  <symbol id="i-jump" viewBox="0 0 24 24"><path d="m4.5 6 6 6-6 6M12.5 6l6 6-6 6"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6.5 2.5h7.5l4.5 4.5v14.5h-12Z"/><path d="M14 2.5V7h4.5M9.5 12.5h5.5M9.5 16.5h5.5"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12h7M12 8.5v7"/></symbol>
+  <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-stick" viewBox="0 0 24 24"><path d="M9 3.5h6v6.5a3 3 0 0 1-6 0Z"/><path d="M12 13v4.5M5 21h14l-1.6-3.5H6.6Z"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21.5V3.5"/><path d="M5 4h12.5l-2.5 4.5 2.5 4.5H5"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <!-- Regions: strip, alerts, view, feed, terminal. Stage 3 fills the view and the alerts,
+       stage 4b the terminal. Their places in each layout are set in style.css. The banner for a
+       lost connection takes the strip's place (its figures are stale then) and covers nothing else. -->
+  <div class="alert alert--bad offline" id="offline" role="alert" hidden>
+    <svg class="i alert__icon"><use href="#i-stop"/></svg>
+    <div class="alert__body">
+      <span class="alert__kind">No connection</span>
+      <b class="alert__title">The dashboard service is not answering</b>
+    </div>
+    <p class="alert__do" id="offline-detail">Retrying…</p>
+  </div>
+  <header class="strip" aria-label="Status">
+    <div class="strip__time"><b class="strip__clock num" id="s-clock">–</b><span class="strip__date" id="s-date"></span><span class="strip__replay" id="s-replay" hidden></span></div>
+    <span class="si si--state" id="b-state"><span class="si__k">State</span><b class="state" id="s-state">Connecting</b></span>
+    <span class="si si--sticks" id="b-sticks"><span class="si__k">Joysticks</span><span class="sticks-line"><b class="sticks sticks--none" id="s-sticks">–</b><span class="sticks__note" id="s-sticks-note" hidden>other order</span></span></span>
+    <span class="si si--session"><span class="si__k" id="s-session-k">Session</span><b class="num" id="s-session">–</b></span>
+    <span class="si si--loc"><span class="si__k">Location</span><b id="s-loc">–</b></span>
+    <span class="si si--ship"><span class="si__k">Ship</span><b id="s-ship">–</b></span>
+  </header>
+
+  <div class="alerts" id="alerts" aria-label="Alerts"></div>
+
+  <section class="view now" id="view" aria-label="Now">
+    <p class="cap now__kicker" id="v-kicker">Now</p>
+    <h1 class="now__title" id="v-title">Connecting…</h1>
+    <p class="now__line" id="v-line1"></p>
+    <p class="now__line" id="v-line2"></p>
+    <div class="now__facts frame" id="v-facts"></div>
+  </section>
+
+  <section class="feed" aria-label="Events">
+    <h2 class="cap feed__title">Events</h2>
+    <ol id="feed-list"></ol>
+    <p class="feed__empty" id="feed-empty">No events yet</p>
+  </section>
+
+  <section class="term" id="terminal" aria-label="Claude terminal">
+    <header class="term__bar">
+      <span class="term__dot"></span>
+      <span class="term__name">Claude</span>
+      <span class="term__cwd">controls\mappings</span>
+      <span class="term__hint">Later stage</span>
+    </header>
+    <div class="term__body">
+      <p class="t-dim">The Claude terminal comes in a later stage. This region is where it will run.</p>
+    </div>
+  </section>
+</div>
+</body>
+</html>

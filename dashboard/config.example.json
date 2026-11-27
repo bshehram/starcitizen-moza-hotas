@@ -1,0 +1,47 @@
+{
+  "_about": "The dashboard's local settings. Copy this file to dashboard/data/config.json (git-ignored) and change only what you need: a key left out takes the value shown here, and keys starting with _ are comments. The service reads the file when it starts, so run `stop` and `start` after a change.",
+
+  "_port": "The port of the local web server. It listens on 127.0.0.1 only, and the page is http://127.0.0.1:<port>/. `replay` uses 47827 unless told otherwise. Allowed: 1,024 to 65,535.",
+  "port": 47826,
+
+  "_live": "The game's LIVE folder, holding Game.log and logbackups. null: found from where this repo sits inside the game install (four folders up from the repo root).",
+  "live": null,
+
+  "_game_process": "The program whose presence in the process list means the game is running. Only its name is looked for; the process is never opened.",
+  "game_process": "StarCitizen.exe",
+
+  "_poll_seconds": "While the game runs, how often the log is read for new lines. Allowed: 0.25 to 10.",
+  "poll_seconds": 1.0,
+
+  "_process_check_seconds": "How often the process list is read to see whether the game has started or ended. Each look takes about 5 ms. Allowed: 2 to 300.",
+  "process_check_seconds": 10.0,
+
+  "_state_save_seconds": "data/state.json is written at most this often, and only when the state changed. Allowed: 2 to 3600.",
+  "state_save_seconds": 10.0,
+
+  "_push_min_seconds": "The shortest time between two state sends to one page: bursts are merged into their last state (0.5 = at most two a second). Allowed: 0.1 to 10.",
+  "push_min_seconds": 0.5,
+
+  "_keepalive_seconds": "A comment line is sent on each event stream this often, so a closed page is noticed. Allowed: 2 to 120.",
+  "keepalive_seconds": 15.0,
+
+  "_retry_ms": "How soon a page reconnects after the stream drops, in milliseconds. Allowed: 500 to 60,000.",
+  "retry_ms": 3000,
+
+  "_max_pages": "How many pages may hold the event stream at once. A browser allows six connections to one address, so keep this below six. Allowed: 1 to 5.",
+  "max_pages": 4,
+
+  "_log_max_bytes": "data/service.log is rotated to service.log.1 when it reaches this size. Allowed: 50,000 to 50,000,000.",
+  "log_max_bytes": 1000000,
+
+  "_log_backups": "How many rotated copies of service.log are kept. Allowed: 1 to 10.",
+  "log_backups": 1,
+
+  "_sessions_keep": "How many session summaries data/sessions/ keeps; the oldest go first. Allowed: 10 to 100,000.",
+  "sessions_keep": 500,
+
+  "_terminal": "The Claude terminal panel (a later stage). With enabled false, the page has no terminal region at all; with true it is laid out with one (in this stage an empty placeholder).",
+  "terminal": {
+    "enabled": false
+  }
+}

@@ -7,6 +7,34 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 
+# Characters a text from the log must not carry onto a screen or a console: the C0 and C1 control
+# characters (ESC sequences, a bell, a NUL) and the bidirectional controls, which can reverse the
+# order of the dashboard's own words after them (U+202A-202E, U+2066-2069, and the marks
+# U+200E/U+200F/U+061C). Tabs and line breaks become a space; the rest are dropped.
+_UNSAFE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩]")
+_SPACES = re.compile("[\t\n\r]")
+
+
+def clean_text(s):
+    """`s` with the control and bidi characters taken out (PLAN §8: what the log says is data)."""
+    if not s or not isinstance(s, str):
+        return s
+    if _UNSAFE.search(s) is None and _SPACES.search(s) is None:
+        return s
+    return _UNSAFE.sub("", _SPACES.sub(" ", s))
+
+
+def clean_all(obj):
+    """Every string in a JSON-like object (keys too) through `clean_text`."""
+    if isinstance(obj, str):
+        return clean_text(obj)
+    if isinstance(obj, dict):
+        return {clean_text(k) if isinstance(k, str) else k: clean_all(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [clean_all(v) for v in obj]
+    return obj
+
+
 MAKERS = {"AEGS": "Aegis", "ANVL": "Anvil", "ARGO": "Argo", "BANU": "Banu", "CNOU": "C.O.",
           "CRUS": "Crusader", "DRAK": "Drake", "ESPR": "Esperia", "GAMA": "Gatac", "GLSN": "Gallenson",
           "GRIN": "Greycat", "KRIG": "Kruger", "MISC": "MISC", "MRAI": "Mirai", "ORIG": "Origin",

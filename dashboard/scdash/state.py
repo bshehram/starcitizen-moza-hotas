@@ -34,7 +34,7 @@ from collections import deque
 
 from . import config
 from .names import LocationNames
-from .words import compatible, duration, fit, iso, money, ship_class
+from .words import clean_all, clean_text, compatible, duration, fit, iso, money, ship_class
 
 ALERT, MAJOR, MINOR = "alert", "major", "minor"
 
@@ -191,10 +191,11 @@ class State:
     def scrub(self, obj):
         """`obj` (JSON-like) with every other player's name seen in this session replaced by
         "another player", and the user's own handle by "you", in every text, whatever it is and
-        wherever it came from."""
+        wherever it came from. Control and bidi characters are taken out of every text too
+        (`words.clean_text`), so nothing the log says can steer a screen or a console."""
         handle = self.me["handle"]
         if not self._others and not handle:
-            return obj
+            return clean_all(obj)
         if self._others_re is None:
             names = set(self._others) | ({handle} if handle else set())
             alts = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
@@ -207,9 +208,9 @@ class State:
 
         def walk(x):
             if isinstance(x, str):
-                return rx.sub(name_for, x)
+                return rx.sub(name_for, clean_text(x))
             if isinstance(x, dict):
-                return {k: walk(v) for k, v in x.items()}
+                return {clean_text(k) if isinstance(k, str) else k: walk(v) for k, v in x.items()}
             if isinstance(x, (list, tuple)):
                 return [walk(v) for v in x]
             return x
@@ -1043,7 +1044,8 @@ class State:
     def to_dict(self, private=False):
         """The state as JSON-ready data. With private=False (what is shown or saved), other
         players' names are replaced in every text; private=True keeps them and adds `me` (the
-        handle and player id), for memory only."""
+        handle and player id), for memory only. Either way no text carries a control or bidi
+        character."""
         n = self.names
 
         def place(code):
@@ -1063,7 +1065,7 @@ class State:
                         "world": s["world"], "ended": _times(s["ended"]),
                         "last_event": iso(s["last_t"]), "events": s["events"],
                         "spawns": s["spawns"], "in_game_s": round(s["in_game_s"], 1),
-                        "in_game_since": iso(s["in_game_since"])},
+                        "in_game_since": iso(s["in_game_since"]), "unreadable": s["unreadable"]},
             "server": {"shard": self.server["shard"], "joined": iso(self.server["joined"]),
                        "shards": list(self.server["shards"])},
             "joysticks": [dict(j, number=j["index"] + 1) for j in self.joysticks],
@@ -1101,7 +1103,7 @@ class State:
         }
         if private:
             d["me"] = dict(self.me)
-            return d
+            return clean_all(d)
         return self.scrub(d)
 
 

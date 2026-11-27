@@ -1,8 +1,10 @@
 # `dashboard/` — working notes for Claude
 
-**Only stage 1 exists** ([`PLAN.md`](PLAN.md) §12): the part that reads `Game.log` and turns it into
-events, a state and a printed timeline. There is no service, no web server and no page yet; stages 2
-to 7 build on what is here. The human-facing page is [`README.md`](README.md).
+**Stages 1 and 2 exist** ([`PLAN.md`](PLAN.md) §12): stage 1 reads `Game.log` and turns it into
+events, a state and a printed timeline; stage 2 is the background service, its local web server and
+a first page (the status strip, alerts and the event feed in design direction B, with a "Now"
+placeholder where stage 3's views go). There is no autostart, no window opening and no terminal yet.
+The human-facing page is [`README.md`](README.md).
 
 Three rules that hold for everything in this folder:
 
@@ -18,20 +20,25 @@ Three rules that hold for everything in this folder:
 
 | File | What it does |
 | --- | --- |
-| `scdash.py` | Command line, run from the project root. Stage 1 has one command, `timeline`. |
-| `scdash/config.py` | Paths (LIVE found from the repo's place, or `SCDASH_LIVE`), read sizes, caps, the expected joysticks. |
-| `scdash/winutil.py` | Windows-only calls with a plain fallback: `open_shared()` opens a file sharing read, write and delete. |
+| `scdash.py` | Command line, run from the project root: `run`, `start`, `stop`, `status`, `replay`, `timeline`; `install`, `uninstall`, `open` are stage 4 stubs that do nothing. |
+| `scdash/config.py` | Paths (LIVE found from the repo's place, or `SCDASH_LIVE`), read sizes, caps, the expected joysticks; the service settings `DEFAULTS` and `load_settings(data_dir, overrides)`. |
+| `scdash/winutil.py` | Windows-only calls, each with a fallback: `open_shared()`, `InstanceLock` (named mutex), `process_list()` (Toolhelp snapshot), `process_created()` (query-only, our own Python processes), `below_normal_priority()`, `exclusive_address()`, `own_memory()`. |
+| `scdash/server.py` | The web server: `Server` (fixed files, registered routes), the request guard (`READ`, `CHANGE`, `PRIVATE`), `Hub` (one event stream, with its own cap). |
+| `scdash/service.py` | The service: `Service` (life cycle, main loop, data files), clocks and the replay feeder, and the helpers the commands use to talk to an instance (`instance_info`, `probe_health`, `launch_background`). |
+| `scdash/telemetry*.py` | Stage 6's telemetry reader, written by another agent. Not wired into the service. |
+| `web/` | The page: `index.html`, `app.js`, `style.css`. No framework, nothing from outside. |
+| `config.example.json` | Every setting with its default and an explanation; copied to `data/config.json` to change one. |
 | `scdash/tail.py` | `Follower`: each poll opens the log, compares its first line, reads past the saved offset in pieces of at most 1 MB, closes it. Holds a partial last line; cuts lines over 64 KB. Part adapted from CSR. |
 | `scdash/records.py` | Line to `Record`: fixed-width time, level part, tag; joins continuation pieces; the one cheap table lookup that drops most lines. Part adapted from CSR. |
 | `scdash/events.py` | Record to typed event, one kind per marker; the key table; `EventParser`; `session_id()`. Several line patterns and the notice cleaning adapted from CSR. |
 | `scdash/state.py` | Events to state (`State.apply`, `build_state`), `clock_facts(state, now)`. Part adapted from CSR. |
 | `scdash/names.py` | `LocationNames`: display names from `reference/locations.json` (owned by another agent), raw code when unknown. |
-| `scdash/words.py` | Local time, durations, money, ship class names, `compatible(channel name, class)`. |
+| `scdash/words.py` | Local time, durations, money, ship class names, `fit` and `compatible` (channel name against class; Mk forms normalized), `clean_text`/`clean_all` (control and bidi characters out). |
 | `scdash/summary.py` | `build_summary(state, complete, last_line_t)`: the compact session record for `data/sessions/`. No player names. |
 | `scdash/pipeline.py` | `LogReader`: follower -> records -> events -> state. What the stage 2 service drives. `read_whole()`. |
 | `scdash/timeline.py` | The `timeline` text and JSON, and the session list (`--list`). |
 | `THIRD_PARTY_NOTICES` | CSR's MIT license and what was adapted where. `tests/test_credit.py` keeps it honest: a file with a "From CSR" mark must be listed, and a listed file must carry the copyright line. |
-| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. |
+| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests). |
 
 `scdash.py` sits beside the package folder `scdash/`. With `dashboard/` on `sys.path`, `import
 scdash` finds the package because a package directory wins over a module file of the same name;
@@ -50,12 +57,35 @@ python dashboard/scdash.py timeline --list --since 2026-11-26   # sessions: loca
 
 `--list` reads only each file's first 4 KB and last 64 KB (`<SystemQuit>` was always in the last
 714 bytes), so it lists all 409 backups in about 0.2 s. A `PSOCacheGen ...log` is skipped by name:
-its first line looks like a session's. The suite takes about 10 s: the 100 MB flood test
-(`SCDASH_FLOOD_MB` makes it smaller) and the privacy test, which learns names and ids from the
-newest local logs for up to 4 s, take most of it. `tests/test_reference.py` belongs to the agent
-that builds `reference/`.
+its first line looks like a session's. `tests/test_reference.py` belongs to the agent that builds
+`reference/`.
 
-## Interfaces stage 2 will call
+The suite takes about 2 min 20 s (316 tests on 2026-11-27). Stage 1's part is about 10 s (the
+100 MB flood test, which `SCDASH_FLOOD_MB` makes smaller, and the privacy test, which learns names
+and ids from the newest local logs for up to 4 s); stage 2's process tests start and stop real
+background instances (`test_cli.py` about 65 s, `test_replay.py` about 17 s). While the game runs,
+set `SCDASH_FLOOD_MB=5`.
+
+The service (stage 2):
+
+```sh
+python dashboard/scdash.py start            # background (pythonw, no window); waits until it answers
+python dashboard/scdash.py status [--json]  # pid, port, game seen, log offset, memory, CPU, pages
+python dashboard/scdash.py stop             # stops it and writes data/stopped.json; `start` removes it
+python dashboard/scdash.py run              # foreground until Ctrl+C, logging to the console too
+python dashboard/scdash.py replay "26 Nov 26 (15 11 12)" [--minutes 1.5 | --speed 40] [--terminal]
+```
+
+Every service command takes `--data <folder>` (default `dashboard/data`); `run` and `start` also
+`--port`, `--log`, `--live` and `--process`. An instance belongs to its data folder: the mutex name
+is a hash of the folder, so tests and replays run beside the live one. Tests always pass a
+temporary folder, a free port and a log of their own, and never touch `dashboard/data`, port 47826
+or the real `Game.log`. `replay` refuses the live port and any folder inside `dashboard/data`, uses
+port 47827 and a temporary folder by default (removed afterwards unless `--keep` or `--data`), and
+writes the past log into `<data>/replay/Game.log` as its clock reaches each line, so the normal
+follower reads it.
+
+## Interfaces from stage 1 (what the service calls)
 
 - `LogReader(path, names, opener=open_shared)`:
   - `.poll(budget=None)` once a second returns `'missing'`, `'waiting'`, `'idle'` or `'read'`.
@@ -74,9 +104,13 @@ that builds `reference/`.
     millisecond later. It then comes out of `take_lines()` again with the same `id` and a higher
     `rev`; the page replaces the line it has.
 - `State.to_dict(private=False)`: the state as JSON, with every other player's name the session
-  has seen replaced by "another player" in every text (contract titles included). `private=True`
+  has seen replaced by "another player" in every text (contract titles included). The user's own
+  handle is replaced by "you" the same way. `private=True`
   keeps them and adds `me` (handle, player id), for memory only. `build_summary` scrubs the same
-  way.
+  way. Either way, and in everything `timeline` prints or dumps, no text carries a C0 or C1
+  control character or a bidi control (U+202A-202E, U+2066-2069, U+200E/200F/061C):
+  `words.clean_text` takes them out where text leaves the state, so nothing in the log can steer a
+  console or reorder the page's words.
 - `State.unmapped()`: location codes with no name, for `data/unmapped.json`.
 - `clock_facts(state, now)`: everything that needs "now" (session length, time in the world,
   hangar queue waited and stuck). The state itself never reads the clock; a test walks the source
@@ -85,12 +119,174 @@ that builds `reference/`.
   of its own, so that it cannot move the session's last-event time or event count.
 - **No line can stop or stall the reader.** A line that cannot be read becomes an `unreadable`
   event, counted in `state.session["unreadable"]` (for `status`); a failure while applying an
-  event is counted there too. The follower settles its offset before handing lines on.
+  event is counted there too. A time outside 2015-2099, and a number that is not finite or longer
+  than 30 characters, also make a line unreadable. The follower settles its offset before handing
+  lines on. `to_dict()` carries the count as `session.unreadable`, and `status` reads it there.
+- **The preflight check** (`state.preflight`: `ok`, `text`, `order` "usual" or "differs",
+  `missing`). The preflight check passes when the AB6 and the MTQ both appear in the
+  `Connected joystick` lines, in any order: a different order is a note, not an alert. The
+  keyboard, MTQ, AB6 order worked on 2026-11-27 by the user's report, reason unconfirmed. It fails
+  red only when either device is missing, as in the twelve AB6-missing launches in logbackups. The
+  page builds the alert's title and instruction from `missing` (stick base, throttle, or both) and
+  shows a different order as "PASS other order" in the strip.
 - Stage 3 slots: `state.plan`, `state.timers`, `state.alerts`, `state.view` exist and are empty.
 
 Every event is a frozen dataclass with `session` (the backup name the game gives the log) and
 `offset` (byte offset of its first line): together its identity. `Event.to_dict()` and
 `events.event_from_dict()` round-trip.
+
+## Stage 2: the service, the server, the page
+
+**Life cycle** (`Service.run()`, the docstring of `service.py` has it in full):
+
+1. `run --background` with `data/stopped.json` present exits 0 at once: a `stop` stays stopped
+   until `start` removes the marker (PLAN §6). A foreground `run` ignores the marker.
+2. The named mutex (`Local\scdash-<hash of the data folder>`) or exit 1. The OS drops it when the
+   holder dies, so a crash never blocks a start; a stale `run.json` decides nothing.
+3. Something answering on 127.0.0.1:<port> before the bind, or a failed bind: exit 2, with the
+   health answer saying whether it is another dashboard or a foreign program. The pre-bind check
+   matters: a program bound to 0.0.0.0 does not stop an exclusive bind to 127.0.0.1 [seen].
+4. Below-normal priority, stale temporary files of a dead instance swept, a new token,
+   `run.json` (pid, port, start time, token, and the process's own creation time), the server.
+5. The `user` block of `state.json` loaded before anything is saved. No game: read the last log
+   once, write its summary if it has none. Game running: read from the top (a restart arrives at
+   the same state).
+6. The loop: game running, poll the log every second (16 MB per turn while catching up); always,
+   look for the process every 10 s. Process gone: read the rest, `finish()`, write the summary
+   (a crash is only visible this way). A summary's file name is its start time and build, and an
+   existing file is never rewritten, so no summary is written twice, across restarts too.
+7. Shutdown: last state saved, `run.json` removed (only if it is ours), mutex released.
+
+Exit codes: 0 done, 1 another instance holds the lock, 2 the port is taken, 3 a setup failure.
+`start` launches the background process through `service.launch_background()` (pythonw,
+detached, out of the caller's job); in stage 4 `start` goes through the scheduled task there.
+
+**run.json is trusted only as far as the live process confirms it.** Healthy means the health
+answer carries run.json's pid *and* start time. When the lock is held but nothing answers,
+`status` checks run.json's process: a live python(w).exe created at the recorded time (to the
+millisecond, read with a query-only handle) is "ours, not answering" (hung, suspended or busy),
+and `stop` and `start` refuse to act on it. Nothing in scdash ever signals, suspends or ends a
+process; a test scans the source for it.
+
+**Settings** are bounded on both sides (`config.BOUNDS`); a value outside is a mistake and takes
+the default with a note in the log. `replay` copies the past log into its own folder first
+(`<data>/replay/source.log`) and feeds from the copy, so replaying the live `Game.log` never holds
+it open.
+
+**Files in the data folder**, all written to a temporary file (`.<name>.<pid>.<hex>.tmp`, swept at
+start when its writer is gone) and renamed: `run.json`, `stopped.json`, `state.json` (the public
+state plus a `user` block for stage 3's quick timers, loaded at start, saved at most every 10 s and
+only on change), `unmapped.json` (codes with no name, merged across sessions, at most 2,000),
+`sessions/<start>_<build>.json` (newest 500 kept; an undated `session-<hash>` name counts by its
+file time), `service.log` (1 MB, one rotated copy), `config.json` (the user's, read only).
+
+**The request guard** (`server.py`): every request needs exactly one `Host` of
+`127.0.0.1:<port>` or `localhost:<port>` and an origin-form target, reads included; a
+`Sec-Fetch-Site` other than `same-origin` or `none` is refused on every route; and the request's
+head (with a changing request's body) must arrive within 5 s in all, however slowly it trickles
+(a watcher thread, idle while nothing is pending, cuts the connection). `CHANGE` routes also need
+`X-SCDash-Token`, an `Origin` of this server, `Content-Type: application/json`, a `Content-Length`
+of ASCII digits (at most 64 KB) and a JSON object. `PRIVATE` routes and streams need the token
+header and a `Sec-Fetch-Site: same-origin` that must be present; the token is never accepted in a
+URL. Every `route()` and `stream()` call names its guard (no default), and `route()` refuses a
+non-GET route without the token, so a later stage cannot register an unguarded endpoint by
+mistake. The token reaches the page only inside the served HTML (`<meta name="scdash-token">`);
+`/api/health` carries the program's name, pid and start time and nothing else. The page has a
+strict Content-Security-Policy (no inline script or style).
+
+Endpoints: `GET /` (`/app.js`, `/style.css`), `GET /api/health`, `GET /api/status`,
+`GET /api/state` (the last payload), `GET /api/stream`, `POST /api/shutdown`. At most 16 requests
+at once, 5 s to send one.
+
+**What the page gets** (one JSON line per event-stream message, `event: state`): `service` (mode,
+pid, game running and since, log found, replay info, terminal on), `clock` (`rate`, `real`,
+`virtual`: the page's now is `virtual + (Date.now() - real) * rate`, which is the system clock in
+live mode and the replay clock in a replay; `session_end` once the game is not running), `flags`
+(clock-dependent facts the service computes: `hangar_stuck`), and `state` (`to_dict(private=False)`).
+Sent only when it differs from the last one, merged to at most two a second, `retry: 3000`, a
+comment line every 15 s, at most 4 pages; a closed page is noticed within a second by peeking at
+its socket.
+
+**Where later stages hook in:**
+
+- Stage 3: views in `web/app.js` `renderView()` (and the view region in `index.html`); alerts and
+  timers computed in the service (`Service._flags()` is the place for clock facts, `state.alerts`
+  and `state.timers` reach the page already); changing endpoints in `Service._register()` behind
+  `CHANGE`, called from the page with `window.scdash.post()`; user input saved in
+  `Service.user_data` (the `user` block of `state.json`, loaded at start). The page reloads itself
+  when the payload's `service.pid` or `service.started` changes, so it never posts with a dead
+  token.
+- Stage 4: the `install`, `uninstall` and `open` commands in `scdash.py`; `start` through the task
+  in `launch_background()`; `run.json` records `python` for the moved-interpreter check.
+- Stage 4b: a `Hub` of its own (`max_clients=1`) registered with
+  `server.stream(path, hub, PRIVATE)` for the terminal's output, read on the page with
+  `window.scdash.openPrivateStream(path, onData)` (fetch with the token header over the
+  close-delimited response, reconnecting by itself), and a `CHANGE` route for keystrokes; the
+  `terminal.enabled` setting already lays the page out with the region (`data-terminal` on
+  `<html>`).
+
+**The page** (direction B, "Avionics", from `data/design/b`): the strip (time and date, state,
+joystick pass or fail with a quiet "other order" note, session, location, ship), alerts across the
+top of the view, a "Now" placeholder, the feed (major and alert lines, 4 in landscape and 6 in
+portrait; minor ones stay out, `SHOW_MINOR` in `app.js`), and the terminal region when the setting
+is on. Nothing below 18 px; texts that can come from the log carry `unicode-bidi: isolate`. One
+event stream, one one-second timer, only changed text redrawn. When the stream has been gone 2 s,
+the red banner takes the strip's place (its figures are stale then) and the rest is dimmed; it
+covers nothing else.
+
+**The follower across a real game launch** (PLAN §8, §12 stage 2) was proved with the stage 1
+follower on 2026-11-27 at 12:57 PM (PLAN §8 has the figures); the same check with the service
+itself is still to do. The service logs what the proof needs to `data/service.log`: `log facts (...)` lines with the log's size, file
+id, volume, created and modified times and first line, at start, when the game appears and ends,
+when the log is emptied and when a new session begins; `the session ... ends in the same file,
+read to offset N`; `a new session starts in the log at offset 0: first line ... (was ...)`; and
+30 s and 120 s after the game appears, `newest backup (...)`, which compares the newest backup's
+first line and size with the session that ended in place and says `same size, rotation
+undisturbed` when they match. To run it: `start` with the game closed, launch the game from the
+launcher, stay at least two minutes, quit, wait ten seconds, then read those lines.
+
+### Measured (stage 2, 2026-11-27, game not running) [seen]
+
+Taken from the real service started with `start` (pythonw, below-normal priority), through its
+own `/api/status`: `cpu_s` is `os.times()` user plus system, memory is `GetProcessMemoryInfo`.
+Windows' own counters (`Win32_PerfFormattedData_PerfProc_Process`) gave the same private working
+set to the kilobyte. Each run used a temporary data folder, a free port and a stand-in "game"
+process (a renamed copy of `PING.EXE`). Scripts were scratch files.
+
+| What | Measured | Budget (PLAN §9) |
+| --- | --- | --- |
+| Idle, no game, one page connected, 10 min | 0.47 s CPU = **0.078%** of one core; **23.4 MB** private working set, 35.0 MB working set, 25.2 MB committed | effectively zero; 30 MB |
+| Game "running": the afternoon log of 2026-11-26 written at its real pace (766 KB, 47 events, 30 state sends in the window), one page, 10 min | 0.69 s = **0.115%** of one core; **21.6 MB** private working set, 33.2 MB working set | 0.2%; 30 MB |
+| Replay of that session in 2 min (about 43x) | **0.46%** of one core over the replay; 24.4 MB private working set at peak | none set |
+| 100 MB of junk appended twice to a followed log | first flood 21.3 -> 24.3 MB (a one-time step: the 1 MB read pieces), second 24.3 -> 24.3 MB; peak working set 37.9 MB; about 1 s CPU and under 1 s each | must not grow |
+
+Most of the idle cost is the process check (about 5 ms every 10 s, see below); the rest is the
+server's half-second poll and one wake-up a second per connected page. Not yet measured: the same
+with the real game running, and the window (stage 4).
+
+### Learned in stage 2 (2026-11-27, this PC) [seen]
+
+- **A refused connect to 127.0.0.1 takes about 2 s on Windows** (4 s to `localhost`, which tries
+  ::1 first). A listener accepts at once, so every probe connects with a 0.5 s timeout and reads a
+  timeout as "nothing there"; the HTTP answer then gets 3 s.
+- **A program bound to 0.0.0.0:<port> does not stop an exclusive bind to 127.0.0.1:<port>**, so
+  `run` first checks whether anything answers on the port. Two binds to 127.0.0.1 are refused
+  (10048), with or without the other side asking for address reuse.
+- **A Toolhelp process snapshot costs about 5 ms** with about 270 processes: 2.9 ms for the
+  snapshot, the rest walking it through ctypes. Every 10 s that is about 0.05% of a core.
+- **Windows' monotonic clock moves in steps of about 15.6 ms**: a test that sets a 1 ms interval
+  and checks at once sees no time pass (tests set `Service._next_probe = 0` instead).
+- **The page's Content-Security-Policy forbids inline `style` attributes.** The mockup's hidden
+  icon sprite (`style="position:absolute"`) took a line of height and pushed the feed off the
+  bottom until it got a class. Its meters (`style="--v:.62"`) will need
+  `element.style.setProperty("--v", ...)` in stage 3, which the policy allows.
+- **Headless Edge:** `--virtual-time-budget` never finishes while an event stream is open. A plain
+  `--screenshot` works, because the server sends the current state the moment the page connects.
+  Add `--force-prefers-reduced-motion` to see an alert without its 160 ms fade (the stylesheet
+  honors reduced motion).
+- **`start`'s detached process outlives the shell that started it** (DETACHED_PROCESS plus
+  CREATE_BREAKAWAY_FROM_JOB, falling back without breakaway if a job forbids it). Under pythonw the
+  standard streams are None; `scdash.py` points them at the null device first.
 
 ## Measured (stage 1, game not running, 2026-11-27)
 
@@ -139,8 +335,8 @@ my own readings are marked as such.
   place the user is landed at, 0 in flight; walking between New Babbage's city and a
   sub-location changes only the `Location` part. `RequestLocationInventory` names the place and
   also fires when the storage screen opens. Before a respawn, the respawn place is logged a few
-  ms before `Spawned!`. 4 of 42 respawns logged no place within a minute (my guess: a respawn in
-  a ship's medical bed in space).
+  ms before `Spawned!`. Of 44 respawns, 4 logged no place within a minute (my guess: a respawn in
+  a ship's medical bed in space) and 2 came less than a minute before the log ended.
 - **The storage "Item Count" follows the screen's filter**: 156, 34, 42, 156 within 70 s with
   nothing moved. It is not the stock.
 - **`<SystemQuit>` reasons:** "Quit via console command" and "User closed the application" (12
