@@ -1,0 +1,7 @@
+{
+ "_doc": "Hand-entered ore data, merged into ores.json by build_reference.py, which never writes this file. `spots` adds a place whose rock mix comes from the game's mining presets named in `mixes`; use it when the game defines a mix but does not place it. `ores` sets fields on an ore entry (each field replaces the generated one, so give it its own `src`). Every entry says how it is known in `src` (game / ref / seen / user).",
+ "spots": {
+  "akiro-cluster": {"name": "Akiro Cluster", "kind": "field", "body": null, "system": "Pyro", "places": ["akiro-cluster"], "mixes": ["HPP_Pyro_AkiroCluster"], "src": "ref", "note": "The game defines the mining preset HPP_Pyro_AkiroCluster, but its container (pyro/akirocluster.socpak) is not placed in this build's Pyro hierarchy, so its link to the Akiro Cluster is by name [inference]. The Star Citizen Wiki API (4.10.3-LIVE.13165946, read 2026-11-25) also lists Riccite at the Akiro Cluster."}
+ },
+ "ores": {}
+}

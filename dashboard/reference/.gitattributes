@@ -1,0 +1,3 @@
+# The generator writes these with LF and compares bytes (--check). Keep git from turning
+# them into CRLF on a Windows checkout, or every fresh clone would look out of date.
+*.json text eol=lf

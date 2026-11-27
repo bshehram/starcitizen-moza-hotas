@@ -139,9 +139,25 @@ them.
   (`<AccountLoginCharacterStatus_Character>`), the player id on many lines, session ids, and
   server addresses. §8 and §13 cover what that means for test samples.
 
-Location codes look regular **[verify against `global.ini`]**: `LOC_RR_S3_L4` was ARC-L4 and
-`LOC_RR_S4_L2` was MIC-L2, so `S1`-`S4` look like Hurston, Crusader, ArcCorp and microTech. Some
-names mislead: Stanton's Nyx Gateway is `RR_JP_StantonMagnus`.
+**Where the location codes come from [seen in the game's files, 2026-11-27, build
+4.10.201.48085].** The quantum-target codes (`LOC_RR_S3_L1`, `OOC_Stanton_3b_Wala`,
+`NewBabbage_LOC`) are not in `global.ini`. They are entity names in the solar system's object
+containers inside `Data.p4k`. Each points to a star-map record in `Game2.dcb`, and that record's
+own name is the inventory code (`RR_ARC_L1`), with a label that gives the display name. So one
+record ties both code families to one place, and `reference/build_reference.py` reads the whole
+table from the game (§10). `S1` to `S4` are Stanton 1 to 4: Hurston, Crusader, ArcCorp and
+microTech, the same as `HUR` / `CRU` / `ARC` / `MIC`. Three things to know:
+
+- **There are more than two families.** Runtime codes also occur: `NavPoint_Dynamic_<n>`,
+  `MISSION_QT_...`, `rs_ext_...`. `locations.json` carries a list of prefixes for those.
+- **A code can mean several places.** `ObjectContainer_RestStop` is Baijini Point, Everus Harbor
+  or Port Tressler; the inventory location logged on arrival tells which.
+- **An L-point's code is its station, not its asteroid field.** `LOC_RR_S3_L4` is ARC-L4 Faint
+  Glen Station; the field the user mines is a separate record about 3,500 km away, and nothing
+  is logged on reaching it. Leaving the field does show: the route's start is then named
+  "ARC L4", the field's own name. So a plan leg, not the log, says that a jump to an L-point is
+  a mining stop.
+- Some names mislead: Stanton's Nyx Gateway is `RR_JP_StantonMagnus`.
 
 **Can know, from other files:** new Game Bar captures in `%USERPROFILE%\Videos\Captures` (name and
 time only), and the plan data Claude maintains (§10).
@@ -765,8 +781,10 @@ last good copy and shows a small notice.
 }
 ```
 
-The location codes in this example are guesses from the pattern in §3. Use the codes the log
-actually prints, from either family (§3, *Reading the lines*).
+Use the codes the log actually prints, from either family (§3, *Reading the lines*);
+`reference/locations.json` has every one. A leg to an L-point field lists the station's
+quantum code (`LOC_RR_S2_L5` is CRU-L5 Beautiful Glen Station), because that is the jump the log
+shows; the leg's `view` is what makes it a mining stop (§3).
 
 Two things the page has to be honest about:
 
@@ -793,6 +811,30 @@ source, as [`../CLAUDE.md`](../CLAUDE.md) §11 does. Build them from the memory 
 
 An unknown location code is shown raw and added to `data/unmapped.json`, so the table can grow
 from real play.
+
+**Built 2026-11-27.** The four tables are in `reference/`, made by `build_reference.py` from the
+installed game's files (about 90 seconds; `--check` says whether they are current). Run it after
+every game patch.
+
+- Generated and hand-entered data are separate files: `<name>.json` is output only, and
+  `<name>.hand.json` is the only place to type anything in. The generator refuses to overwrite
+  an output that was edited by hand.
+- What they hold: 3,415 location codes for 1,517 places, all 207 commodity ids, 39 ores with
+  their scan readings per cluster size, quality figures and look-alikes, and refinery yields for
+  20 stations.
+- How it was checked: every location code in the user's November logs resolves (716 of 719
+  across all 409 logs; the three that don't are generic names from February and March), every
+  commodity id in their sale and purchase lines resolves (28 of 28), and all 23 ores that memory
+  holds a scan value for match the game exactly.
+- Refinery yields are the one part not from the game: no station yields are in the client's
+  records. They are a UEX snapshot (its open API, rows dated 2026-10-16 to 2026-11-19) plus 12
+  readings off a refinery terminal on 2026-11-26, which agree with UEX on every value. Each
+  figure carries its date and source.
+- **Not in the tables yet**, wanted by the views: commodity prices and which shop name in a sale
+  line is which place (Selling), method cost and time and which stations have a refinery
+  (Refinery), and distances (Travel). Stage 3 adds what its views need.
+- The scan rule, reading = one rock's value x the number of rocks, is community knowledge, not
+  from the files. It matches what the user has seen in play.
 
 **`data/state.json`, `data/sessions/`, `data/run.json`, `data/service.log`:** the service's own
 files, all local, all bounded.
@@ -1044,10 +1086,10 @@ build confirms them on this PC; each names its source.
    in the user's logs (§3). Nothing marks a refinery order being placed: `OnRefineryRequest`
    appears once in the 65 November logs (the day raw ore was sold at a refinery kiosk) against 58
    completion notices. Still open: what a failed contract logs.
-6. The location code pattern in §3, against `global.ini`. Two other tools' tables agree that
-   `S1` to `S4` and `HUR` / `CRU` / `ARC` / `MIC` are the four Stanton planets' sectors **[ref:
-   StarStats, CSR]**. CSR's `tools/place_names.py` builds outpost names from `global.ini` the way
-   this repo's `tools/gamedata.py` could.
+6. **Answered [seen in the game's files, 2026-11-27].** The location codes are not in
+   `global.ini`; they come from the solar system's object containers and the star-map records
+   (§3, *Where the location codes come from*). `S1` to `S4` and `HUR` / `CRU` / `ARC` / `MIC` are
+   the four Stanton planets, as two other tools' tables also have it.
 7. Whether below-normal priority has any drawback for a process that wakes once a second. One
    effect is known: the browser window the service starts inherits it (§6) **[seen
    2026-11-27]**.

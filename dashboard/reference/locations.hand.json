@@ -1,0 +1,15 @@
+{
+ "_doc": "Hand-entered location codes, merged into locations.json by build_reference.py, which never writes this file. An entry here replaces a generated entry with the same key. Use the same fields as locations.json and say how each is known in `src` (game / ref / seen / user), with a `note` when it is an inference. An entry that shares a `place` with a generated one must copy that place's name, short, kind, body and system exactly (the tests check this).",
+ "locations": {
+  "INVALID_LOCATION_ID": {"name": "No location", "short": "No location", "kind": "none", "body": null, "system": null, "place": null, "src": "seen", "note": "Printed as Location[INVALID_LOCATION_ID] in RequestLocationInventory lines when the game has no location for the player. Not a place."},
+  "stanton2": {"name": "Crusader", "short": "Crusader", "kind": "planet", "body": "Crusader", "system": "Stanton", "place": "crusader", "src": "seen", "note": "Planet name in terrain log lines of older builds (early 2026). Matched to the record StarMapObject.Stanton2 by name [inference]."},
+  "stanton2c": {"name": "Yela", "short": "Yela", "kind": "moon", "body": "Yela", "system": "Stanton", "place": "yela", "src": "seen", "note": "Moon name in terrain log lines of older builds (early 2026). Matched to the record StarMapObject.Stanton2c by name [inference]."},
+  "stanton4": {"name": "microTech", "short": "microTech", "kind": "planet", "body": "microTech", "system": "Stanton", "place": "microtech", "src": "seen", "note": "Planet name in terrain log lines of older builds (early 2026). Matched to the record StarMapObject.Stanton4 by name [inference]."},
+  "ellis3": {"name": "Green", "short": "Green", "kind": "planet", "body": "Green", "system": "Stanton", "place": "green", "src": "seen", "note": "Planet name in terrain log lines of older builds (early 2026). Matched to the record StarMapObject.Ellis3 by name [inference]; that record's parent is the Stanton star, although the name points to the Ellis system."}
+ },
+ "patterns": [
+  {"prefix": "MISSION_QT_Beacon_", "name": "Mission beacon", "kind": "mission marker", "src": "seen", "note": "Quantum target made at runtime for a mission. This build has no record of this exact name, so the label is generic [inference]."},
+  {"prefix": "NavPoint_Dynamic_", "name": "Nav point", "kind": "nav point", "src": "seen", "note": "Quantum target made at runtime; the log line does not say what it marks."},
+  {"prefix": "PartyMemberMarker_", "name": "Party Member", "kind": "player marker", "src": "seen", "note": "Quantum target on a party member. Label taken from the game's PARTY_MEMBER_QT_Beacon record; the link between the two names is an inference."}
+ ]
+}
