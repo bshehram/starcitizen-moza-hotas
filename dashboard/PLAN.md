@@ -9,7 +9,7 @@ decisions are in §15. The build started later that day.
 | Reference tables (§10) | Built, checked, committed. |
 | 1. Parser and state | Built, reviewed twice by an independent agent, committed. `python dashboard/scdash.py timeline` works. |
 | 2. Service and a minimal page | Not started. |
-| 3. Views and plan data | Not started. The look is waiting on the user's choice of design direction (§11). |
+| 3. Views and plan data | Not started. The look is chosen: direction B, mocked up in every screen (§11). |
 | 4. Autostart and the window | Not started. Waits for the side monitor. |
 | 4b. The Claude terminal | Not started. |
 | 5. A flown session | The user's. |
@@ -939,16 +939,41 @@ files, all local, all bounded.
   the shape of its own window (the CSS `orientation` media query), so rotating the display in
   Windows is all the user does: no setting, no reload, no second page. Each view is designed for
   both shapes and checked in both, not designed for one and squeezed into the other.
-  - Landscape: the status strip across the top, the current view in the main area, alerts and
-    timers down the side, the feed at the bottom.
-  - Portrait: the status strip across the top (it may take two rows), alerts under it, the
-    current view at full width, then timers, then the feed at the bottom. A view that sets things
-    side by side in landscape stacks them in portrait.
+  - Landscape: the status strip across the full width at the top; under it the current view on
+    the left and the Claude terminal down the right; the feed at the bottom of the view.
+  - Portrait: the status strip across the top (two rows), the current view at full width, the
+    feed under it, and the terminal as a band across the bottom.
+  - **Alerts sit across the top of the view in both layouts, and timers live inside the views**
+    (the countdown on Now, the timer line on Travel). The first plan put alerts and timers in a
+    rail down the side; in landscape that side is the terminal's, and the mockups showed a
+    full-width alert reads better anyway.
+  - With the terminal on, the view area is close to square in both layouts (1140x1080 and
+    1080x1200), so a view keeps one internal arrangement and only its widest pairs stack in
+    portrait.
+  - The feed is short: 4 lines on Now and 3 on the activity views in landscape, up to 6 in
+    portrait.
   - The type sizes in each layout are set for that layout. Do not scale the whole page by the
     window's width: at 1080 wide everything would shrink to just over half.
+- **The look is direction B, "Avionics"** (the user's choice on 2026-11-27, §15): a well-made
+  instrument panel without the sci-fi costume. Bahnschrift in its condensed and normal widths
+  (set with `font-stretch`; it ships with Windows), 1-pixel line work, panes with bracketed
+  corners, segmented meters, labeled data blocks, controls as a dotted-leader checklist, an
+  ink-blue ground and one cyan accent. Red, amber and green always come with a shape and a word:
+  an octagon, a triangle, a check. The terminal's type is Cascadia Mono with Consolas behind it
+  (Cascadia comes with Windows Terminal, not with Windows).
+  - The mockup is the starting point for the real page: `dashboard/data/design/b/` holds its
+    `index.html` and `style.css`, with every screen reachable by a `#name` on the address, and
+    `dashboard/data/design/shots/` holds the captures. The folder is git-ignored; the two
+    directions that were turned down are beside it.
+  - **Make the small labels bigger than the mockup's.** Its condensed capital labels are 14
+    pixels, the smallest text of the three directions. Nothing on the real page is under 18.
+  - Rough spots the designer listed, to fix when the views are built: an empty band above the
+    controls on portrait Combat, loose gaps on the on-foot portrait, stretched side panes on
+    Mission, and two cases never captured (six objectives, a very long giver name).
+  - Travel shows the short place name large ("CRU-L1") with the full name on the line below.
 - **The Claude terminal has a fixed region in each layout** (§4): a column down the right side in
-  landscape, a band across the bottom in portrait, about two fifths of the long side either way,
-  to be tuned by looking at it. The views are laid out in what remains and stay fully visible
+  landscape, 780 pixels wide (41%, about 76 columns of 16-pixel type), and a band across the
+  bottom in portrait, 720 pixels tall (37.5%, about 27 lines). The views are laid out in what remains and stay fully visible
   while the terminal is in use. With the terminal switched off, the views take the whole screen.
   The terminal's type is sized for someone sitting at the keyboard; the views' type is still
   sized for the pilot's seat.
@@ -1267,7 +1292,7 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | When that Claude starts | **With the dashboard window**, so it is always ready. It holds about 200 MB for the whole play session. | Starting it the first time the user switches to the window (the recommendation, to save the memory in sessions where nothing is asked). |
 | How xterm.js comes into the repo (§5) | **The pinned published release file**, with its license and a recorded checksum. | Installing Node.js and building it from source here. |
 | Which activities get a view (§4) | **Mining, salvage, combat and cargo hauling**: "the other stuff like salvaging and combat and cargo hauling etc". Medical runs and crafting stay on the Now view until asked for (Claude's reading of "etc"). | Mining only, which is what this plan had. |
-| How the page looks (§11) | **"Good and modern."** The user picks one of three mocked-up directions. *Not picked yet when this row was written.* | - |
+| How the page looks (§11) | **"Good and modern": direction B, "Avionics",** picked on 2026-11-27 from three directions mocked up in every screen and both orientations. | A, "Cluster" (calm, typographic, light figures) and C, "Signal" (bold, color-blocked, very large numerals). |
 | What the dashboard's Claude knows when it starts | **`STARCITIZEN.md`, loaded by the dashboard**, so nothing is typed before the question. (Loading it without setting off a ramp-up is Claude's design, §4.) | - |
 
 What "permanent" means, so nobody is surprised later: while the game runs, any program on this PC
