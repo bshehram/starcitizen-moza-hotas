@@ -396,6 +396,10 @@ source, as [`../CLAUDE.md`](../CLAUDE.md) §11 does. Build them from the memory 
 - `locations.json`: log code -> display name, kind (station, field, landing zone, gateway), body.
 - `ores.json`: scan value per rock, cluster sizes, the fixed quality figures, look-alikes.
 - `refineries.json`: yield bonus by station and ore. Player-reported, so dated.
+- `resources.json`: the resource id in a commodity sale line -> the commodity's name. The names
+  come from the `ResourceType.<Name>` records in the game's `Game2.dcb` **[seen 2026-11-26: nine
+  ids from a real sale were named this way]**. Memory note `sc-game-log-reading` has those nine
+  and the method.
 
 An unknown location code is shown raw and added to `data/unmapped.json`, so the table can grow
 from real play.
