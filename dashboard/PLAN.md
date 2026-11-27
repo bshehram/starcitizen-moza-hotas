@@ -726,8 +726,10 @@ How to stay inside them:
 - **Push, never poll.** The page holds one event stream open. The server sends the state only
   when it changes, and merges bursts into at most two sends a second. The state is a few
   kilobytes.
-- **A page that does almost nothing.** No framework, no web fonts, no images, no animation. One
-  one-second timer drives the clocks and countdowns. Only the parts that changed are redrawn.
+- **A page that does almost nothing.** No framework, no web fonts, no image files (icons are
+  inline SVG), and nothing that animates while the page is idle. A short one-off transition when
+  a view or an alert changes is allowed: it costs nothing between changes. One one-second timer
+  drives the clocks and countdowns. Only the parts that changed are redrawn.
 - **Write to disk rarely.** The state file is saved at most every 10 seconds, and only when
   something changed.
 - **Clocks from the system time.** Each tick computes the time from the clock instead of counting
@@ -853,6 +855,20 @@ files, all local, all bounded.
 
 - One page, read at arm's length and beyond: large type, high contrast, a dark theme, few things
   per view. If it cannot be read in two seconds, it has too much on it.
+- **It has to look good and modern** (the user, 2026-11-27: "make sure our design aesthetic
+  looks good and modern"). Readable is the floor, not the goal. How that is made sure of:
+  - **One design system, in the stylesheet.** Named colors, a type scale, spacing and corner
+    sizes are defined once as CSS custom properties, and every view is built from them. No view
+    invents its own color or size.
+  - **The user picks the look.** Three different visual directions are mocked up as real HTML
+    and CSS with invented data, in both orientations, before the views are built. The user
+    chooses one, and its stylesheet becomes the dashboard's (§15).
+  - **Checked by looking.** Every view is captured at 1920x1080 and 1080x1920 and looked at by
+    the agent that built it and by the reviewing session: alignment, spacing, hierarchy, nothing
+    clipped. A view that works but looks rough is not done.
+  - **Inside the performance rules (§9).** System fonts only (Windows 11 ships good ones), no
+    image files (icons are inline SVG), no outside resources, nothing that moves while the page
+    is idle.
 - **Two layouts, landscape (1920x1080) and portrait (1080x1920): the user's requirement of
   2026-11-27.** The monitor is stood either way up from one day to the next. The page chooses by
   the shape of its own window (the CSS `orientation` media query), so rotating the display in
