@@ -40,6 +40,28 @@ files, listens on this PC alone (127.0.0.1), and runs below normal priority. To 
 (the port, for example), copy `config.example.json` to `data/config.json` and edit that copy; every
 setting is explained in the example.
 
+## Setting up on a fresh Windows install
+
+The dashboard is not finished, so this list is short. It will grow as later stages add autostart,
+the window and the Claude terminal. Every step is safe to repeat.
+
+1. **Python 3.12 or newer**, with `python` on your PATH. The dashboard needs nothing else: it
+   uses the standard library only. (The other tools in this repo need
+   `python -m pip install -r tools/requirements.txt`.)
+2. **The repo in its place inside the game folder:**
+   `...\StarCitizen\LIVE\user\client\0\controls\mappings`. If you fetch it again, use
+   `gh repo clone bshehram/starcitizen-moza-hotas` or the HTTPS address.
+3. **Check it:** run the tests command above from the repo's root folder. Everything should pass.
+   Two privacy tests are skipped until the game has written a log.
+4. **Optional, for the telemetry readouts in a later stage:** the game only serves its local
+   telemetry stream when the RSI Launcher was started with one variable set. To set it for your
+   Windows user, run `setx GRPC_CLIENT_SERVER_ENABLED true`, then quit the launcher completely
+   and start it again. To undo it, run `reg delete HKCU\Environment /v GRPC_CLIENT_SERVER_ENABLED`
+   and restart the launcher. Nothing in the dashboard reads the stream yet.
+
+Not needed yet, because those stages are not built: registering the start-at-sign-in task
+(`python dashboard/scdash.py install`) and installing Claude Code for the terminal panel.
+
 `timeline` finds the game folder from where this repo sits inside it. In a copy of the repo
 somewhere else, add `--live <path to the LIVE folder>` or give the log file's path.
 

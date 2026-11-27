@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard mockup: B, Avionics</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- One markup for all three directions; only style.css differs.
+     Screens are picked by the URL fragment: index.html#mining etc. (no script). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.2 22 20.5H2Z"/><path d="M12 9.5v5"/><path d="M12 17.6v.01"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><path d="M8.1 2.5h7.8l5.6 5.6v7.8l-5.6 5.6H8.1l-5.6-5.6V8.1Z"/><path d="M12 7.5v5.5"/><path d="M12 16.4v.01"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.6 12.4 3 3 5.8-6.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-now" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-later" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.5s-7-6.3-7-11.7a7 7 0 0 1 14 0c0 5.4-7 11.7-7 11.7Z"/><circle cx="12" cy="9.8" r="2.4"/></symbol>
+  <symbol id="i-ship" viewBox="0 0 24 24"><path d="M12 2.8 19.5 20 12 16.2 4.5 20Z"/></symbol>
+  <symbol id="i-jump" viewBox="0 0 24 24"><path d="m4.5 6 6 6-6 6M12.5 6l6 6-6 6"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6.5 2.5h7.5l4.5 4.5v14.5h-12Z"/><path d="M14 2.5V7h4.5M9.5 12.5h5.5M9.5 16.5h5.5"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12h7M12 8.5v7"/></symbol>
+  <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pick" viewBox="0 0 24 24"><path d="M4 20 14 10"/><path d="M8.5 5.2c3.6-1.8 7.8-1.4 11 1.3-2.1-.2-4.1.3-5.6 1.4L16.1 10c1.1-1.5 1.6-3.5 1.4-5.6"/></symbol>
+  <symbol id="i-salv" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="m3 7.2 9-4.2 9 4.2v9.6L12 21l-9-4.2Z"/><path d="m3 7.2 9 4.2 9-4.2M12 11.4V21"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21.5V3.5"/><path d="M5 4h12.5l-2.5 4.5 2.5 4.5H5"/></symbol>
+  <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="2"/><path d="m9.5 21 2.5-6.5 3 3V21M8 11.5l3-3.5h3l2.5 4 2.5 1M12 8l-1.5 6.5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-noshield" viewBox="0 0 24 24"><path d="M12 2.8 19.5 5.8v6c0 4.9-3.3 8.1-7.5 9.4-4.2-1.3-7.5-4.5-7.5-9.4v-6Z"/><path d="m3.5 3.5 17 17"/></symbol>
+  <symbol id="i-stick" viewBox="0 0 24 24"><path d="M9 3.5h6v6.5a3 3 0 0 1-6 0Z"/><path d="M12 13v4.5M5 21h14l-1.6-3.5H6.6Z"/></symbol>
+</svg>
+
+<div class="app">
+<div class="dash">
+
+<!-- ================================================================ NOW -->
+<main class="screen screen--now" id="now">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">9:42 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">1:47</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>CRU-L1 Ambitious Dream Station</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Golem</b></span>
+  </header>
+
+  <div class="alerts">
+    <div class="alert alert--warn" role="alert">
+      <svg class="i alert__icon"><use href="#i-warn"/></svg>
+      <div class="alert__body">
+        <span class="alert__kind">Attention</span>
+        <b class="alert__title">Hangar queue stuck</b>
+        <span class="alert__text">Waiting 13 min. The estimate was 6.</span>
+      </div>
+      <p class="alert__do">Cancel at the hangar terminal and request again</p>
+    </div>
+  </div>
+
+  <section class="view now">
+    <div class="blk now__next">
+      <h2 class="cap">Next step</h2>
+      <p class="next">Get the Golem out of the hangar, then jump to CRU L5.</p>
+      <ol class="steps">
+        <li class="step step--done"><svg class="i"><use href="#i-check"/></svg><span>Tungsten from ARC L4</span></li>
+        <li class="step step--now"><svg class="i"><use href="#i-now"/></svg><span>Agricium and Beryl at CRU L5</span></li>
+        <li class="step"><svg class="i"><use href="#i-later"/></svg><span>Refine Beryl at CRU-L1, Agricium at MIC-L1</span></li>
+        <li class="step"><svg class="i"><use href="#i-later"/></svg><span>Haul to New Babbage, craft both drives</span></li>
+      </ol>
+    </div>
+
+    <div class="blk now__count count">
+      <h2 class="cap">Refinery</h2>
+      <p class="count__fig num">0:42:18</p>
+      <div class="meter meter--live" style="--v:.62"><i></i></div>
+      <p class="count__sub"><b>MIC-L1 Shallow Frontier</b><br>Agricium, Tungsten · ready 10:24 PM</p>
+    </div>
+
+    <div class="blk now__mats">
+      <h2 class="label"><span class="cap">Materials</span><span class="asof">held as of Nov 26, 4:12 PM</span></h2>
+      <div class="mats">
+        <div class="mat mat--ok">
+          <p class="mat__name">Tungsten</p>
+          <p class="mat__fig"><b class="mat__held num">2.66</b><span class="mat__need">of 2.22 SCU</span></p>
+          <div class="meter meter--ok" style="--v:1"><i></i></div>
+          <p class="mat__note"><svg class="i"><use href="#i-check"/></svg>Covered</p>
+        </div>
+        <div class="mat">
+          <p class="mat__name">Beryl</p>
+          <p class="mat__fig"><b class="mat__held num">0.84</b><span class="mat__need">of 2.22 SCU</span></p>
+          <div class="meter" style="--v:.38"><i></i></div>
+          <p class="mat__note"><b class="num">1.38</b>to go</p>
+        </div>
+        <div class="mat">
+          <p class="mat__name">Agricium</p>
+          <p class="mat__fig"><b class="mat__held num">1.90</b><span class="mat__need">of 5.52 SCU</span></p>
+          <div class="meter" style="--v:.34"><i></i></div>
+          <p class="mat__note"><b class="num">3.62</b>to go</p>
+        </div>
+      </div>
+    </div>
+
+    <article class="contract contract--compact now__contract">
+      <header class="contract__head">
+        <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Covalex Shipping</b></p>
+        <p class="contract__reward"><b class="num">8,250</b><span>aUEC</span></p>
+      </header>
+      <h2 class="contract__title">Local delivery: 3 packages</h2>
+      <ol class="objs">
+        <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Collect 3 packages at CRU-L1</span></li>
+        <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Deliver 2 packages to Seraphim Station</span></li>
+        <li class="obj"><svg class="i"><use href="#i-later"/></svg><span>Deliver 1 package to Orison</span></li>
+      </ol>
+      <p class="contract__count">Objective 2 of 3</p>
+    </article>
+  </section>
+
+  <section class="feed">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">9:41 PM</time><svg class="i"><use href="#i-clock"/></svg><span>Hangar request for the Drake Golem, estimate 6 min</span></li>
+      <li class="ev"><time class="num">9:38 PM</time><svg class="i"><use href="#i-check"/></svg><span>Objective complete: collect 3 packages</span></li>
+      <li class="ev"><time class="num">9:31 PM</time><svg class="i"><use href="#i-doc"/></svg><span>Contract accepted: Local delivery, 3 packages</span></li>
+      <li class="ev"><time class="num">9:29 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Landed at CRU-L1 Ambitious Dream Station</span></li>
+      <li class="ev ev--ok"><time class="num">9:20 PM</time><svg class="i"><use href="#i-ok"/></svg><span>Work order complete at MIC-L2 Long Forest</span></li>
+      <li class="ev"><time class="num">9:14 PM</time><svg class="i"><use href="#i-jump"/></svg><span>Quantum jump to CRU-L1 Ambitious Dream Station</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================= MINING -->
+<main class="screen screen--act" id="mining">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">10:31 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">2:36</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>CRU L5 asteroid field</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Golem</b></span>
+  </header>
+
+  <section class="view act act--mining">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-pick"/></svg>Mining</h1>
+      <p class="act__where">CRU L5, Crusader · plan: Run B</p>
+    </header>
+
+    <div class="act__hero ores">
+      <div class="ore">
+        <div class="ore__head">
+          <h2 class="ore__name">Agricium</h2>
+          <span class="ore__tier">Uncommon · 29% of rocks here</span>
+          <div class="ore__rule">
+            <span class="q q--take"><svg class="i"><use href="#i-ok"/></svg><span class="q__k">Take</span><b class="num">600+</b></span>
+            <span class="q q--skip"><svg class="i"><use href="#i-x"/></svg><span class="q__k">Skip below</span><b class="num">600</b></span>
+          </div>
+        </div>
+        <div class="reads">
+          <div class="read read--top"><p class="read__fig num">11,655</p><p class="read__sub"><span>3 rocks</span><span class="meter" style="--v:.6"><i></i></span><span class="num">60%</span></p></div>
+          <div class="read"><p class="read__fig num">15,540</p><p class="read__sub"><span>4 rocks</span><span class="meter" style="--v:.3"><i></i></span><span class="num">30%</span></p></div>
+          <div class="read"><p class="read__fig num">19,425</p><p class="read__sub"><span>5 rocks</span><span class="meter" style="--v:.1"><i></i></span><span class="num">10%</span></p></div>
+        </div>
+      </div>
+      <div class="ore">
+        <div class="ore__head">
+          <h2 class="ore__name">Beryl</h2>
+          <span class="ore__tier">Rare · 18% of rocks here</span>
+          <div class="ore__rule">
+            <span class="q q--take"><svg class="i"><use href="#i-ok"/></svg><span class="q__k">Take</span><b class="num">700+</b></span>
+            <span class="q q--skip"><svg class="i"><use href="#i-x"/></svg><span class="q__k">Skip below</span><b class="num">700</b></span>
+          </div>
+        </div>
+        <div class="reads">
+          <div class="read read--top"><p class="read__fig num">7,080</p><p class="read__sub"><span>2 rocks</span><span class="meter" style="--v:.6"><i></i></span><span class="num">60%</span></p></div>
+          <div class="read"><p class="read__fig num">10,620</p><p class="read__sub"><span>3 rocks</span><span class="meter" style="--v:.3"><i></i></span><span class="num">30%</span></p></div>
+          <div class="read"><p class="read__fig num">14,160</p><p class="read__sub"><span>4 rocks</span><span class="meter" style="--v:.1"><i></i></span><span class="num">10%</span></p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="act__main">
+      <div class="goal">
+        <h2 class="label"><span class="cap">Goal</span><span class="asof">held as of Nov 26, 4:12 PM</span></h2>
+        <div class="needs">
+          <div class="need"><span class="need__name">Agricium</span><b class="num">1.90</b><span class="need__of">of 5.52 SCU</span><span class="meter" style="--v:.34"><i></i></span></div>
+          <div class="need"><span class="need__name">Beryl</span><b class="num">0.84</b><span class="need__of">of 2.22 SCU</span><span class="meter" style="--v:.38"><i></i></span></div>
+        </div>
+        <p class="goal__next">Agricium first: it is 3.62 SCU short.</p>
+      </div>
+
+      <div class="act__ref">
+        <div class="ref">
+          <h2 class="cap">Look-alikes here</h2>
+          <p><b>None within 1%</b> at CRU L5. Iron, Copper and Ice read <b class="num">16,960–17,200</b> at 4 rocks.</p>
+        </div>
+        <div class="ref">
+          <h2 class="cap">Refine · Pyrometric Chromalysis</h2>
+          <p class="rrow"><span class="rrow__k">Agricium</span><span class="rrow__at">MIC-L1 Shallow Frontier</span><b class="num pos">+8%</b></p>
+          <p class="rrow"><span class="rrow__k">Beryl</span><span class="rrow__at">CRU-L1 Ambitious Dream</span><b class="num pos">+7%</b></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h2 class="cap ctl__title"><svg class="i"><use href="#i-stick"/></svg>Mining mode · knob 4</h2>
+      <dl class="ctl__list">
+        <div><dt>Trigger</dt><dd>Fire laser</dd></div>
+        <div><dt>FLAPS lever</dt><dd>Laser power</dd></div>
+        <div><dt>Rocker ↑ ↓</dt><dd>Power step</dd></div>
+        <div><dt>Rocker press</dt><dd>Fracture / extract</dd></div>
+        <div><dt>Right hat ↑ → ↓</dt><dd>Module 1 · 2 · 3</dd></div>
+        <div><dt>A1 hold</dt><dd>Jettison cargo</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">10:24 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Arrived at CRU L5</span></li>
+      <li class="ev ev--ok"><time class="num">10:24 PM</time><svg class="i"><use href="#i-ok"/></svg><span>Work order complete at MIC-L1 Shallow Frontier</span></li>
+      <li class="ev"><time class="num">10:12 PM</time><svg class="i"><use href="#i-jump"/></svg><span>Quantum jump to CRU L5</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================ SALVAGE -->
+<main class="screen screen--act" id="salvage">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">3:52 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">0:58</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Near CRU-L4 Shallow Fields Station</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>RSI Salvation</b></span>
+  </header>
+
+  <section class="view act act--salvage">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-salv"/></svg>Salvage</h1>
+      <p class="act__where">Derelict Freelancer MAX near CRU-L4</p>
+    </header>
+
+    <div class="act__hero figs">
+      <div class="fig fig--main">
+        <h2 class="cap">RMC for repairs</h2>
+        <p class="fig__line"><b class="fig__num num">4.5</b><span class="fig__unit">of 12 SCU</span></p>
+        <div class="meter" style="--v:.375"><i></i></div>
+        <p class="fig__sub">Held as of 3:40 PM · <b class="num">7.5</b> SCU to go</p>
+      </div>
+      <div class="fig">
+        <h2 class="cap">Salvation hold</h2>
+        <p class="fig__line"><b class="fig__num num">6</b><span class="fig__unit">SCU</span></p>
+        <p class="fig__sub">About <b class="num">2</b> full holds to go</p>
+      </div>
+    </div>
+
+    <p class="act__next"><span class="cap">Next</span>Scrape the hull, then use the fracture field.</p>
+
+    <div class="act__main">
+      <article class="contract">
+        <header class="contract__head">
+          <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Crusader Industries</b></p>
+          <p class="contract__reward"><b class="num">14,500</b><span>aUEC</span></p>
+        </header>
+        <h2 class="contract__title">Salvage rights: derelict Freelancer MAX</h2>
+        <ol class="objs">
+          <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Go to the derelict near CRU-L4</span></li>
+          <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Strip the derelict's hull</span></li>
+        </ol>
+        <p class="contract__count">Objective 2 of 2</p>
+      </article>
+
+      <div class="act__ref">
+        <div class="ref">
+          <h2 class="cap">Sell at CRU-L1 Ambitious Dream</h2>
+          <p class="rrow"><span class="rrow__k">RMC</span><span class="rrow__at">keep for repairs</span><b class="num">9,750</b></p>
+          <p class="rrow"><span class="rrow__k">Construction Mat.</span><span class="rrow__at">sell</span><b class="num">2,480</b></p>
+          <p class="ref__foot">aUEC per SCU · UEX, Nov 26</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h2 class="cap ctl__title"><svg class="i"><use href="#i-stick"/></svg>Salvage mode · knob 5</h2>
+      <dl class="ctl__list">
+        <div><dt>Trigger</dt><dd>Focused beam on / off</dd></div>
+        <div><dt>Trigger stage 2</dt><dd>Gimbal mode</dd></div>
+        <div><dt>Right hat ↑</dt><dd>Focus all heads</dd></div>
+        <div><dt>Right hat ← →</dt><dd>Focus left / right</dd></div>
+        <div><dt>Right hat ↓</dt><dd>Flip beam axis</dd></div>
+        <div><dt>A2 · A3</dt><dd>Fire left · right</dd></div>
+        <div><dt>Rocker ↑ ↓</dt><dd>Beam spacing</dd></div>
+        <div><dt>Rocker press</dt><dd>Field mode</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">3:47 PM</time><svg class="i"><use href="#i-doc"/></svg><span>New objective: strip the derelict's hull</span></li>
+      <li class="ev"><time class="num">3:46 PM</time><svg class="i"><use href="#i-doc"/></svg><span>Contract accepted: Salvage rights, derelict Freelancer MAX</span></li>
+      <li class="ev"><time class="num">3:31 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Arrived at CRU-L4 Shallow Fields Station</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================= COMBAT -->
+<main class="screen screen--act" id="combat">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">8:14 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">0:41</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Near Yela, Crusader</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Origin M80</b></span>
+  </header>
+
+  <section class="view act act--combat">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-target"/></svg>Combat</h1>
+      <p class="act__where">Pilot seat · Origin M80</p>
+      <div class="tele" aria-label="From the telemetry stream">
+        <span class="tele__item"><span class="tele__k">Decoys</span><b class="num">6</b></span>
+        <span class="tele__item"><span class="tele__k">Noise</span><b class="num">4</b></span>
+        <span class="tele__item tele__pw"><span class="tele__k">Power</span><span class="pw pw--on">W</span><span class="pw pw--on">T</span><span class="pw pw--on">S</span></span>
+        <span class="tele__item"><b>Coupled</b></span>
+      </div>
+    </header>
+
+    <div class="act__hero figs tally">
+      <div class="fig fig--ship">
+        <h2 class="cap">Ship</h2>
+        <p class="fig__name">Origin M80</p>
+        <p class="fig__sub">Trigger: S5 pair · stage 2: S4 pair</p>
+      </div>
+      <div class="fig"><h2 class="cap">Destroyed</h2><p class="fig__line"><b class="fig__num num">3</b></p><p class="fig__sub">ships this session</p></div>
+      <div class="fig"><h2 class="cap">Lost</h2><p class="fig__line"><b class="fig__num num">0</b></p><p class="fig__sub">ships</p></div>
+      <div class="fig"><h2 class="cap">Downed</h2><p class="fig__line"><b class="fig__num num">0</b></p><p class="fig__sub">times</p></div>
+    </div>
+
+    <div class="act__main">
+      <article class="contract">
+        <header class="contract__head">
+          <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Crusader Security</b></p>
+          <p class="contract__reward"><b class="num">21,750</b><span>aUEC</span></p>
+        </header>
+        <h2 class="contract__title">Bounty: Medium-Risk Target</h2>
+        <ol class="objs">
+          <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Go to the target's last known position near Yela</span></li>
+          <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Destroy the target's Cutlass Black</span></li>
+        </ol>
+        <p class="contract__count">Objective 2 of 2</p>
+      </article>
+
+      <div class="act__ref">
+        <div class="ref law">
+          <h2 class="cap">Law here</h2>
+          <p class="law__j">Crusader Industries jurisdiction</p>
+          <ul class="marks">
+            <li class="mark mark--on"><svg class="i"><use href="#i-eye"/></svg>Monitored space</li>
+            <li class="mark mark--off"><svg class="i"><use href="#i-noshield"/></svg>No armistice: weapons free</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h2 class="cap ctl__title"><svg class="i"><use href="#i-stick"/></svg>Combat · guns mode</h2>
+      <dl class="ctl__list">
+        <div><dt>Left hat ↑</dt><dd>Decoy</dd></div>
+        <div><dt>Left hat ↓</dt><dd>Noise</dd></div>
+        <div><dt>Left hat ← →</dt><dd>Cycle hostiles</dd></div>
+        <div><dt>Left hat press</dt><dd>Lock target</dd></div>
+        <div><dt>COM hat →</dt><dd>Nearest hostile</dd></div>
+        <div><dt>Left wing 1 · 2 · 3</dt><dd>Power W · T · S</dd></div>
+        <div><dt>Right wing 4 hold</dt><dd>Shields to max</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">8:13 PM</time><svg class="i"><use href="#i-target"/></svg><span>You destroyed a Drake Buccaneer</span></li>
+      <li class="ev"><time class="num">8:09 PM</time><svg class="i"><use href="#i-doc"/></svg><span>New objective: destroy the target's Cutlass Black</span></li>
+      <li class="ev"><time class="num">8:06 PM</time><svg class="i"><use href="#i-eye"/></svg><span>Entered monitored space</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================== CARGO -->
+<main class="screen screen--act" id="cargo">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">2:18 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">1:12</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>CRU-L1 Ambitious Dream Station</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Golem OX</b></span>
+  </header>
+
+  <section class="view act act--cargo">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-box"/></svg>Cargo</h1>
+      <p class="act__where">Hauling Quartz · 3 stops</p>
+      <div class="tele" aria-label="From the telemetry stream">
+        <span class="tele__item"><span class="tele__k">Fuel</span><b class="num">74%</b></span>
+        <span class="tele__item"><span class="tele__k">Speed</span><b class="num">0</b><span class="tele__u">m/s</span></span>
+        <span class="tele__item"><span class="tele__k">Gear</span><b>Down</b></span>
+      </div>
+    </header>
+
+    <div class="act__hero figs">
+      <div class="fig fig--main">
+        <h2 class="cap">This stop</h2>
+        <p class="fig__line"><b class="fig__num num">16</b><span class="fig__unit">SCU off</span></p>
+        <p class="fig__sub">Quartz, at CRU-L1</p>
+      </div>
+      <div class="fig">
+        <h2 class="cap">Contract</h2>
+        <p class="fig__line"><b class="fig__num num">24</b><span class="fig__unit">SCU</span></p>
+        <p class="fig__sub">in 3 stops</p>
+      </div>
+      <div class="fig">
+        <h2 class="cap">Golem OX grid</h2>
+        <p class="fig__line"><b class="fig__num num">64</b><span class="fig__unit">SCU</span></p>
+        <p class="fig__sub">room to spare</p>
+      </div>
+    </div>
+
+    <p class="act__next"><span class="cap">At this stop</span><span class="keys"><kbd>ALT</kbd> hold: request cargo loading <span class="keys__sep">·</span> <kbd>ALT</kbd> tap: request landing</span></p>
+
+    <div class="act__main">
+      <article class="contract">
+        <header class="contract__head">
+          <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Red Wind Linehaul</b></p>
+          <p class="contract__reward"><b class="num">38,500</b><span>aUEC</span></p>
+        </header>
+        <h2 class="contract__title">Planetary haul: Quartz around Crusader</h2>
+        <ol class="objs">
+          <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Pick up 24 SCU of Quartz at Seraphim Station</span></li>
+          <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Drop off 16 SCU at CRU-L1 Ambitious Dream Station</span></li>
+          <li class="obj obj--next"><svg class="i"><use href="#i-later"/></svg><span>Drop off 8 SCU at Orison</span></li>
+        </ol>
+        <p class="contract__count">Objective 2 of 3</p>
+      </article>
+
+      <div class="act__ref">
+        <div class="ref">
+          <h2 class="cap">Trade on the side</h2>
+          <p>Bought <b>30 SCU Medical Supplies</b> at Seraphim, <b class="num">1,830</b>/SCU.</p>
+          <p>Sell at <b>Orison</b>: plan says <b class="num">2,140</b>/SCU, about <b class="num pos">+9,300</b>.</p>
+        </div>
+        <div class="earn"><span class="cap">Earned this session</span><b class="num">+46,250</b><span class="earn__u">aUEC</span></div>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h2 class="cap ctl__title"><svg class="i"><use href="#i-stick"/></svg>Landing and loading</h2>
+      <dl class="ctl__list">
+        <div><dt>AP tap</dt><dd>Dock</dd></div>
+        <div><dt>AP hold</dt><dd>Autoland</dd></div>
+        <div><dt>Gear lever</dt><dd>Gear up / down</dd></div>
+        <div><dt>Toggle A ↑</dt><dd>Open doors, ramps</dd></div>
+        <div><dt>Toggle A ↓</dt><dd>Close and lock</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">2:16 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Landed at CRU-L1 Ambitious Dream Station</span></li>
+      <li class="ev"><time class="num">1:58 PM</time><svg class="i"><use href="#i-check"/></svg><span>Objective complete: pick up 24 SCU of Quartz</span></li>
+      <li class="ev"><time class="num">1:52 PM</time><svg class="i"><use href="#i-coin"/></svg><span>Bought 30 SCU Medical Supplies for 54,900 aUEC</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================ MISSION -->
+<main class="screen screen--mission" id="mission">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">5:07 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">1:26</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Cellin, Crusader</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Corsair</b></span>
+  </header>
+
+  <section class="view mission">
+    <article class="contract contract--full">
+      <header class="contract__head">
+        <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Covalex Shipping</b></p>
+        <p class="contract__reward"><b class="num">17,500</b><span>aUEC</span></p>
+      </header>
+      <h2 class="contract__title">Investigation: find out what happened to a Covalex transport lost near Cellin</h2>
+      <ol class="objs">
+        <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Go to the transport's last known position near Cellin</span></li>
+        <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Find the wreck</span></li>
+        <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Recover the flight recorder from the cockpit</span></li>
+        <li class="obj"><svg class="i"><use href="#i-later"/></svg><span>Search the cargo bay for the manifest</span></li>
+        <li class="obj"><svg class="i"><use href="#i-later"/></svg><span>Deliver both to Covalex at Seraphim Station</span></li>
+      </ol>
+      <p class="contract__count">Objective 3 of 5</p>
+    </article>
+
+    <div class="mission__where">
+      <h2 class="cap">Go next</h2>
+      <p class="where__place"><svg class="i"><use href="#i-pin"/></svg>The wreck on Cellin</p>
+      <p class="where__sub">Marker set by the contract · then Seraphim Station</p>
+    </div>
+
+    <div class="mission__others">
+      <h2 class="label"><span class="cap">Also accepted</span><span class="asof">2 more</span></h2>
+      <ul class="others">
+        <li class="other"><b class="other__title">Local delivery: 3 packages</b><span class="other__giver">Covalex Shipping</span><span class="other__obj">Deliver 2 packages to Seraphim Station</span></li>
+        <li class="other"><b class="other__title">Bounty: Medium-Risk Target</b><span class="other__giver">Crusader Security</span><span class="other__obj">Destroy the target's Cutlass Black</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">5:05 PM</time><svg class="i"><use href="#i-check"/></svg><span>Objective complete: find the wreck</span></li>
+      <li class="ev"><time class="num">4:58 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Arrived near Cellin</span></li>
+      <li class="ev"><time class="num">4:49 PM</time><svg class="i"><use href="#i-doc"/></svg><span>Contract accepted: Investigation for Covalex Shipping</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============================================================= TRAVEL -->
+<main class="screen screen--travel" id="travel">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">10:13 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--quantum">In quantum</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">2:18</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-jump"/></svg><b>To CRU L5</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Golem</b></span>
+  </header>
+
+  <section class="view travel">
+    <div class="dest">
+      <div class="dest__main">
+        <h2 class="cap">Heading to</h2>
+        <p class="dest__name">CRU L5</p>
+        <p class="dest__sub">Asteroid field near Crusader · leg 2 of 4</p>
+      </div>
+      <div class="dest__clock">
+        <h2 class="cap">In quantum</h2>
+        <p class="dest__fig num">0:01:12</p>
+        <p class="dest__since">since 10:12 PM</p>
+      </div>
+    </div>
+
+    <ol class="legs">
+      <li class="leg leg--done"><span class="leg__dot"><svg class="i"><use href="#i-check"/></svg></span><div><p class="leg__place">CRU-L1 Ambitious Dream Station</p><p class="leg__why">From New Babbage · park, take a delivery</p></div></li>
+      <li class="leg leg--now"><span class="leg__dot"></span><div><p class="leg__place">CRU L5 asteroid field</p><p class="leg__why">Mine Agricium and Beryl</p></div></li>
+      <li class="leg"><span class="leg__dot"></span><div><p class="leg__place">CRU-L1 Ambitious Dream Station</p><p class="leg__why">Refine Beryl · +7%</p></div></li>
+      <li class="leg"><span class="leg__dot"></span><div><p class="leg__place">MIC-L1 Shallow Frontier Station</p><p class="leg__why">Refine Agricium · +8%</p></div></li>
+    </ol>
+
+    <div class="arrive">
+      <h2 class="cap">On arrival</h2>
+      <ol>
+        <li><span>Turn the mode knob to <b>Mining</b> (detent 4).</span></li>
+        <li><span>Agricium reads <b class="num">11,655</b>, Beryl <b class="num">7,080</b>.</span></li>
+        <li><span>Take rocks at <b class="num">600</b> and up.</span></li>
+      </ol>
+    </div>
+
+    <div class="timer-line">
+      <svg class="i"><use href="#i-flask"/></svg>
+      <span>Refinery at MIC-L1 · ready 10:24 PM</span>
+      <b class="num">0:11:06</b>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">10:12 PM</time><svg class="i"><use href="#i-jump"/></svg><span>Quantum jump to CRU L5</span></li>
+      <li class="ev"><time class="num">10:03 PM</time><svg class="i"><use href="#i-ship"/></svg><span>Left CRU-L1 in the Drake Golem</span></li>
+      <li class="ev ev--ok"><time class="num">9:56 PM</time><svg class="i"><use href="#i-ok"/></svg><span>Hangar queue cleared after 15 min</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ========================================================== PREFLIGHT -->
+<main class="screen screen--fail" id="preflight">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">7:56 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--bad">Preflight failed</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">0:01</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Main menu</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>No ship</b></span>
+  </header>
+
+  <section class="view fail">
+    <div class="fail__head">
+      <svg class="i fail__icon"><use href="#i-stop"/></svg>
+      <div class="fail__words">
+        <p class="fail__kicker">Preflight failed</p>
+        <h1 class="fail__title">Stick base not detected</h1>
+        <p class="fail__why">The keyboard took joystick 1. Every stick binding points at the keyboard.</p>
+      </div>
+    </div>
+
+    <ol class="devs">
+      <li class="dev dev--bad"><span class="dev__slot">Joystick 1</span><span class="dev__name"><b>Razer Huntsman V3 Pro</b><small>keyboard · should be the MOZA AB6 base</small></span><span class="dev__mark"><svg class="i"><use href="#i-x"/></svg>Wrong</span></li>
+      <li class="dev dev--ok"><span class="dev__slot">Joystick 2</span><span class="dev__name"><b>MOZA MTQ Throttle Panel</b><small>throttle · as expected</small></span><span class="dev__mark"><svg class="i"><use href="#i-check"/></svg>Right</span></li>
+      <li class="dev dev--bad"><span class="dev__slot">Not found</span><span class="dev__name"><b>MOZA AB6 FFB Base</b><small>stick base · should be joystick 1</small></span><span class="dev__mark"><svg class="i"><use href="#i-x"/></svg>Missing</span></li>
+    </ol>
+
+    <div class="do">
+      <span class="do__k">Do this</span>
+      <p class="do__text">Quit the game. Switch on the AB6 base, wait until MOZA Cockpit shows it, then start the game again.</p>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev ev--bad"><time class="num">7:56 PM</time><svg class="i"><use href="#i-stop"/></svg><span>Preflight failed: joystick 1 is the keyboard</span></li>
+      <li class="ev"><time class="num">7:55 PM</time><svg class="i"><use href="#i-stick"/></svg><span>Joysticks found: Razer Huntsman V3 Pro, MOZA MTQ Throttle Panel</span></li>
+      <li class="ev"><time class="num">7:55 PM</time><svg class="i"><use href="#i-dot"/></svg><span>Game started, build 4.10.201</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- =============================================================== IDLE -->
+<main class="screen screen--idle" id="idle">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">11:58 AM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--off">No game running</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Last played</span><b>Nov 26</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>New Babbage</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>Drake Golem</b></span>
+  </header>
+
+  <section class="view idle">
+    <div class="idle__hello">
+      <h1 class="idle__state">Nothing running</h1>
+      <p class="idle__since">Last session Thu, Nov 26 · 6:29 PM to 8:29 PM</p>
+    </div>
+
+    <div class="facts figs">
+      <div class="fig"><p class="fig__line"><b class="fig__num num">2:00</b></p><p class="fig__sub">played</p></div>
+      <div class="fig"><p class="fig__line"><b class="fig__num num">4</b></p><p class="fig__sub">places</p></div>
+      <div class="fig"><p class="fig__line"><b class="fig__num num">2</b></p><p class="fig__sub">contracts done</p></div>
+      <div class="fig"><p class="fig__line"><b class="fig__num num">212,400</b></p><p class="fig__sub">aUEC from sales</p></div>
+      <div class="fig"><p class="fig__line"><b class="fig__num num">0</b></p><p class="fig__sub">deaths</p></div>
+    </div>
+
+    <div class="idle__next blk">
+      <h2 class="cap">The plan's next step</h2>
+      <p class="next">Run B: Agricium and Beryl at CRU L5, in the Golem.</p>
+      <p class="note"><svg class="i"><use href="#i-warn"/></svg>Switch on the AB6 base before you start the game.</p>
+    </div>
+
+    <div class="idle__last blk">
+      <h2 class="cap">Last session</h2>
+      <ul class="list">
+        <li><b>Places</b><span>New Babbage, ARC-L1 Wide Forest, Wala, MIC-L5 Modern Icarus</span></li>
+        <li><b>Ships</b><span>Drake Corsair, Drake Golem</span></li>
+        <li class="list--ok"><b>Waiting</b><span><svg class="i"><use href="#i-ok"/></svg>MIC-L1 work order, ready since 10:06 AM</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Last events</h2>
+    <ol>
+      <li class="ev"><time class="num">8:29 PM</time><svg class="i"><use href="#i-dot"/></svg><span>Game closed</span></li>
+      <li class="ev"><time class="num">8:21 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Arrived at MIC-L5 Modern Icarus Station</span></li>
+      <li class="ev"><time class="num">7:58 PM</time><svg class="i"><use href="#i-coin"/></svg><span>Sold 18.4 SCU of ore at New Babbage</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ================================== COMBAT, DOWNED (the red alert, no ship) -->
+<main class="screen screen--act screen--alarm" id="downed">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">8:22 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--bad">Downed</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">0:49</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Near Yela, Crusader</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-ship"/></svg><b>No ship</b></span>
+  </header>
+
+  <div class="alerts">
+    <div class="alert alert--bad" role="alert">
+      <svg class="i alert__icon"><use href="#i-stop"/></svg>
+      <div class="alert__body">
+        <span class="alert__kind">Downed</span>
+        <b class="alert__title">You are incapacitated</b>
+        <span class="alert__text">Near Yela at 8:21 PM, after the M80 was destroyed.</span>
+      </div>
+      <p class="alert__do">Wait for a medic, or respawn at your regen point</p>
+    </div>
+  </div>
+
+  <section class="view act act--combat">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-target"/></svg>Combat</h1>
+      <p class="act__where">No ship · Origin M80 destroyed 8:21 PM</p>
+    </header>
+
+    <div class="act__hero figs tally">
+      <div class="fig"><h2 class="cap">Destroyed</h2><p class="fig__line"><b class="fig__num num">3</b></p><p class="fig__sub">ships this session</p></div>
+      <div class="fig fig--bad"><h2 class="cap">Lost</h2><p class="fig__line"><b class="fig__num num">1</b></p><p class="fig__sub">ships</p></div>
+      <div class="fig fig--bad"><h2 class="cap">Downed</h2><p class="fig__line"><b class="fig__num num">1</b></p><p class="fig__sub">times</p></div>
+    </div>
+
+    <div class="act__main">
+      <article class="contract">
+        <header class="contract__head">
+          <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Crusader Security</b></p>
+          <p class="contract__reward"><b class="num">21,750</b><span>aUEC</span></p>
+        </header>
+        <h2 class="contract__title">Bounty: Medium-Risk Target</h2>
+        <ol class="objs">
+          <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Go to the target's last known position near Yela</span></li>
+          <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Destroy the target's Cutlass Black</span></li>
+        </ol>
+        <p class="contract__count">Objective 2 of 2</p>
+      </article>
+
+      <div class="act__ref">
+        <div class="ref law">
+          <h2 class="cap">Law here</h2>
+          <p class="law__j">Crusader Industries jurisdiction</p>
+          <ul class="marks">
+            <li class="mark mark--on"><svg class="i"><use href="#i-eye"/></svg>Monitored space</li>
+            <li class="mark mark--off"><svg class="i"><use href="#i-noshield"/></svg>No armistice: weapons free</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feed feed--short">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev ev--bad"><time class="num">8:21 PM</time><svg class="i"><use href="#i-stop"/></svg><span>You were incapacitated</span></li>
+      <li class="ev ev--bad"><time class="num">8:21 PM</time><svg class="i"><use href="#i-ship"/></svg><span>Your Origin M80 was destroyed</span></li>
+      <li class="ev"><time class="num">8:13 PM</time><svg class="i"><use href="#i-target"/></svg><span>You destroyed a Drake Buccaneer</span></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ================================ COMBAT, ON FOOT (no stick, no ship group) -->
+<main class="screen screen--act" id="onfoot">
+  <header class="strip">
+    <div class="strip__time"><b class="strip__clock num">6:58 PM</b><span class="strip__date">Fri, Nov 27</span></div>
+    <span class="state state--live">In game</span>
+    <span class="si si--session"><svg class="i"><use href="#i-clock"/></svg><span class="si__k">Session</span><b class="num">0:33</b></span>
+    <span class="si si--loc"><svg class="i"><use href="#i-pin"/></svg><b>Daymar, Crusader</b></span>
+    <span class="si si--ship"><svg class="i"><use href="#i-walk"/></svg><b>On foot</b></span>
+  </header>
+
+  <section class="view act act--combat act--onfoot">
+    <header class="act__head">
+      <h1 class="act__kind"><svg class="i"><use href="#i-target"/></svg>Combat</h1>
+      <p class="act__where">On foot · bunker on Daymar</p>
+    </header>
+
+    <div class="act__main">
+      <article class="contract">
+        <header class="contract__head">
+          <p class="contract__giver"><svg class="i"><use href="#i-doc"/></svg><span class="contract__from">From</span><b>Crusader Security</b></p>
+          <p class="contract__reward"><b class="num">18,000</b><span>aUEC</span></p>
+        </header>
+        <h2 class="contract__title">Clear out the outlaws holding a bunker on Daymar</h2>
+        <ol class="objs">
+          <li class="obj obj--done"><svg class="i"><use href="#i-check"/></svg><span>Go to the bunker on Daymar</span></li>
+          <li class="obj obj--now"><svg class="i"><use href="#i-now"/></svg><span>Eliminate all hostiles inside the bunker</span></li>
+          <li class="obj"><svg class="i"><use href="#i-later"/></svg><span>Recover the stolen data pad</span></li>
+        </ol>
+        <p class="contract__count">Objective 2 of 3</p>
+      </article>
+
+      <div class="act__ref">
+        <div class="ref ref--ship">
+          <h2 class="cap">Your ship</h2>
+          <p class="ref__big"><svg class="i"><use href="#i-ship"/></svg>Origin M80</p>
+          <p>Landed outside the bunker, Daymar · 6:31 PM</p>
+        </div>
+        <div class="ref law">
+          <h2 class="cap">Law here</h2>
+          <p class="law__j">Crusader Industries jurisdiction</p>
+          <ul class="marks">
+            <li class="mark mark--on"><svg class="i"><use href="#i-eye"/></svg>Monitored space</li>
+            <li class="mark mark--off"><svg class="i"><use href="#i-noshield"/></svg>No armistice</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feed">
+    <h2 class="cap feed__title">Events</h2>
+    <ol>
+      <li class="ev"><time class="num">6:52 PM</time><svg class="i"><use href="#i-doc"/></svg><span>New objective: eliminate all hostiles inside the bunker</span></li>
+      <li class="ev"><time class="num">6:51 PM</time><svg class="i"><use href="#i-check"/></svg><span>Objective complete: go to the bunker on Daymar</span></li>
+      <li class="ev"><time class="num">6:31 PM</time><svg class="i"><use href="#i-pin"/></svg><span>Landed on Daymar</span></li>
+      <li class="ev"><time class="num">6:19 PM</time><svg class="i"><use href="#i-doc"/></svg><span>Contract accepted: Clear out the outlaws, Crusader Security</span></li>
+    </ol>
+  </section>
+</main>
+
+</div><!-- /dash -->
+
+<!-- ===================================================== Claude terminal -->
+<section class="term" aria-label="Claude Code">
+  <header class="term__bar">
+    <span class="term__dot"></span>
+    <span class="term__name">Claude</span>
+    <span class="term__cwd">controls\mappings</span>
+    <span class="term__hint">Alt+Tab here to type</span>
+  </header>
+  <div class="term__body">
+    <div class="t-welcome">
+      <p><span class="t-mark">✻</span> Welcome to Claude Code</p>
+      <p class="t-dim">Started by the dashboard with STARCITIZEN.md</p>
+      <p class="t-dim">cwd: …\controls\mappings</p>
+    </div>
+    <p class="t-you">check the logs from last night</p>
+    <p class="t-msg"><span class="t-bul">●</span><span class="t-tool">Bash</span>(python dashboard/scdash.py timeline --list --since 2026-11-26)</p>
+    <p class="t-msg t-dim"><span class="t-bul">└</span>1 session · 6:29 PM to 8:29 PM · clean exit</p>
+    <p class="t-msg"><span class="t-bul">●</span>Two hours: New Babbage, ARC-L1, Wala and MIC-L5, in the Corsair and the Golem. You sold 18.4 SCU of ore at New Babbage. No deaths, no downings. Memory and the game plan page are updated.</p>
+    <p class="t-you">when is the MIC-L1 order ready?</p>
+    <p class="t-msg"><span class="t-bul">●</span><span class="t-tool">Read</span>(dashboard/data/plan.json)</p>
+    <p class="t-msg t-dim"><span class="t-bul">└</span>2 refinery orders, 1 waiting</p>
+    <p class="t-msg"><span class="t-bul">●</span>The Agricium and Tungsten order at MIC-L1 Shallow Frontier finishes at 10:24 PM, about 42 minutes from now. Its countdown is on the Now view.</p>
+    <p class="t-you">what quality should I skip at CRU L5?</p>
+    <p class="t-msg"><span class="t-bul">●</span><span class="t-tool">Read</span>(dashboard/reference/ores.json)</p>
+    <p class="t-msg t-dim"><span class="t-bul">└</span>Agricium, Beryl: quality bands and the CRU L5 rock mix</p>
+    <p class="t-msg"><span class="t-bul">●</span>Skip anything that scans below 600. Under that line Agricium lands on 588 or 346 and Beryl on 547 or 324, both short of what the drives need.</p>
+    <p class="t-msg">No look-alikes spawn at CRU L5, so an 11,655 there is Agricium and a 7,080 is Beryl. Iron, Copper and Ice read near 17,000.</p>
+    <p class="t-you">and if the hangar sticks again?</p>
+    <p class="t-msg"><span class="t-bul">●</span>Cancel at the hangar terminal and request again. Two of the last five stuck queues cleared on the second request.</p>
+  </div>
+  <div class="term__input"><span class="caret"></span></div>
+  <p class="term__foot"><span>? for shortcuts</span><span>dashboard session</span></p>
+</section>
+
+</div><!-- /app -->
+</body>
+</html>

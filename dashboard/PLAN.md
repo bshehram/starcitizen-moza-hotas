@@ -1,25 +1,157 @@
 # Side-screen dashboard: implementation plan
 
-**Status: being built, stage by stage (§12).** Written 2026-11-26. Reviewed 2026-11-27 against
-the user's logs and this PC: the corrections are marked **[seen 2026-11-27]**, and the user's
-decisions are in §15. The build started later that day.
+**Status: being built, stage by stage. The reference tables, stage 1, stage 2 and the telemetry
+reader are built, reviewed and in git. The views (stage 3) are next.** Written 2026-11-26,
+reviewed 2026-11-27 against the user's logs and this PC (corrections are marked **[seen
+2026-11-27]**), and built from that afternoon on. Start with the section below: it says what
+exists, what was in progress when the first build session stopped, and what is left, in order.
 
-| Stage | State on 2026-11-27 |
-| --- | --- |
-| Reference tables (§10) | Built, checked, committed. |
-| 1. Parser and state | Built, reviewed twice by an independent agent, committed. `python dashboard/scdash.py timeline` works. |
-| 2. Service and a minimal page | Built in the chosen look, reviewed twice, committed. `run`, `start`, `stop`, `status` and `replay` work; the page shows the status strip, the joystick check and the feed. Nothing got through the request guard in review, and hostile text from a log is shown as text. Still to do: the launch check with the service itself running, and two small races the review asked to close before stage 4b (reading a process's start time without opening a handle, and the tests' own process cleanup). |
-| 3. Views and plan data | Not started. The look is chosen: direction B, mocked up in every screen (§11). |
-| 4. Autostart and the window | Not started. Waits for the side monitor. |
-| 4b. The Claude terminal | Not started. |
-| 5. A flown session | The user's. |
-| 6. The telemetry source | The reader itself is built, reviewed twice and committed (`scdash/telemetry*.py`, 91 tests against a fake stream). It is not wired into the service, the state or the page, and it has never met the real stream. |
-| 7. Docs and routines | Kept up as stages land; the final pass is not done. |
+## Where the build stands
 
-How the build is run: each stage is built by one agent, checked by the orchestrating session
-(tests, the stage's own check, a scan for the user's private identifiers), reviewed by a second
-agent that tries to break it, fixed, and only then committed, one commit per stage or fix round.
-[`CLAUDE.md`](CLAUDE.md) in this folder has the working notes for what exists.
+*Written 2026-11-27 at the end of the first build session, just before the user reinstalled
+Windows. This is what a new session reads first, so keep it current as stages land.*
+
+### Built, reviewed and committed
+
+| Part | What exists | Commits | How it was checked |
+| --- | --- | --- | --- |
+| Reference tables (§10) | `reference/`: 3,415 location codes for 1,517 places, all 207 commodity ids, 39 ores with scan readings and quality figures, refinery methods and yields for 20 stations; the generator `build_reference.py`. | `c4e537c` | Every location code and commodity id in the November logs resolves; the generator's `--check` passes; figures match memory. |
+| Stage 1: log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. The command `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 logs parse with no error and no unreadable line (377 MB in about a second, memory flat). Reviewed twice by an independent agent: privacy clean on 152 names and ids, byte-at-a-time feeding gives the same state. |
+| Log rotation proof (§8) | The follower polled `Game.log` across a real launch at 12:57 PM. | `f2b579d` | Same file id before and after, the backup appeared, the new session began at offset 0, 328 polls with no error. |
+| Stage 2: service, server, first page | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`, `web/`. The commands `run`, `start`, `stop`, `status [--json]`, `replay <log>`. The page shows the status strip, the joystick check and the event feed in the chosen look, landscape and portrait. | `c2d203d` | 316 tests in the whole suite. Reviewed twice: about 50 request variants and a hostile page in a real browser got nothing past the guard; hostile text from a log is shown as text; 21 MB and 0.09% of one core idle. The user ran `replay` and liked what they saw. |
+| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`: reads the layout from the game's program file, one fixed address, one fixed request, everything capped. | `56aca44`, `58e9c16` | 97 tests against a fake stream. Reviewed twice: 106,000 fuzzed inputs, nothing escaped; 0.2% of one core at 18 snapshots a second. **Not wired into the service, the state or the page, and never run against the real stream.** |
+| The look (§11) | Direction B, "Avionics", chosen by the user from three mockups. The chosen mockup is tracked in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | this commit | The user picked it from side-by-side captures of every screen in both orientations. |
+
+The plan itself was corrected throughout from what the build and the reviews found: §3 (what the
+log really holds), §4 (the joystick check, the activity views, the Mission view, the Claude
+terminal), §8 (the guards), §9 (measured figures), §11 (the two layouts and the look) and §15
+(every decision the user made).
+
+### In progress when the session stopped
+
+**The stage 2 follow-up: finished and committed, but not yet confirmed by the reviewer.** The
+second review of stage 2 asked for five small things, and the builder did all five before the
+session stopped. They passed the whole suite (317 tests) and the orchestrator's checks, but the
+independent reviewer did not get to re-run its reproductions against them. Have that done before
+stage 4b builds on the guard.
+
+- No handle is opened on any other process any more: the process list, names and start times
+  come from one `NtQuerySystemInformation` call (2.6 ms a look, down from 4.8 ms), with the
+  Toolhelp walk kept as a fallback for the list. A test scans `scdash` for `OpenProcess`.
+- The tests no longer end a process by its number: they stop what they started through their
+  own handle or the service's shutdown endpoint, and fail loudly otherwise.
+- The page learns which instance served it from its HTML, so a restart before the first stream
+  message still makes it reload and pick up the new token.
+- The service's temp files carry a prefix of their own, and the start-up sweep touches only
+  those.
+- A request with the token header twice is refused, and so is a foreign `Origin` on any route.
+
+**The second round of reference data: two of seven tables done, the rest not.** It was started
+for the Salvage, Combat, Cargo and Mission views and stopped early for the reinstall. What is
+committed passes its tests, and the generator's `--check` passes.
+
+| Table | State | What the next agent needs to know |
+| --- | --- | --- |
+| Positions | **Done.** 463 places in `locations.json` carry `pos`, in meters in their system's own coordinates. All 8 route distances held in memory match to 0.1 Gm (New Babbage to ARC-L4 is 32.7). | - |
+| Controls per mode | **Done.** `controls.json`, 5 modes. The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as [`../CLAUDE.md`](../CLAUDE.md) has it; the wording is read from `tools/regen_cards.py` without running it, and a test fails when a card label it names is renamed. | - |
+| Ships | **Code written, not tested, not wired in.** `build_ships()` in `build_reference.py`. | Cargo is counted in 1.25 m grid cells, which gives the Golem OX its 64 SCU. The fleet's jobs for the view rules still have to go in a hand file, from [`../CLAUDE.md`](../CLAUDE.md) §11. |
+| Prices | **Code written, not tested, not wired in.** `fetch_snapshots()` and `build_prices()`. Nothing calls them, so the generator never goes online. | UEX's price and terminal tables, fetched 2026-11-27, are saved in `data/handoff/downloads/`. The fetch must stay behind an explicit flag. |
+| Shops | Not started. | The shop names are in the purchase and sale lines of the logs (§3). |
+| Contract kinds | Not started. | The SCMDB mission lists for 4.10.3 and for the 5.0 test build, fetched 2026-11-27, are in `data/handoff/downloads/`. See the 5.0 note in §4. |
+| Refining | Not started. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast". Which stations have a refinery is the `Refinery` amenity in each star-map record. |
+| The survey of what salvage, combat and hauling leave in the log | **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
+
+`data/handoff/` is git-ignored: it survives the reinstall only through the kit's backup of this
+folder. If it is gone, the downloads can be fetched again and the survey redone from the logs.
+
+### Left to do, in this order
+
+1. **Finish the two items above:** have the stage 2 follow-up confirmed by a reviewer, and
+   complete the reference tables (ships, prices, shops, contract kinds, refining) and the
+   survey. Stage 3 needs the survey, the ships and the contract kinds first.
+2. **The launch check with the service itself** (stage 2's last check): with the game closed run
+   `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
+   read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
+   like). The follower alone already passed this (§8).
+3. **Stage 3, first the part behind the page** (§12 stage 3): events for what salvage, combat,
+   hauling and missions leave in the log (from the survey), `plan.json` and its loader with
+   `plan.example.json`, timers, alerts, the view rules, and a written description of the state
+   the page receives. Then review, then commit.
+4. **Stage 3, the views:** Now, Travel, Mining, Salvage, Combat (in a ship and on foot), Cargo,
+   Mission, Refinery, Selling, Preflight and Idle, built on stage 2's page from the tracked
+   mockup, each captured and looked at in both orientations (§11). The rough spots the designer
+   listed are in §11. Then review, then commit.
+5. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
+   `plan.json` step added to the update routine in the memory note `game-plan-artifact` (§16).
+6. **Stage 4: autostart and the window.** `install`, `uninstall`, `open`. The user said yes to
+   Claude registering the logon task (§15). Needs the side monitor connected, which it was not
+   on 2026-11-27.
+7. **Stage 4b: the Claude terminal** (§4, §8, §12). Install Claude Code with the winget command
+   in §8 first. The guard it needs (a private stream with the token in a header) is already in
+   `server.py`, and `app.js` has the reader for it.
+8. **Stage 5: a flown session** with the dashboard running, and the user's verdict.
+9. **Stage 6, second half: wire the telemetry reader in** (its own entry point into the state,
+   the strip's ship readouts, the seat event), after a first recording of the real stream has
+   been checked against the builder's list of second-hand claims. The reader's `capture()`
+   writes to `data/telemetry/`.
+10. **Stage 7: docs and routines** (§16), including the complete "set up on a fresh Windows
+    install" section in `README.md`. A first version of that section exists.
+
+### Only the user can do these
+
+- Connect the side monitor (stage 4), and try it in both orientations.
+- On the ground, check whether the game still takes stick and throttle input while another
+  window has the keyboard (§11, §14). It matters for the Claude terminal.
+- Play one session after restarting the RSI Launcher with the telemetry variable set, and say
+  when they are in the game, so the real stream can be recorded.
+- Fly a session with the dashboard running (stage 5).
+
+### After the Windows reinstall
+
+The user's system-refresh kit (theirs, outside this repo) restores the tools, this folder and
+Claude's memory. What the dashboard had outside the repo on 2026-11-27, and so has to be put
+back by hand:
+
+- **The telemetry variable.** `GRPC_CLIENT_SERVER_ENABLED=true` for the user (set 2026-11-27).
+  `README.md` has the command. Nothing else of the dashboard's was installed: no logon task was
+  ever registered and Claude Code was not installed as a program of its own.
+- **Nothing in a temporary folder survives.** The scratch folder of the first build session
+  held the reviewers' scripts, a clone of CSR (re-clone `archelium/csr` at commit `ba6dad0`
+  when its code has to be compared again) and the capture tools. What was worth keeping was
+  copied to `dashboard/data/handoff/` (git-ignored; it comes back only with the kit's backup of
+  this folder): the activity survey, the design capture scripts, and the orchestrator's privacy
+  scan (`privscan.py`), which searches the files git would publish for the user's handle, ids
+  and addresses learned from the local logs.
+- **The repo must come back at the same path** (`...\StarCitizen\LIVE\user\client\0\controls\
+  mappings`), or Claude's memory for this project does not reconnect.
+- First thing to run afterward: `python -m unittest discover -s dashboard/tests` from the
+  project root. It should pass as it did (the privacy tests skip until the game has written a
+  log).
+
+### How the build is run
+
+The user asked for it to be orchestrated (2026-11-27): one session plans and reviews, and
+subagents do the work, every one of them Opus 5.5 at the highest effort setting but one
+("xhigh"), each in a context of its own.
+
+- **One stage, one builder.** Its brief names the files it owns, the rules that are easy to
+  break, a "done when" that can fail, and the shape of its report. It never commits.
+- **The orchestrator checks first:** the tests, the stage's own check, and the privacy scan
+  over exactly the files about to be committed.
+- **Then a second agent tries to break it,** given the code and the plan but not the builder's
+  conclusions. Every review so far found real faults the tests had missed: code taken from CSR
+  without credit, a reader that one bad line stalled for good, a flood that held a core at
+  100%, a test helper that could end a stranger's process.
+- **Fixes go back to the builder, the reviewer confirms them by running, and only then is it
+  committed:** one commit per stage or fix round, pushed at once.
+- **Agents work side by side only on files that do not overlap,** and a commit made while
+  another agent's unfinished files sit in the tree is first tested on a clean checkout.
+- **The user's decisions are put to them as questions with a recommendation** and recorded in
+  §15. A rule from the docs is not a fact until someone has seen it: the joystick-order check
+  was built on one, raised a false alarm with the user in the pilot seat, and was corrected the
+  same hour (§4).
+
+[`CLAUDE.md`](CLAUDE.md) in this folder has the working notes for the code that exists.
 
 This file is the brief for the Claude session that builds the dashboard. The user starts that
 session with `@STARCITIZEN.md` and asks for the dashboard to be built from this plan. It says what
@@ -377,8 +509,12 @@ What the audits change in how it is built:
      can be active at once, so the others are listed under it. The log does not say which one
      the user is tracking; 5.0's telemetry stream is expected to (§3).
    - **Contract kinds are data, not code,** so that new kinds need no new code. The user wants
-     5.0's mission types covered: "include the 5.0 shit like guild missions or whatever". What
-     5.0 adds is not known here **[verify when 5.0 is installed]**. So a table in `reference/`
+     5.0's mission types covered: "include the 5.0 shit like guild missions or whatever". A
+     first look **[ref: SCMDB's mission list for the 5.0 test build, fetched 2026-11-27]**: the
+     guild missions are a new contractor, the Bounty Hunters Guild, with contract boards, and
+     all 328 contracts new in 5.0 use mission types that exist today. So no new kind of view
+     looks necessary, only new rows in the table. Second-hand, and from a test build
+     **[verify when 5.0 is installed]**. So a table in `reference/`
      maps a contract's generator name and title to a kind and a view, anything it does not know
      lands on the Mission view and is written to `data/unmapped.json`, and after a patch the
      table is extended from that build's mission list (the game's files first; SCMDB is the
@@ -1047,7 +1183,10 @@ files, all local, all bounded.
   ink-blue ground and one cyan accent. Red, amber and green always come with a shape and a word:
   an octagon, a triangle, a check. The terminal's type is Cascadia Mono with Consolas behind it
   (Cascadia comes with Windows Terminal, not with Windows).
-  - The mockup is the starting point for the real page: `dashboard/data/design/b/` holds its
+  - **The chosen mockup is tracked in `dashboard/design/avionics/`** (`index.html` and
+    `style.css`, invented data only), so it survives a fresh clone. Stage 2's page already uses
+    its design system; stage 3 builds the views from it.
+  - The original working folder, with all three directions: `dashboard/data/design/b/` holds its
     `index.html` and `style.css`, with every screen reachable by a `#name` on the address, and
     `dashboard/data/design/shots/` holds the captures. The folder is git-ignored; the two
     directions that were turned down are beside it.
