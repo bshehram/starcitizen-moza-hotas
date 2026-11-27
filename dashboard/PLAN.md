@@ -303,9 +303,18 @@ What the audits change in how it is built:
    - **Salvage.** The plan's goal as needed against held (RMC for repairs, for example), the
      next step, the ship's hold in SCU, where to sell RMC and construction materials and at
      what price, and the salvage contract with its current objective when there is one.
-   - **Combat.** The active bounty or combat contract with its reward and its current objective
-     in large type; the session so far (ships destroyed, times downed, ships lost); the
-     jurisdiction and whether the user is in an armistice zone or monitored space.
+   - **Combat.** Ship combat in space first, and on-foot missions as well (the user: "combat as
+     in space combat too not just bounty hunting on foot"). It does not need a contract: a fight
+     that simply happens still has the ship, the session tally and the controls.
+     - *In the pilot seat:* the contract when there is one (bounty, patrol, defense) with its
+       reward and its current objective in large type; the session so far (ships the user
+       destroyed, ships lost, times downed); the jurisdiction and whether the user is in an
+       armistice zone or monitored space; the controls strip; and the telemetry group when the
+       stream is on.
+     - *On foot:* the rig is not in use there (the user plays on foot with an Xbox controller,
+       [`../CLAUDE.md`](../CLAUDE.md) §1), so the controls strip and the ship group go away and
+       the contract, the objective, the downed or injured state and where the ship was left
+       remain. The log does not record kills on foot (§3), so there is no tally of them.
    - **Cargo.** A hauling contract as a checklist of pickups and drop-offs with the SCU at each
      stop, the current stop and the next, and the total against the ship's cargo grid. For a
      trade run: what was bought, how much and at what price, where the plan says to sell it and
@@ -993,7 +1002,10 @@ check that can actually fail.
      only November's, for sessions with bounty, hauling and salvage contracts and with commodity
      trades, and list what is there: objective texts for pickups and drop-offs, the contract's
      generator name, the user's own kills in `<Vehicle Destroyed>` lines, jurisdiction and
-     armistice notices, anything on cargo or salvage. CSR's reader tracks hauling drops from the
+     armistice notices, anything on cargo or salvage. For combat, look at ship fights in space
+     as well as on-foot missions, with and without a contract: is there any line that shows a
+     fight has started (a ship destroyed nearby, damage to the user's ship, a missile warning),
+     so the view can come up for a fight nobody planned? CSR's reader tracks hauling drops from the
      log; stage 1 left that out because no November log has one. Add events for what is found,
      with tests, and mark what could not be seen in any log as unverified until the user flies
      it.
