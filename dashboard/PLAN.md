@@ -160,25 +160,42 @@ Windows-only call in `winutil.py`: the parser, `timeline` and the tests then run
 ## 6. The service
 
 "Service" here means a per-user background process, not a Windows service in the Service Control
-Manager sense. A real Windows service is the wrong tool **[verify, research pending in §14]**: it
-needs administrator rights to install, runs outside the user's desktop session so it cannot open a
-window on their monitor, and runs under another account. The project also asks the user before
-anything that needs admin rights.
+Manager sense. A real Windows service is the wrong tool **[ref: Microsoft's service
+documentation, §14]**: creating one needs administrator rights, it runs in a separate session
+that cannot show a window on the user's desktop, and under the system account it does not see the
+user's own settings. The project also asks the user before anything that needs admin rights.
 
-- **Process:** `pythonw.exe dashboard\scdash.py run --background`. No console window.
-- **Starts by itself:** a Task Scheduler task that triggers at this user's own logon, runs only
-  while they are logged on, has no time limit, restarts after a failure, and refuses a second
-  instance. If that cannot be registered without elevation, fall back to a shortcut in the user's
-  Startup folder and say so. Never elevate.
+- **Process:** `pythonw.exe dashboard\scdash.py run --background`. No console window. Under
+  `pythonw` the standard output streams can be missing, so everything is logged to a file.
+- **Starts by itself:** a Task Scheduler task registered from an XML file **[ref, §14]**:
+  - The logon trigger names the user's own account. That is the only form a non-admin may
+    register. `schtasks /Create /SC ONLOGON` means "any user" and is refused with "Access is
+    denied".
+  - `InteractiveToken`, so it runs inside the user's desktop session and can open a window.
+  - `ExecutionTimeLimit` `PT0S`. Without it Windows stops the task after 72 hours.
+  - `DisallowStartIfOnBatteries` and `StopIfGoingOnBatteries` both false. Both default to true.
+  - `MultipleInstancesPolicy` `IgnoreNew`, and a `WorkingDirectory` set to the project root. The
+    default working directory is System32.
+  - A five-minute repetition on the trigger. With `IgnoreNew` it does nothing while the service
+    is alive, and relaunches it within five minutes if it has died.
+  - If registration is still refused without elevation, fall back to a shortcut in the user's
+    Startup folder and say so. Never elevate.
+- **Stays up by itself:** do not count on the task's `RestartOnFailure`. Field reports say it
+  does not fire after a crash or a kill. The main loop catches its own errors, logs them and
+  carries on, and the repeating trigger is the backstop.
 - **Idles cheaply:** with no game running it does nothing but look for the game process every 10
   seconds.
 - **Follows the game:** when the game starts it begins reading the log, and can open the
   dashboard window on the side monitor. When the game has been closed for a few minutes it can
   close the window it opened, to give the memory back. Both are settings (§15).
-- **Single instance:** binding the port is the lock, because the operating system makes that
-  atomic. `data/run.json` records the process id, port, start time and a random token. A health
-  endpoint returns the program's name and that token, so a foreign program on the port is never
-  mistaken for the service.
+- **Single instance:** a named mutex is the lock. Binding the port is not enough: Python's
+  `http.server` sets `SO_REUSEADDR`, and on Windows that lets a second process bind the same port
+  **[seen: local test, 2026-11-26]**. So the listening socket also sets
+  `allow_reuse_address = False` and `SO_EXCLUSIVEADDRUSE`, which the same test showed refuses a
+  second bind. The scheduler's `IgnoreNew` only stops copies the scheduler itself starts, so the
+  mutex has to cover a manual `start` as well. `data/run.json` records the process id, port,
+  start time and a random token. A health endpoint returns the program's name and that token, so
+  a foreign program on the port is never mistaken for the service.
 
 | Command | What it does | When repeated |
 | --- | --- | --- |
@@ -194,6 +211,11 @@ anything that needs admin rights.
 
 Registering the logon task changes how Windows starts. The user asked for a service, so it is part
 of this build, but tell them before running `install` and show them `uninstall`.
+
+`install` runs `schtasks /Create /TN <name> /XML <file> /F`, which creates the task or overwrites
+it. `schtasks /Delete /TN <name> /F` exits 1 when there is no task **[seen: local test by the
+research agent]**, so `uninstall` treats that as success. After installing, read the task back
+with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 
 ## 7. Idempotence
 
@@ -413,11 +435,22 @@ Use `unittest` from the standard library, run from the project root.
 
 ## 14. To check before relying on it
 
-Research on the first three points was started on 2026-11-26. Its findings are added below when
-they arrive; until then treat them as open.
+Research on the first three points was started on 2026-11-26. Findings are second-hand until the
+build confirms them on this PC; each names its source.
 
-1. Whether a Task Scheduler task for the user's own logon can be registered without elevation,
-   and the exact settings for a long-running task.
+1. **Answered, autostart [ref].** A non-admin may register a logon trigger only when it names the
+   registering user
+   ([Microsoft, MS-TSCH](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsch/d90eccec-83e9-450c-b144-17633c47be9a)),
+   and `schtasks /SC ONLOGON` is documented as "any user"
+   ([Microsoft, schtasks create](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-create)).
+   Task defaults, including the 72-hour limit, are in
+   [Microsoft's task settings reference](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskschedulerschema-settingstype-complextype).
+   Why a real service does not fit is in
+   [Microsoft's notes on interactive services](https://learn.microsoft.com/en-us/windows/win32/services/interactive-services).
+   That `RestartOnFailure` does not fire after a crash comes from other projects' issue trackers,
+   not from Microsoft. Still open: whether the task's command needs quotes around a path with
+   spaces, which file encoding `schtasks /XML` accepts, and whether PowerShell's
+   `Register-ScheduledTask -AtLogOn -User <self>` also works without elevation.
 2. How the browser's app-window switches behave, how to place the window on the side monitor,
    what the window really costs in memory, and whether an unfocused but visible window keeps
    updating.
