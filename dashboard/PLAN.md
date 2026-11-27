@@ -63,11 +63,20 @@ in `LIVE\logbackups\`, not from the wording here.
 | Death and lost items | `[ActorState] Dead`, one `ItemRecoveryEntitlement` line per item |
 | Shop purchases and sales | `SendShopBuyRequest` / `SendShopSellRequest` (shop, price, item) and `ShopFlowResponse ... result[...]` |
 | Ore sold to a refinery | `OnRefineryRequest ... SShopRefineryRequest ... shopName[SCShop_RefineryAdmin_ORE]` |
+| Commodity sold or bought at a trade terminal | `SendCommoditySellRequest` / `SendCommodityBuyRequest`: shop name, amount in aUEC, a resource id, quantity and box size. Seen 2026-11-26 at the New Babbage TDD. The commodity is an id, not a name. |
+| Joined a server | `<Join PU> ... shard[...]` |
+| Ship stowed | `[STOWING ON UNREGISTER] ... Attempting to stow current vehicle [<id>]` |
 | Storage item count | `Freight Inventory Grid InventoryDataRequest Successful ... Item Count:[<n>]` |
 | Mining gadget placed, with the rock's ore | `placed 'Mining_Gadget_<name>_<id>' on entity 'MineableRock_<kind>_<ore>_<id>'` |
 | Which planet or moon, every 10 minutes | `PHYSICS INSTANCE STATS` block, the `planet cells:` line with a non-zero count |
 | Screenshot taken | `ScreenShot: ScreenShots/<name>.jpg` |
-| Session end and why | `<Channel Disconnected> cause=<n>`: 30016 the user quit, 30028 inactivity kick. 30010 also appears between the menu and the game and is not an end. |
+| Session end and why | `<Channel Disconnected> cause=<n>`: 30016 when the user quit, 30028 inactivity kick. 30010 also appears between the menu and the game and is not an end. `<Channel Process Disconnection>` is in the logs too; other tools prefer it because it also carries crashes (cause 30013), and they note that 30016 is logged for a server drop as well as a deliberate quit **[ref, §14]**. |
+
+Markers other tools use that the user's logs have not yet been checked for **[ref, §14]**:
+contract notices whose text starts `Contract Accepted:`, `Contract Complete:` or
+`Contract Failed:`, objective notices (`New Objective:`, `Objective Complete:`), `<EndMission>`,
+`granted control token for '<CLASS>_<id>'` on taking the pilot seat, and
+`Fatal Collision occured for vehicle`. Confirm each in a real log before using it.
 
 Location codes look regular **[verify against `global.ini`]**: `LOC_RR_S3_L4` was ARC-L4 and
 `LOC_RR_S4_L2` was MIC-L2, so `S1`-`S4` look like Hurston, Crusader, ArcCorp and microTech. Some
@@ -76,9 +85,17 @@ names mislead: Stanton's Nyx Gateway is `RR_JP_StantonMagnus`.
 **Can know, from other files:** new Game Bar captures in `%USERPROFILE%\Videos\Captures` (name and
 time only), and the plan data Claude maintains (§10).
 
-**Cannot know [seen]:** speed, fuel, shields, cargo, what was mined, sale amounts, or the start of
-a refinery order. The log only records a refinery order when it completes. Show nothing for these;
-a gap is better than a guess.
+**Cannot know [seen]:** speed, fuel, shields, cargo, what was mined, the quality of anything, or
+the start of a refinery order. The log only records a refinery order when it completes. Show
+nothing for these; a gap is better than a guess.
+
+**Others have built this before [ref, §14].** Several community tools follow `Game.log` live and
+were updated for 4.10 in November 2026: CSR (`github.com/archelium/csr`), StarStats
+(`github.com/TheCodeSaiyan/StarStats-Platform`) and star-citizen-live
+(`github.com/Neorion/star-citizen-live`). Read their marker tables before writing this one, and
+check each license before copying any code. The reasons to build this one anyway: it knows the
+user's plan and shows the numbers for the job in hand, it checks this rig at launch, and it is a
+local service with nothing online.
 
 ## 4. Features
 
@@ -246,16 +263,24 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 - Read-only, always. Nothing under `LIVE\` is ever written, moved or locked.
 - It stays outside the game process: no memory reading, no injection, no overlay in the game
   window, no input sent to the game. It never opens a handle to `StarCitizen.exe`; it only looks
-  for the name in the process list. The game runs with Easy Anti-Cheat, and this is the line that
-  keeps a tool on the right side of it **[verify, research pending in §14]**.
+  for the name in the process list.
+- Where that stands with the publisher **[ref, §14]**: the game runs with Easy Anti-Cheat, and the
+  publisher's notices about it are aimed at programs that change or interfere with game files.
+  The terms of service ban macro and cheat utilities and harvesting other players' information.
+  Nothing was found that mentions reading the log, in either direction, and no report of trouble
+  from a tool that only reads it. That is an absence of objection, not an approval, so stay
+  strictly read-only.
+- Other players' names appear in the log. Show them at most in the live feed, and never write
+  them to the session records.
 - **The log must never be held open.** At each launch the game copies the old `Game.log` into
   `logbackups\` and starts `Game.log` again **[seen 2026-11-26: each backup's creation time is the
   next launch's start, and it has its own file id]**. Whether it truncates the file in place or
   deletes and recreates it is **[verify]**. A reader that holds the file open without allowing
   deletion could block the second case, and Python's own `open()` does not allow it on Windows.
   So open the file through `CreateFileW` with read, write and delete sharing, read the new bytes,
-  and close it again on every poll. Then prove it: run the follower across a real game launch and
-  confirm the backup appears and the new log starts.
+  and close it again on every poll. Other tools reopen the file on every read too, and no report
+  of one blocking the game turned up **[ref]**. Then prove it: run the follower across a real game
+  launch and confirm the backup appears and the new log starts.
 - A session is identified by the first line of the log (`BackupNameAttachment=...`). When that
   line changes or the file gets shorter, start a new session from offset 0.
 
@@ -407,6 +432,10 @@ msedge.exe --user-data-dir=<dashboard\data\browser> --app=http://127.0.0.1:<port
   fully covered is slowed down, which costs nothing here.
 - The game should run in borderless window mode, so a click on the side screen does not minimize
   it.
+- Whether the game keeps taking stick and throttle input while another window has focus is not
+  known for 4.10. An old report (2020) had the throttle latching when the game lost focus. Until
+  it has been tested on the ground, the user should not click the side screen while flying, and
+  the dashboard must never take focus by itself.
 
 View rules, kept as a small table in code so they are easy to tune:
 
@@ -497,8 +526,18 @@ build confirms them on this PC; each names its source.
    Still open: the window's real memory on this PC, whether `<x>,<y>` are scaled or physical
    pixels when the main monitor uses display scaling, and whether a game in exclusive full screen
    counts as covering the side monitor.
-3. What other log-reading tools do, what the publisher has said about them, and whether the game
-   keeps taking stick input when another window has focus.
+3. **Answered in part, other tools and policy [ref].** The tools are named in §3; their code is
+   the source of the extra markers listed there. Policy sources: the publisher's
+   [anti-cheat announcement](https://robertsspaceindustries.com/spectrum/community/SC/forum/1/thread/easy-anti-cheat-coming-in-alpha-3-15-1),
+   its [anti-cheat support article](https://support.robertsspaceindustries.com/hc/en-us/articles/4412276152343)
+   and the [terms of service](https://robertsspaceindustries.com/en/tos). Community sources say
+   the publisher has removed some data from the log over time (other players' deaths, for
+   example), so a marker can vanish in a patch: after each patch, run the tests against a fresh
+   log. Still open:
+   - Whether the game takes stick input while unfocused. Test it on the ground.
+   - Two community sources describe an opt-in local data stream in 4.10, switched on by a line in
+     the game's `user.cfg` and served on this PC. Unverified, and switching it on means editing a
+     game file, so ask the user before looking into it. It could supply what the log cannot.
 4. Whether the game truncates `Game.log` in place or deletes and recreates it at launch. Compare
    the file id before and after a launch.
 5. The markers for accepting and completing a contract, and whether anything is logged when a
