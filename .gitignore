@@ -15,3 +15,6 @@ __pycache__/
 # Scratch / backups
 *.bak
 *.tmp
+
+# The dashboard's local data: the user's plan, state and session records (never public)
+dashboard/data/
