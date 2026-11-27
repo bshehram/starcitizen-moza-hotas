@@ -53,6 +53,7 @@ MIT License below. Code adapted from it is marked "From CSR" where it sits, with
     from CSR's tests: wait_for (tests/test_tlm_recorder.py lines 18-24), and the ideas of the
     tests for start after stop (396-406), no schema (183-194), idle with the game not running
     (208-219), a loop that survives errors (220-238) and silent streams (239-272).
+    Also the idea of the refusal test (test_off_after_refusals, 131-150).
 - dashboard/tests/test_telemetry_fake.py
     from CSR's tests/tlm_helpers.py: enc_varint (16-27, unchanged, here vint), enc_field
     (30-37, split into key, ld and vi), the descriptor builders _field, _msg, _enum and _file
@@ -65,6 +66,8 @@ MIT License below. Code adapted from it is marked "From CSR" where it sits, with
     from CSR's tests: the ideas of the decoder and loader tests in tests/test_tlm_core.py
     (DecodeTests 26-59, the opener spy 78-104, LoadSchemaTests 124-148) and of the synthetic
     program file in tests/tlm_helpers.py (exe_bytes, 172-177).
+    Also the idea of the OpenTelemetry decoy the scan must leave out (tests/test_tlm_core.py,
+    test_only_game_protos_kept, 62-76).
 - dashboard/tests/test_telemetry_readings.py
     from CSR's tests/test_tlm_recording.py: the ideas of the flatten and frame_events tests
     (24-43).

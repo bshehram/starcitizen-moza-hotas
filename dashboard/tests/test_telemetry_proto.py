@@ -205,6 +205,8 @@ class LoaderTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.__exit__()
 
+    # From CSR tests/test_tlm_core.py lines 62-76 (`test_only_game_protos_kept`, the
+    # OpenTelemetry decoy that must be left out): the idea; the other decoys are this project's.
     def test_scan_finds_exactly_the_descriptors(self):
         for piece in (4096, 1 << 20):
             found = proto.scan_descriptors(self.exe, piece=piece)

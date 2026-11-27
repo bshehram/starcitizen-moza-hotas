@@ -94,11 +94,12 @@ def retry_delay(failing_for, steps=RETRY_STEPS):
 
 # --------------------------------------------------------------------------- the log line
 
-# The whole record: the time prefix, any level parts, an optional tag, then the service's own
-# bracketed name, then only the address. Text anywhere else in a line (inside a notice, say)
-# cannot match.
+# The whole record: the time prefix, at least one level part, an optional tag, then the
+# service's own bracketed name, then only the address. Text anywhere else in a line (inside a
+# notice, say) cannot match, and neither can a continuation piece of a multi-line record, which
+# has a time prefix but no level part (PLAN §3, *Reading the lines*).
 _PORT_RE = re.compile(
-    rb"<[^>\r\n]{1,40}>[ \t]+(?:\[[^\]\r\n]{1,40}\][ \t]*)*(?:<[^>\r\n]{1,80}>[ \t]*)?"
+    rb"<[^>\r\n]{1,40}>[ \t]+(?:\[(?!sc\.game\.)[^\]\r\n]{1,40}\][ \t]*)+(?:<[^>\r\n]{1,80}>[ \t]*)?"
     rb"\[sc\.game\.telemetry\.v1\.GameTelemetryService\]:[ \t]*"
     rb"(127\.0\.0\.1|localhost|0\.0\.0\.0):(\d{1,5})[ \t]*\r?\n?")
 
@@ -114,8 +115,8 @@ def port_from_log_line(line):
     The record's shape is second-hand: CSR's sc_stats.py looks for the text
     "[sc.game.telemetry.v1.GameTelemetryService]:" and the brief for this stage gives the
     address after it; no log on this PC has one, because the stream has never been on. So the
-    match is strict: time prefix, level parts, at most one tag, the bracketed service name, the
-    address, end of line. 0.0.0.0 (all interfaces, which include loopback) is accepted too, my
+    match is strict: time prefix, at least one level part, at most one tag, the bracketed
+    service name, the address, end of line. 0.0.0.0 (all interfaces, which include loopback) is accepted too, my
     reading: the program file lets the address be set (grpc.client.server.address [game]). Any
     other host gives None, since the reader connects to 127.0.0.1 only. Takes bytes or text."""
     if isinstance(line, str):
@@ -186,6 +187,7 @@ class TelemetryReader:
         self._raw_t = 0.0
         self._seq = 0
         self._cache = None           # (seq, result, receive time) of the last good decode
+        self._failed_seq = None      # seq of a newest snapshot that failed to decode
         self._events_raw = deque(maxlen=EVENT_KEEP)   # (wall time, raw EventsFrame bytes)
         self._st = {"source": SOURCE, "state": "stopped", "reason": "", "port": DEFAULT_PORT,
                     "bytes": 0, "snapshots": 0, "decode_errors": 0, "protocol_errors": 0,
@@ -265,6 +267,7 @@ class TelemetryReader:
         "schema"}; treat it as read-only, the same object is handed out until a newer one."""
         with self._lock:
             raw, t, seq, cache, compiled = self._raw, self._raw_t, self._seq, self._cache, self._compiled
+            failed = self._failed_seq == seq
         if raw is None or compiled is None:
             return None, None
         age = max(0.0, self.clock() - t)
@@ -274,8 +277,12 @@ class TelemetryReader:
         if cache is not None and cache[0] == seq:
             out = cache[1]
         else:
-            out = self._decode(raw, compiled)
+            # A message that failed once is not decoded again on the next call.
+            out = None if failed else self._decode(raw, compiled)
             if out is None:
+                with self._lock:
+                    if self._raw is raw:
+                        self._failed_seq = seq
                 if cache is None:
                     return None, age
                 out, t = cache[1], cache[2]
@@ -581,12 +588,15 @@ class TelemetryReader:
 
 # --------------------------------------------------------------------------- captures
 
-def capture(seconds=60.0, port=None, out_dir=None, schema=None, exe_path=None,
+def capture(seconds=60.0, port=DEFAULT_PORT, out_dir=None, schema=None, exe_path=None,
             cache_path=None, max_bytes=CAPTURE_MAX_BYTES, stop=None, read_timeout=READ_TIMEOUT_S):
     """Record every raw message of a running stream to a file in dashboard/data/telemetry/,
     for later study. Opens a connection of its own (two clients can read at once [ref: CSR]).
     Blocks for up to `seconds`; call it only while the game runs (without a `schema` it reads
     the program file, which is allowed then).
+
+    `port` must be an int from 1 to 65535; leave it out for the default (2942, or pass the port
+    the log announced). Anything else (True, None, "2942", 0) raises ValueError.
 
     Ends after `seconds`, at `max_bytes`, when `stop` (a threading.Event) is set, or when the
     stream ends. Never raises for a stream that is not there; returns {"path", "messages",
@@ -601,11 +611,11 @@ def capture(seconds=60.0, port=None, out_dir=None, schema=None, exe_path=None,
     made unique when taken, and the `started_utc` header key (sc_telemetry.py lines 964-977,
     `Recorder._open_file`). The magic, the descriptors in the header and the -n suffix are this
     project's."""
+    if not (isinstance(port, int) and not isinstance(port, bool) and 0 < port < 65536):
+        raise ValueError("capture: port must be an int from 1 to 65535")
     if schema is None:
         schema, _ = proto.load_schema(exe_path or default_exe() or "", str(cache_path or SCHEMA_CACHE))
-    if not (isinstance(port, int) and not isinstance(port, bool) and 0 < port < 65536):
-        port = DEFAULT_PORT
-    result = {"path": None, "messages": 0, "bytes": 0, "seconds": 0.0, "reason": ""}
+    result ={"path": None, "messages": 0, "bytes": 0, "seconds": 0.0, "reason": ""}
     try:
         stream = h2.GrpcStream(port, connect_timeout=CONNECT_TIMEOUT_S, read_timeout=read_timeout)
     except (OSError, h2.StreamClosed, ValueError):

@@ -200,6 +200,7 @@ class FailureTest(ReaderCase):
                 self.assertOnlyStreamPath(srv)
         return r
 
+    # From CSR tests/test_tlm_recorder.py lines 131-150 (`test_off_after_refusals`): the idea.
     def test_refused_connection_retries_on_the_ladder(self):
         # Windows takes about 2 s to refuse a connection to a closed loopback port (it retries
         # the SYN), so the connect timeout is what bounds an attempt here.
@@ -424,6 +425,21 @@ class CapsTest(ReaderCase):
             r.start()
             self.assertTrue(wait_for(lambda: "message too large" in r.status()["reason"], 5), r.status())
 
+    def test_a_snapshot_that_fails_to_decode_is_not_retried(self):
+        # Well-formed at the top level, broken inside: kept as newest, fails in latest().
+        bad = fake.ld(3, b"\xff\xff\xff")
+        calls = []
+        real = self.schema.decode_safe
+        self.schema.decode_safe = lambda *a: (calls.append(a[0]), real(*a))[1]
+        with fake.FakeServer([bad], rate=0.2) as srv:            # one message, then 5 s quiet
+            r = self.reader(srv.port, stale_s=10)
+            r.start()
+            self.assertTrue(wait_for(lambda: r.status()["snapshots"] >= 1, 5))
+            for _ in range(50):
+                self.assertIsNone(r.latest()[0])
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(r.status()["decode_errors"], 1)
+
     def test_latest_goes_stale_while_connected_but_silent(self):
         # From CSR tests/test_tlm_recorder.py lines 239-272 (the silent-stream tests): the idea.
         with fake.FakeServer([fake.snapshot(self.schema)], rate=0.2) as srv:   # one, then 5 s quiet
@@ -527,6 +543,13 @@ class CaptureTest(ReaderCase):
                 self.assertTrue(wait_for(lambda: r.latest()[0] is not None, 5))
                 self.assertEqual(r.latest()[0]["readings"]["vehicle_class"], "TEST_Ship")
 
+    def test_capture_refuses_a_bad_port(self):
+        with lib.TempDir() as tmp:
+            for bad in (True, False, None, "2942", 0, -1, 70000, 2942.0):
+                with self.assertRaises(ValueError, msg=repr(bad)):
+                    tm.capture(seconds=0.1, port=bad, out_dir=tmp, schema=self.schema)
+            self.assertEqual(list(tmp.iterdir()), [])
+
     def test_capture_with_no_stream(self):
         with lib.TempDir() as tmp:
             res = tm.capture(seconds=0.5, port=fake.free_port(), out_dir=tmp, schema=self.schema)
@@ -562,7 +585,10 @@ class PortFromLogTest(unittest.TestCase):
         self.assertEqual(f(head + svc + "127.0.0.1:2942"), 2942)
         self.assertEqual(f((head + svc + "127.0.0.1:2942\r\n").encode()), 2942)
         self.assertEqual(f(bytearray((head + svc + "127.0.0.1:50051").encode())), 50051)
-        self.assertEqual(f("<2026-11-27T17:26:05.541Z> " + svc + "localhost:3000"), 3000)
+        self.assertEqual(f("<2026-11-27T17:26:05.541Z> [Notice] " + svc + "localhost:3000"), 3000)
+        # The shape of a continuation piece (time prefix, no level part) is not a record.
+        self.assertIsNone(f("<2026-11-27T17:26:05.541Z> " + svc + "127.0.0.1:4444"))
+        self.assertIsNone(f("<2026-11-27T17:26:05.541Z> " + svc + svc.strip() + " 127.0.0.1:4444"))
         self.assertEqual(f("<2026-11-27T17:26:05.541Z> [SPAM 1][Info] " + svc + "0.0.0.0:2942"), 2942)
         self.assertIsNone(f(head + svc + "192.168.1.5:2942"))
         self.assertIsNone(f(head + svc + "127.0.0.1:70000"))

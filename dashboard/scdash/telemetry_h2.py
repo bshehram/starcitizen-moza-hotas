@@ -287,18 +287,31 @@ class GrpcStream:
                 raise SendRefused("a partial frame")
             i += 9 + ln
             if ftype == HEADERS:
-                if (self._sent_headers or sid != 1 or flags != F_END_HEADERS
-                        or payload != _PATH_BLOCK + _authority(self.port) + _TAIL_BLOCK
-                        or path_in_block(payload) != STREAM_PATH):
+                # The one allowed header block, written out here as literals instead of taken
+                # from the module's constants: rebinding STREAM_PATH, _PATH_BLOCK or _TAIL_BLOCK
+                # at run time cannot make this check approve another request. Only the port
+                # (digits, checked) varies; the host is part of the literal.
+                port = self.port
+                if not isinstance(port, int) or isinstance(port, bool) or not 0 < port < 65536:
+                    raise SendRefused("bad port")
+                auth = b"127.0.0.1:" + str(port).encode("ascii")
+                want = (b"\x83\x86\x04\x3a/sc.game.telemetry.v1.GameTelemetryService/TelemetryStream"
+                        + b"\x01" + bytes([len(auth)]) + auth
+                        + b"\x0f\x10\x10application/grpc\x00\x02te\x08trailers"
+                        + b"\x00\x14grpc-accept-encoding\x08identity"
+                        + b"\x00\x0auser-agent\x10scdash-telemetry")
+                if self._sent_headers or sid != 1 or flags != F_END_HEADERS or payload != want:
                     raise SendRefused("a request other than the stream")
                 self._sent_headers = True
             elif ftype == DATA:
                 if (self._sent_request or not self._sent_headers or sid != 1
-                        or flags != F_END_STREAM or payload != _EMPTY_REQUEST):
+                        or flags != F_END_STREAM or payload != b"\x00\x00\x00\x00\x00"):
                     raise SendRefused("data other than the empty request")
                 self._sent_request = True
             elif ftype == SETTINGS:
-                if sid != 0 or not (payload == _SETTINGS and flags == 0 or payload == b"" and flags == F_ACK):
+                ours = (b"\x00\x02\x00\x00\x00\x00\x00\x04\x00\x04\x00\x00"
+                        b"\x00\x05\x00\x00\x40\x00\x00\x06\x00\x00\x40\x00")
+                if sid != 0 or not (payload == ours and flags == 0 or payload == b"" and flags == F_ACK):
                     raise SendRefused("other settings")
             elif ftype == WINDOW_UPDATE:
                 if sid not in (0, 1) or ln != 4 or flags:

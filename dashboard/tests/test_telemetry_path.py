@@ -98,6 +98,35 @@ def reaches_private_socket(text):
     return "GrpcStream__" in text or re.search(r"\.__sock\b", text) is not None
 
 
+INTERNAL_ATTRS = {"h2", "_stream", "_connecting", "__closure__", "cell_contents"}
+INTROSPECTION = {"vars", "setattr", "getattr", "delattr"}
+
+
+def touches_telemetry_internals(text):
+    """What a file outside telemetry*.py must not do (the two routes the second review found):
+    reach `.h2`, `._stream`, `._connecting` or the mangled socket name of anything; and, in a
+    file that imports a telemetry module, use vars(), setattr(), getattr(), delattr() or
+    `__dict__` at all (strict on purpose: such a file has no reason to)."""
+    tree = ast.parse(text)
+    uses = any((isinstance(n, ast.Import) and any("telemetry" in a.name for a in n.names))
+               or (isinstance(n, ast.ImportFrom) and ("telemetry" in (n.module or "")
+                                                      or any("telemetry" in a.name for a in n.names)))
+               for n in ast.walk(tree))
+    hits = []
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Attribute):
+            if n.attr in INTERNAL_ATTRS or "GrpcStream__" in n.attr or n.attr.endswith("__sock"):
+                hits.append("." + n.attr)
+            elif uses and n.attr == "__dict__":
+                hits.append(".__dict__")
+        elif isinstance(n, ast.Constant) and isinstance(n.value, str):
+            if "GrpcStream__" in n.value or "__sock" in n.value:
+                hits.append(repr(n.value))
+        elif uses and isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in INTROSPECTION:
+            hits.append(n.func.id + "(")
+    return hits
+
+
 def socket_calls(text):
     """(socket writes, socket connects) in a source: sendall/send/sendto calls, and connect
     calls with an address argument (GrpcStream's own .connect() takes none)."""
@@ -147,6 +176,27 @@ class SourceTest(unittest.TestCase):
         for p in scope():
             if p.name != "telemetry_h2.py":
                 self.assertFalse(reaches_private_socket(p.read_text(encoding="utf-8")), p.relative_to(DASH))
+
+    def test_nothing_outside_telemetry_touches_its_internals(self):
+        for p in scope():
+            if p.suffix == ".py" and not p.name.startswith("telemetry"):
+                self.assertEqual(touches_telemetry_internals(p.read_text(encoding="utf-8")), [],
+                                 p.relative_to(DASH))
+
+    def test_the_checks_literal_is_the_stream_path(self):
+        # _check_outgoing holds the allowed block as a literal of its own (route B); it must
+        # name exactly STREAM_PATH, so changing one without the other fails here.
+        tree = ast.parse((DASH / "scdash" / "telemetry_h2.py").read_text(encoding="utf-8"))
+        fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "_check_outgoing")
+        paths = [c.value for c in ast.walk(fn) if isinstance(c, ast.Constant)
+                 and isinstance(c.value, bytes) and b"/sc." in c.value]
+        self.assertEqual(len(paths), 1)
+        self.assertEqual(paths[0][4:].decode("ascii"), h2.STREAM_PATH)
+        self.assertEqual(paths[0][3], len(h2.STREAM_PATH))
+        self.assertTrue(h2.request_headers(4321).startswith(paths[0]))
+        self.assertNotIn("STREAM_PATH", ast.unparse(fn))
+        self.assertNotIn("_PATH_BLOCK", ast.unparse(fn))
+        self.assertNotIn("_TAIL_BLOCK", ast.unparse(fn))
 
     def test_no_telemetry_function_takes_a_path_host_or_method(self):
         for p in TELEMETRY:
@@ -212,6 +262,47 @@ class MutationTest(unittest.TestCase):
             time.sleep(0.2)
         self.assertEqual(srv.paths, [h2.STREAM_PATH])
 
+    def test_route_a_vars_of_the_readers_stream(self):
+        # Another module digs the socket out of the open stream and sends its own request. In
+        # Python nothing stops code in the same process at run time; the scan makes it loud.
+        for other in (
+                "from scdash import telemetry as tm\n"
+                "def go(reader, block):\n"
+                "    vars(reader._stream)['_Grpc' + 'Stream__sock'].sendall(block)\n",
+                "import scdash.telemetry\n"
+                "def go(reader):\n"
+                "    s = getattr(reader, '_str' + 'eam')\n",
+                "from scdash.telemetry import TelemetryReader\n"
+                "def go(reader):\n"
+                "    return reader.__dict__\n",
+                "def go(reader):\n"
+                "    return reader._connecting\n"):
+            self.assertTrue(touches_telemetry_internals(other), other)
+
+    def test_route_b_rebinding_the_path_constants(self):
+        # Another module rebinds the module's constants together: the check's own literal
+        # still refuses, and nothing reaches the server.
+        mighty = "/sc.game.editor.mightybridge.v1." + "MightyBridgeService/" + "MightyStream"
+        other = ("from scdash import telemetry as tm\n"
+                 "def go(p):\n"
+                 "    tm.h2.STREAM_PATH = p\n"
+                 "    setattr(tm.h2, '_PATH_BLOCK', b'')\n")
+        self.assertTrue(touches_telemetry_internals(other))
+        saved = (h2.STREAM_PATH, h2._PATH_BLOCK, h2._TAIL_BLOCK)
+        with fake.FakeServer([fake.snapshot(fake.make_schema())], record_global=False) as srv:
+            try:
+                tm.h2.STREAM_PATH = mighty
+                tm.h2._PATH_BLOCK = bytes([0x83, 0x86]) + h2.hpack_int(4, 4, 0) + h2.hpack_str(mighty)
+                with self.assertRaises(h2.SendRefused):
+                    h2.GrpcStream(srv.port)
+                tm.h2._TAIL_BLOCK = b""
+                with self.assertRaises(h2.SendRefused):
+                    h2.GrpcStream(srv.port)
+            finally:
+                h2.STREAM_PATH, h2._PATH_BLOCK, h2._TAIL_BLOCK = saved
+            time.sleep(0.2)
+        self.assertEqual(srv.paths, [])
+
     def test_a_concatenated_fallback_path_cannot_be_sent(self):
         schema = fake.make_schema()
         # The mutation's way in: whatever builds the request now builds another path.
@@ -226,13 +317,15 @@ class MutationTest(unittest.TestCase):
             finally:
                 h2.request_headers = real_headers
             try:
-                h2.STREAM_PATH = OTHER_PATH          # the constant itself rebound at run time
-                with self.assertRaises(h2.SendRefused):
-                    h2.GrpcStream(srv.port)
+                h2.STREAM_PATH = OTHER_PATH          # the constant alone rebound at run time:
+                s = h2.GrpcStream(srv.port)          # no effect, the real path is still sent
+                s.close()
             finally:
                 h2.STREAM_PATH = real_path
-            time.sleep(0.2)
-        self.assertEqual(srv.paths, [])
+            deadline = time.monotonic() + 3
+            while not srv.paths and time.monotonic() < deadline:
+                time.sleep(0.02)
+        self.assertEqual(srv.paths, [real_path])
         # And through the reader, after three trailers-only answers, still only the stream.
         with fake.FakeServer([fake.snapshot(schema)],
                              modes=("trailers", "trailers", "trailers", "normal")) as srv:
