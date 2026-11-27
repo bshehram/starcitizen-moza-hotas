@@ -22,6 +22,52 @@ MIT License below. Code adapted from it is marked "From CSR" where it sits, with
 - dashboard/scdash/tail.py
     from LiveTail.poll (lines 448-467): a file shorter than the offset is a new log (454), and
     the unfinished last line is kept for the next read (462-465).
+- dashboard/scdash/telemetry.py
+    from CSR's sc_telemetry.py (same commit, same license): the reader's retry-and-silence
+    loop follows Recorder (lines 754-946: the game_running callable, 769; stop() closing the
+    open stream from the calling thread, 804-815; the refusal timing in _cycle, 887-946; the
+    silence check in _read, 985-999) and its timings (699-707), rewritten; the capture file's
+    name from its UTC start, made unique when taken, and its started_utc key follow
+    Recorder._open_file (964-977); a cut-off capture keeps what came before, as
+    read_recording does (653-671), the idea only; the time-and-length records follow the raw
+    fixtures CSR's tests read (tests/tlm_helpers.py lines 159-169, read_raw), the idea only.
+    From CSR's sc_stats.py: the startup block's 1,500 lines and the service's log marker
+    (lines 1449-1452).
+- dashboard/scdash/telemetry_h2.py
+    from CSR's sc_telemetry.py lines 325-450: the frame types and flags (325-327), _frame
+    (330-331), _hpack_int (334-344), _hpack_str (347-349), _request_headers (352-360) and
+    GrpcStream (363-450). Changed: host and request block fixed and checked at the one write,
+    every size and rate capped, a bounded flow-control window, a private socket, a connect
+    another thread can end, poll() for messages(), only status codes kept from the server.
+- dashboard/scdash/telemetry_proto.py
+    from CSR's sc_telemetry.py lines 1-320: _varint (33-41) and wire_fields (44-61), bounded;
+    the field type numbers (66-73); descriptor_blobs (85-116), read in pieces with full
+    sharing; Schema (119-283), with presence, bounds and unknown fields kept, and its dump
+    (210-222) as describe(); load_schema (286-320), with a cache rebuilt from the descriptor
+    bytes it holds, scans held off while the program file may be changing, and no exceptions.
+- dashboard/scdash/telemetry_readings.py
+    from CSR's sc_telemetry.py: FLOAT_SENTINEL (455), flatten (486-505) and frame_events
+    (508-510); and, as rules in its table, the field quirks in CSR's docs/telemetry/NOTES.md
+    and the reading of ifcs_coupled.active in CSR's sc_slate.py (line 2822).
+- dashboard/tests/test_telemetry.py
+    from CSR's tests: wait_for (tests/test_tlm_recorder.py lines 18-24), and the ideas of the
+    tests for start after stop (396-406), no schema (183-194), idle with the game not running
+    (208-219), a loop that survives errors (220-238) and silent streams (239-272).
+- dashboard/tests/test_telemetry_fake.py
+    from CSR's tests/tlm_helpers.py: enc_varint (16-27, unchanged, here vint), enc_field
+    (30-37, split into key, ld and vi), the descriptor builders _field, _msg, _enum and _file
+    (53-84) and the service built in make_descriptor (136-138), the gRPC message prefix and
+    response and trailer blocks (212-219, 298), free_port (237-242, unchanged), and
+    StreamServer's one plan per connection with the last repeating (245-311); the frame
+    helper is sc_telemetry.py's _frame (330-331); the snapshot builder follows actor_frame
+    (227-234), the idea only.
+- dashboard/tests/test_telemetry_proto.py
+    from CSR's tests: the ideas of the decoder and loader tests in tests/test_tlm_core.py
+    (DecodeTests 26-59, the opener spy 78-104, LoadSchemaTests 124-148) and of the synthetic
+    program file in tests/tlm_helpers.py (exe_bytes, 172-177).
+- dashboard/tests/test_telemetry_readings.py
+    from CSR's tests/test_tlm_recording.py: the ideas of the flatten and frame_events tests
+    (24-43).
 
 No code from any project other than CSR is used in dashboard/.
 

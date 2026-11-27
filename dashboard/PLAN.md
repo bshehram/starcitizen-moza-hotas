@@ -13,7 +13,7 @@ decisions are in §15. The build started later that day.
 | 4. Autostart and the window | Not started. Waits for the side monitor. |
 | 4b. The Claude terminal | Not started. |
 | 5. A flown session | The user's. |
-| 6. The telemetry source | Not started. |
+| 6. The telemetry source | The reader itself is built, reviewed twice and committed (`scdash/telemetry*.py`, 91 tests against a fake stream). It is not wired into the service, the state or the page, and it has never met the real stream. |
 | 7. Docs and routines | Kept up as stages land; the final pass is not done. |
 
 How the build is run: each stage is built by one agent, checked by the orchestrating session
@@ -696,8 +696,17 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
     these is dropped and retried later. Review showed that without those caps a hostile or
     broken stream could hold a core at 100% or grow the service by hundreds of megabytes.
   - **The program file is read with the same full sharing as the log** (§8, *The log must never
-    be held open*), and only once its size and date have settled, so reading the stream's layout
-    can never get in the way of the launcher patching the game.
+    be held open*), and only while the game is running or once the file has sat unchanged for
+    60 seconds, so reading the stream's layout cannot get in the way of the launcher patching
+    the game. The timing rule is the real protection, because sharing does not cover every case
+    **[seen 2026-11-27, tested on a scratch file by two agents]**: while a handle opened with
+    read, write and delete sharing is held, another program can delete the file, rename it away,
+    overwrite it in place, or swap it with `ReplaceFileW`, but renaming a different file over it
+    (`MoveFileEx`, Python's `os.replace`) fails with "access denied". A plain open blocks all of
+    those. The read takes about 0.13 seconds. The same holds for the log, where it does not
+    bite: the game empties `Game.log` in place, and each poll holds it for about 0.3 ms.
+  - A server that stays just under every cap can hold the reader at about 1% of one core for as
+    long as it likes: the budget's ceiling, measured in review.
 - Other players' names appear in the log. Show them at most in the live feed, and never write
   them to the session records.
 - **The log must never be held open.** At each launch the game copies the old `Game.log` into
