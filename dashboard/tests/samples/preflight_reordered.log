@@ -1,0 +1,8 @@
+<2026-11-27T20:57:28.386Z> BackupNameAttachment=" Build(13220821) 27 Nov 26 (12 57 20)"  -- used by backup system
+<2026-11-27T20:57:28.386Z> FileVersion: 4.10.201.48085
+<2026-11-27T20:57:37.724Z> - Connected joystick0: Joystick (Razer Huntsman V3 Pro)  {02A61532-0000-0000-0000-504944564944}
+<2026-11-27T20:57:37.784Z> - Connected joystick1: MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}
+<2026-11-27T20:57:37.844Z> - Connected joystick2: MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}
+<2026-11-27T20:57:50.000Z> [Notice] <Legacy login response> [CIG-net] User Login Success - Handle[Pilot_Example] - Time[900000000001] [Team_GameServices][Login]
+<2026-11-27T20:57:52.000Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="ProcessBootRequest"!
+<2026-11-27T20:58:30.000Z> [Notice] <SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via console command, exitCode=0, thread id=1, main thread id=1 [Team_Unknown][System]

@@ -67,6 +67,7 @@ def build_summary(state, complete=False, last_line_t=None):
         "world_entries": s["spawns"],
         "ended": ended,
         "preflight": {"ok": state.preflight["ok"], "text": state.preflight["text"],
+                      "order": state.preflight.get("order"), "missing": list(state.preflight.get("missing") or []),
                       "joysticks": [j["name"] for j in state.joysticks]},
         "profile_loaded": state.profile["name"] if state.profile else None,
         "servers": list(state.server["shards"]),

@@ -166,18 +166,55 @@ class MenuReturnTest(unittest.TestCase):
 
 
 class PreflightTest(unittest.TestCase):
+    """Both the AB6 and the MTQ must be connected; their order does not matter (the user's
+    report, 2026-11-27). A missing one is the red failure (12 AB6-missing launches)."""
+
     def test_stick_base_missing(self):
         st = read("preflight_fail.log").state
-        self.assertFalse(st.preflight["ok"])
-        self.assertIn("joystick 1 is Joystick (Razer Huntsman V3 Pro), expected the AB6", st.preflight["text"])
-        self.assertIn("not detected", st.preflight["text"])
+        self.assertIs(st.preflight["ok"], False)
+        self.assertEqual(st.preflight["missing"], ["MOZA AB6 FFB Base"])
+        self.assertEqual(st.preflight["text"], "AB6 not connected; joystick 1 is Joystick (Razer Huntsman V3 Pro)")
 
-    def test_wrong_order(self):
+    def test_throttle_missing(self):
+        st = read("preflight_no_mtq.log").state
+        self.assertIs(st.preflight["ok"], False)
+        self.assertEqual(st.preflight["missing"], ["MOZA MTQ Throttle Panel"])
+        self.assertIn("MTQ not connected; joystick 1 is MOZA AB6 FFB Base", st.preflight["text"])
+
+    def test_all_three_present_keyboard_first_passes(self):
+        r = read("preflight_reordered.log")
+        pf = r.state.preflight
+        self.assertIs(pf["ok"], True)
+        self.assertEqual((pf["order"], pf["missing"]), ("differs", []))
+        self.assertIn("AB6 is joystick 3, MTQ is joystick 2", pf["text"])
+        self.assertIn("which has worked", pf["text"])
+        # never a failure on the way, not even between the second and the third joystick line
+        st = State(lib.NAMES)
+        for ev in r.events:
+            st.apply(ev)
+            self.assertIsNot(st.preflight["ok"], False, ev.kind)
+        sm = build_summary(r.state, complete=True)["preflight"]
+        self.assertEqual((sm["ok"], sm["order"], sm["missing"]), (True, "differs", []))
+
+    def test_usual_order(self):
+        st = read("run_a.log").state
+        self.assertEqual((st.preflight["ok"], st.preflight["order"], st.preflight["missing"]), (True, "usual", []))
+
+    def test_swapped_pair_passes(self):
         st = build_state([E.SessionStart("s", 0, 0.0, "s", None, None),
                           E.Joystick("s", 1, 1.0, 0, "MOZA MTQ Throttle Panel", "1101346E-0000-0000-0000-504944564944"),
                           E.Joystick("s", 2, 1.1, 1, "MOZA AB6 FFB Base", "1002346E-0000-0000-0000-504944564944")])
-        self.assertFalse(st.preflight["ok"])
-        self.assertIn("it is joystick 2", st.preflight["text"])
+        self.assertIs(st.preflight["ok"], True)
+        self.assertEqual(st.preflight["order"], "differs")
+
+    def test_waits_before_failing(self):
+        evs = [E.SessionStart("s", 0, 0.0, "s", None, None),
+               E.Joystick("s", 1, 1.0, 0, "Joystick (Razer Huntsman V3 Pro)", "02A61532-0000-0000-0000-504944564944"),
+               E.Joystick("s", 2, 1.1, 1, "MOZA MTQ Throttle Panel", "1101346E-0000-0000-0000-504944564944")]
+        st = build_state(evs)
+        self.assertIsNone(st.preflight["ok"])                 # the AB6 line may still come
+        st.apply(E.Login("s", 3, 9.0, "Pilot_Example"))
+        self.assertIs(st.preflight["ok"], False)
 
 
 class RecoveryTest(unittest.TestCase):

@@ -80,7 +80,7 @@ class State:
         self.me = {"handle": None, "player_id": None}         # memory only (PLAN §8)
         self.server = {"shard": None, "joined": None, "shards": []}
         self.joysticks = []
-        self.preflight = {"ok": None, "text": "no joysticks logged yet"}
+        self.preflight = {"ok": None, "text": "no joysticks logged yet", "order": None, "missing": []}
         self._joy_final = False
         self.profile = None
         self.location = None
@@ -262,28 +262,50 @@ class State:
         self.joysticks = [j for j in self.joysticks if j["index"] != ev.index]
         self.joysticks.append({"index": ev.index, "name": ev.name, "guid": ev.guid})
         self.joysticks.sort(key=lambda j: j["index"])
-        if len(self.joysticks) >= 2:
-            self._check_joysticks()
+        if self._joy_final or not self._joy_missing():
+            self._check_joysticks()        # a pass can be told at once; a failure waits (see apply)
         return MINOR, "Joystick %d: %s" % (ev.index + 1, ev.name)
 
+    def _joy_missing(self):
+        return [w for w in config.EXPECTED_JOYSTICKS
+                if not any(_is_device(j, w) for j in self.joysticks)]
+
     def _check_joysticks(self):
-        """Root CLAUDE.md §1: the AB6 must be joystick 1 and the MTQ joystick 2 (the game's 0 and 1)."""
-        by = {j["index"]: j for j in self.joysticks}
-        problems = []
-        for i, want in enumerate(config.EXPECTED_JOYSTICKS):
-            j = by.get(i)
-            if j is None:
-                problems.append("joystick %d missing (expected the %s)" % (i + 1, want["label"]))
-            elif not _is_device(j, want):
-                where = next((k["index"] + 1 for k in self.joysticks if _is_device(k, want)), None)
-                problems.append("joystick %d is %s, expected the %s%s" % (
-                    i + 1, j["name"], want["label"],
-                    " (the %s was not detected)" % want["label"] if where is None
-                    else " (it is joystick %d)" % where))
-        if problems:
-            self.preflight = {"ok": False, "text": "; ".join(problems)}
+        """The preflight check (PLAN §4, item 2): both the AB6 base and the MTQ throttle must be
+        connected. Their order in the `Connected joystick<n>` lines does not matter.
+
+        - Either one missing is a failure, the red alert. When the AB6 is missing, the keyboard or
+          the MTQ takes the first slot and the stick does not work [seen: 12 launches in
+          logbackups with the AB6 missing, root CLAUDE.md §1].
+        - Both present in another order is a pass, with a note. On 2026-11-27 (the 12:57 PM
+          launch) the lines listed the keyboard, the MTQ, then the AB6, and the user, in the
+          Golem, reported that both the AB6 and the MTQ worked [the user's report]. Why the order
+          does not matter is unconfirmed; perhaps the saved profile ties each joystick instance
+          to its device by product id. The earlier rule, "AB6 joystick 1 and MTQ joystick 2",
+          was an inference never tested with every device present, and raised a false alarm.
+
+        A verdict is shown at once when both are listed; a failure only once the joystick lines
+        have had their moment (the first other event after them)."""
+        expected = config.EXPECTED_JOYSTICKS
+        where = {w["label"]: next((j["index"] for j in self.joysticks if _is_device(j, w)), None)
+                 for w in expected}
+        missing = [w for w in expected if where[w["label"]] is None]
+        usual = all(where[w["label"]] == i for i, w in enumerate(expected))
+        order = "usual" if usual else "differs"
+        if missing:
+            first = next((j for j in self.joysticks if j["index"] == 0), None)
+            text = "%s not connected; joystick 1 is %s" % (
+                " and ".join(w["label"] for w in missing), first["name"] if first else "not listed")
+            self.preflight = {"ok": False, "text": text, "order": order,
+                              "missing": [w["name"] for w in missing]}
+        elif usual:
+            self.preflight = {"ok": True, "text": "AB6 is joystick 1 and MTQ joystick 2, as usual",
+                              "order": order, "missing": []}
         else:
-            self.preflight = {"ok": True, "text": "AB6 is joystick 1 and MTQ joystick 2"}
+            places = ", ".join("%s is joystick %d" % (w["label"], where[w["label"]] + 1) for w in expected)
+            self.preflight = {"ok": True, "order": order, "missing": [],
+                              "text": "AB6 and MTQ both connected; listed in a different order than usual "
+                                      "(%s), which has worked" % places}
 
     def _on_login(self, ev):
         self.me["handle"] = ev.handle
