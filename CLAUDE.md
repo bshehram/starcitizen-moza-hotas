@@ -651,6 +651,8 @@ This is normal and intended - only one of these action maps is "live" at a time.
       - *Throttle - Forward / Back Invert* (`v_strafe_longitudinal_invert`, press / release, unbound) on the press. Its description reads "Inverts Strafe Longitudinal Absolute Axis Half (Neutral - Backward)", so while held it should make the throttle's forward travel act as reverse: reverse at whatever the lever is set to, nothing at idle. Whether it acts on a throttle bound to `v_strafe_forward` is unknown.
       - A helper program that turns button 29 into the keyboard `S` key while held. `S` is the stock keyboard binding of `v_strafe_back`, and the keyboard slot is separate from the joystick one (§2.5). It needs software running beside the game; nothing is installed.
       - Give the press another job, or leave it empty. Anything on it also fires when the stick is clicked in while strafing.
+    - **Spacebrake on the press: considered and dropped the same day.** The user first chose it, then decided the MTQ switch's spring-return position (`js2_button51`) is the best place for the brake. The edit was reverted before any commit. Don't suggest moving the brake again.
+    - **Further candidates put to the user for the press (2026-11-26, awaiting their choice), all read from the game's list of actions:** *Boost* (`v_afterburner`; it would leave the MTQ face button `js2_button65` free), *Enable / Disable Target Padlock (Toggle, Hold)* (`v_look_ahead_start_target_tracking`, unbound, untried), or nothing.
 
 ---
 
