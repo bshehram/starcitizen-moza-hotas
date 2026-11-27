@@ -325,11 +325,19 @@ What the audits change in how it is built:
 
 1. **Status strip, always visible.** Local time, session length, game state (not running, menu, in
    game, ended), current location, current ship.
-2. **Preflight check at launch.** A large pass or fail for the joystick order: the AB6 must be
-   joystick 1 and the MTQ joystick 2. When the stick base is not detected, the keyboard takes its
-   slot and every binding lands on the wrong device ([`../CLAUDE.md`](../CLAUDE.md) §1). This has
-   cost the user sessions, so it gets the loudest alert on the page. Also shows the plan's
-   "before you fly" notes.
+2. **Preflight check at launch.** A large pass or fail for the rig: **are the AB6 and the MTQ
+   both in the game's list of connected joysticks?** A missing stick base is the failure that
+   has cost the user sessions ([`../CLAUDE.md`](../CLAUDE.md) §1), so it gets the loudest alert
+   on the page. Also shows the plan's "before you fly" notes.
+   - **The order of the list is not a failure by itself.** The first build of this check
+     required the AB6 to be listed first and the MTQ second, and failed anything else. On
+     2026-11-27 the log listed the keyboard first and the AB6 third, the check went red, and the
+     user, in a ship, reported that both devices worked fine. So: both present in the usual
+     order is a pass; both present in another order is a pass with a plain note ("listed in a
+     different order than usual; this has worked"); either one missing is the red failure.
+   - Why the order did not matter is not settled **[verify]**: probably the game's saved
+     profile ties each joystick instance to a device by its product id. The profile the game
+     writes when that session ends will show which device it held as instance 1.
 3. **Now view.** Objectives in order, the next step, needed against held for each material,
    pending orders and timers, what there is to do at the current location, and the active
    contract with its current objective (contract tracking is in the first version: the user's
