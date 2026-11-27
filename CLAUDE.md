@@ -646,8 +646,8 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **The user's flight report that afternoon:** after the corrected reload, the press on `v_strafe_longitudinal` does nothing for reverse. Reverse works only on the throttle lever.
     - **Why [game]:** in `defaultProfile.xml`, `v_strafe_longitudinal` has no `onPress` / `onRelease` (it is axis-only), so a button bound to it never fires. `v_strafe_back` is the only reverse action with press / release triggers, and it holds one joystick input, the throttle axis (§2.5).
     - **The user's decision that evening:** `v_strafe_back` goes to the stick press (`js1_button29`), held for full reverse, and the throttle's reverse axis `js2_rotz` is left unbound. Their reasons: the lever can rest in the idle detent, and they never have to pull it through the detent lock, which they found annoying. This is the arrangement that reversed fine on the first 2026-11-26 load (item 23).
-    - **Removed from `MOZA.xml`:** the `v_strafe_longitudinal` binding and its `<flight_strafe_longitudinal invert="1"/>` option. The game still holds both from the last load, so expect a `LEFTOVER` for `v_strafe_longitudinal` after the next load until it is cleared (§2.5).
-    - **State:** `gamedata.py check` gives 130 OK, 0 unknown, 0 wrong-map, 0 multi-bind. Written, not yet loaded.
+    - **Removed from `MOZA.xml`:** the `v_strafe_longitudinal` binding and its `<flight_strafe_longitudinal invert="1"/>` option. The game's saved profile still held both from the last load. With the user's OK and the game closed, they were deleted from `…\Profiles\default\actionmaps.xml` that evening: the `<action>` block and the option line under each joystick instance. Backup: `actionmaps.xml.before-reverse-cleanup-2026-11-26.bak` in the same folder.
+    - **State:** `gamedata.py check` gives 130 OK, 0 unknown, 0 wrong-map, 0 multi-bind. `validate_actionmaps.py` gives 126 OK, 0 leftover and one input difference (`v_strafe_back`: the game still holds `js2_rotz`), which loading the profile clears. Written, not yet loaded.
     - **Options weighed on the way, none of them bound:**
       - *Throttle - Forward / Back Invert* (`v_strafe_longitudinal_invert`, press / release, unbound) on the press. Its description reads "Inverts Strafe Longitudinal Absolute Axis Half (Neutral - Backward)", so while held it should make the throttle's forward travel act as reverse: reverse at whatever the lever is set to, nothing at idle. Whether it acts on a throttle bound to `v_strafe_forward` is unknown. **Rejected by the user (2026-11-26), untried:** they don't want the forward throttle turned into reverse.
       - A helper program that turns button 29 into the keyboard `S` key while held. `S` is the stock keyboard binding of `v_strafe_back`, and the keyboard slot is separate from the joystick one (§2.5). It needs software running beside the game; nothing is installed.
@@ -873,8 +873,8 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 >
 > **State on 2026-11-26, evening:** `MOZA.xml` changed after that load: reverse moved to the stick
 > press alone and the failed trial came out (§6 item 24). Step 1 passes (130 OK). Step 2 reports an
-> input difference on `v_strafe_back` and a leftover `v_strafe_longitudinal` until the profile is
-> loaded again and the leftover is cleared.
+> input difference on `v_strafe_back` until the profile is
+> loaded again. The trial's leftover was deleted from the saved profile with the game closed.
 
 ---
 
