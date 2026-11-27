@@ -328,7 +328,7 @@ What the audits change in how it is built:
        destroyed, ships lost, times downed); the jurisdiction and whether the user is in an
        armistice zone or monitored space; the controls strip; and the telemetry group when the
        stream is on.
-     - *On foot:* the rig is not in use there (the user plays on foot with an Xbox controller,
+     - *On foot (FPS missions):* the rig is not in use there (the user plays on foot with an Xbox controller,
        [`../CLAUDE.md`](../CLAUDE.md) §1), so the controls strip and the ship group go away and
        the contract, the objective, the downed or injured state and where the ship was left
        remain. The log does not record kills on foot (§3), so there is no tally of them.
@@ -336,6 +336,20 @@ What the audits change in how it is built:
      stop, the current stop and the next, and the total against the ship's cargo grid. For a
      trade run: what was bought, how much and at what price, where the plan says to sell it and
      the expected return, and the session's earnings.
+   - **Mission.** The view for a contract that is none of the four above, and the same block
+     inside every other view. The user's words: "FPS", "basically missions, etc". Whatever the
+     mission is, it is shown one way: who gave it, its title, its reward, and its objectives as
+     a checklist with the current one in large type, then where to go next. Several contracts
+     can be active at once, so the others are listed under it. The log does not say which one
+     the user is tracking; 5.0's telemetry stream is expected to (§3).
+   - **Contract kinds are data, not code,** so that new kinds need no new code. The user wants
+     5.0's mission types covered: "include the 5.0 shit like guild missions or whatever". What
+     5.0 adds is not known here **[verify when 5.0 is installed]**. So a table in `reference/`
+     maps a contract's generator name and title to a kind and a view, anything it does not know
+     lands on the Mission view and is written to `data/unmapped.json`, and after a patch the
+     table is extended from that build's mission list (the game's files first; SCMDB is the
+     scriptable community source for missions) and from the first logs. The giver is shown as
+     the log names it, whether that is a faction or a guild.
    - **Each carries the controls for its mode:** a short strip of the handful of stick and
      throttle controls that matter there, because this rig's bindings change with the operator
      mode ([`../CLAUDE.md`](../CLAUDE.md) §5). It is built from the same tables as the printed
@@ -990,7 +1004,7 @@ wins:
 | Quantum target chosen, until arrival | Travel |
 | Arrived at a leg of the current run | The view that leg names: Mining, Salvage, Combat, Cargo, Refinery or Selling |
 | At a place with a sell list | Selling |
-| An active contract of a known kind (bounty, hauling, salvage) | Combat, Cargo or Salvage. The kind comes from the contract's generator name in the mission marker line (§3) **[verify: which names occur]**. |
+| An active contract | Combat, Cargo or Salvage when its kind is one of those; Mission for any other kind, known or not. The kind comes from the contract-kinds table (§4), which reads the generator name in the mission marker line (§3) **[verify: which names occur]**. |
 | In the pilot seat of a ship that has one job | That job's view: the Golem is Mining, the Salvation Salvage, the Golem OX Cargo, the M80 Combat. A ship with two jobs (the Hyūn mines and salvages) decides nothing. The ship-to-job table is in `reference/`, with the fleet in [`../CLAUDE.md`](../CLAUDE.md) §11 as its source. |
 | Anything else in game | Now, for the current location |
 
