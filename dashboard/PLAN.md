@@ -1161,7 +1161,9 @@ can read the stream, not only the dashboard. To undo it, delete the variable
   repeat: `python dashboard\scdash.py install` for the logon task, the
   `GRPC_CLIENT_SERVER_ENABLED` variable for telemetry, Claude Code's install command and its
   one-time sign-in, and how to check each one took (`status`). Keep the list true as stages add
-  to it.
+  to it. Where a step fetches the repo, it uses `gh repo clone` or the HTTPS address, never an
+  SSH one: since 2026-11-27 this PC reaches GitHub only over HTTPS, signed in through the GitHub
+  CLI (`gh auth login`, once after a reinstall), and holds no SSH key (the user's instruction).
 - [`../CLAUDE.md`](../CLAUDE.md): the folder layout, and a short pointer to this folder.
 - `dashboard/THIRD_PARTY_NOTICES`: CSR's copyright line and license text, if its code was used
   (§5), and a pointer to it from `dashboard/README.md`.
