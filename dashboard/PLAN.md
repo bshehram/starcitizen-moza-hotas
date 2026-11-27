@@ -705,6 +705,13 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
   again on every poll. Other tools reopen the file on every read too, and no report of one
   blocking the game turned up **[ref]**. Then prove it: run the follower across a real game
   launch and confirm the backup appears and the new log starts.
+  - **Proved [seen 2026-11-27, 12:57 PM].** The stage 1 follower polled `Game.log` once a second
+    across a real launch. At 12:57:28 the game emptied the log in place (same file id before and
+    after, 117,663 bytes down to 4,457), the old session's backup appeared in `logbackups` in the
+    same second at the full 117,663 bytes, and the follower saw the new first line and began the
+    new session at offset 0. Over 328 polls, up to the user standing in the game world: no
+    error, no unreadable line, and the slowest poll took 2.6 ms. Still to do: the same launch
+    check with the stage 2 service, whose log records these facts by itself.
 - **Where the size comes from matters.** With the game running, `os.stat` gave the same size as
   an open handle in 20 samples out of 20, while the size in a directory listing (`os.scandir`)
   was behind in 4 of the 20, by up to 4 KB **[seen 2026-11-27, Python 3.12, game running]**. So
