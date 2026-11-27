@@ -1,0 +1,144 @@
+<2026-11-26T23:11:20.067Z> BackupNameAttachment=" Build(13220821) 26 Nov 26 (15 11 12)"  -- used by backup system
+<2026-11-26T23:11:20.067Z> Log started on Thu Nov 26 23:11:20 2026
+<2026-11-26T23:11:20.067Z> Built on Nov 18 2026 13:20:14
+<2026-11-26T23:11:20.067Z> Running 64 bit version
+<2026-11-26T23:11:20.067Z> Executable: C:\Program Files\Roberts Space Industries\StarCitizen\LIVE\Bin64\StarCitizen.exe
+<2026-11-26T23:11:20.067Z> FileVersion: 4.10.201.48085
+<2026-11-26T23:11:20.067Z> ProductVersion: 4.10.201.48085
+<2026-11-26T23:11:20.067Z> Using Microsoft (tm) C++ Standard Library implementation
+<2026-11-26T23:11:27.074Z> - Connected joystick0: MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}
+<2026-11-26T23:11:27.138Z> - Connected joystick1: MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}
+<2026-11-26T23:11:27.385Z> - Connected joystick2: Joystick (Razer Huntsman V3 Pro)  {02A61532-0000-0000-0000-504944564944}
+<2026-11-26T23:11:35.420Z> [Notice] <AccountLoginCharacterStatus_Character> Character: createdAt 900000000001 - updatedAt 900000000002 - geid 900000000003 - accountId 1000001 - name Pilot_Example - state STATE_CURRENT [Team_GameServices][Login]
+<2026-11-26T23:11:39.902Z> [Notice] <Legacy login response> [CIG-net] User Login Success - Handle[Pilot_Example] - Time[900000000004] [Team_GameServices][Login]
+<2026-11-26T23:11:42.816Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="ProcessBootRequest"!
+<2026-11-26T23:11:46.500Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-26T23:12:58.692Z> [Notice] <Join PU> address[192.0.2.1] port[64353] shard[pub_example_00000000_001] locationId[900000000005] [Team_GameServices][GIM][Matchmaking]
+<2026-11-26T23:12:58.692Z> [CSessionManager::ConnectCmd] Connect started!
+<2026-11-26T23:12:58.709Z> [Notice] <Channel Disconnected> cause=30010 reason="Nub destroyed" frame=4597 isRemote=0 viewState=eCVS_InGame map="megamap" gamerules="SC_Frontend" hostType="Replicant" remoteAddr=<local>:12300 localAddr=<local>:16 connection={1, 0} session=00000000000000000000000000abc001 node_id=e0000001-0000-4000-8000-000000000001 nickname="Pilot_Example" playerGEID=900000000003 uptime_secs=75.846733 [Team_Network][Network][Gateway][Disconnection]
+<2026-11-26T23:12:58.709Z> [Notice] <Channel Disconnected> cause=30010 reason="Nub destroyed" frame=4597 isRemote=0 viewState=eCVS_InGame map="megamap" gamerules="SC_Frontend" hostType="GameClient" remoteAddr=<local>:16 localAddr=<local>:12300 connection={2, 0} session=00000000000000000000000000abc001 node_id=e0000001-0000-4000-8000-000000000001 nickname="Pilot_Example" playerGEID=900000000003 uptime_secs=75.844810 [Team_Network][Network][Gateway][Disconnection]
+<2026-11-26T23:13:32.215Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [0] -> [900000000006]. Location [0] -> [900000000006]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:13:32.217Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered Monitored Space: " [0] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:13:32.217Z>    "Entered Monitored Space: " [0]
+<2026-11-26T23:13:32.219Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-26T23:13:40.681Z>    Class: [SCTransportManager]
+<2026-11-26T23:13:40.681Z>    Name: [VehicleTransportManager]
+<2026-11-26T23:13:40.681Z>    ID: [900000000007]
+<2026-11-26T23:13:40.877Z> Warning in EntitySpawnBatch  Data/objectcontainers/ships/crus/intrepid/intrepid_int_right.soc 
+ Size:[6] State:[state: eBS_BatchCompletion] FromObjectContainer:[true] 
+ LocalBatch:[false] ContainsObjectContainers:[false] ContainsUnstreamables:[false] IsChildBatch:[true]
+<2026-11-26T23:13:40.877Z> Warning in EntitySpawnBatch  Data/objectcontainers/ships/crus/intrepid/intrepid_int_right.soc 
+ Size:[6] State:[state: eBS_BatchCompletion] FromObjectContainer:[true] 
+ LocalBatch:[false] ContainsObjectContainers:[false] ContainsUnstreamables:[false] IsChildBatch:[true]
+<2026-11-26T23:14:18.421Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered microTech Jurisdiction: " [1] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:14:18.421Z>    "Entered Monitored Space: " [0]
+<2026-11-26T23:14:18.825Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:14:22.889Z> [Notice] <LandingArea_UnregisterFromExternalSystems_StowingVehicle> [STOWING ON UNREGISTER] LandingArea_ShipElevator_HangarLargeTop [900000000008] - Attempting to stow current vehicle [900000000009] due to landing area unregistering. Vehicle Zone Host [900000000010], IsAuthorityPossible [0] [Team_MissionFeatures][ATC]
+<2026-11-26T23:14:31.663Z> [Notice] <LandingArea_UnregisterFromExternalSystems_StowingVehicle> [STOWING ON UNREGISTER] LandingArea_ShipElevator_HangarLargeTop [900000000011] - Attempting to stow current vehicle [900000000012] due to landing area unregistering. Vehicle Zone Host [900000000013], IsAuthorityPossible [0] [Team_MissionFeatures][ATC]
+<2026-11-26T23:14:48.238Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [900000000014], LandingArea: Pilot_Example's
+<2026-11-26T23:14:48.238Z> XL Hangar [Team_GameServices][ASOP]
+<2026-11-26T23:15:57.599Z> [Notice] <LandingArea_UnregisterFromExternalSystems_StowingVehicle> [STOWING ON UNREGISTER] LandingArea_ShipElevator_HangarXLTop [900000000015] - Attempting to stow current vehicle [900000000016] due to landing area unregistering. Vehicle Zone Host [900000000017], IsAuthorityPossible [0] [Team_MissionFeatures][ATC]
+<2026-11-26T23:16:04.325Z> [Notice] <LandingArea_UnregisterFromExternalSystems_StowingVehicle> [STOWING ON UNREGISTER] LandingArea_ShipElevator_HangarLargeTop [900000000018] - Attempting to stow current vehicle [900000000019] due to landing area unregistering. Vehicle Zone Host [900000000020], IsAuthorityPossible [0] [Team_MissionFeatures][ATC]
+<2026-11-26T23:16:55.514Z> [Notice] <SHUDEvent_OnNotification> Added notification "You have joined channel 'Drake Golem : Pilot_Example'.
+<2026-11-26T23:16:55.514Z> : " [2] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:17:10.584Z> [Notice] <SHUDEvent_OnNotification> Added notification "Joined hangar queue.
+<2026-11-26T23:17:10.584Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:17:10.584Z>    "Joined hangar queue.
+<2026-11-26T23:17:10.584Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3]
+<2026-11-26T23:17:10.588Z> [Notice] <UpdateNotificationItem> Notification "Joined hangar queue.
+<2026-11-26T23:17:10.588Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3], Action: Next [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:17:13.009Z> [Notice] <Connection Flow> CSCCommsComponent::DoStopCommunicationCommon: Update bubble removed for communication connection '900000000021' on channel '0' for Pilot_Example [900000000003] to track their communication partner AImodule_ATC_NewBabbageATC01_900000000022 [900000000022] [Team_CoreGameplayFeatures][Comms]
+<2026-11-26T23:17:13.010Z> [Notice] <Connection Flow> CSCCommsComponent::DoEstablishCommunicationCommon: Update bubble created for communication connection '900000000021' on channel '0' for Pilot_Example [900000000003] to track their communication partner AImodule_ATC_NewBabbageATC01_900000000022 [900000000022] [Team_CoreGameplayFeatures][Comms]
+<2026-11-26T23:17:13.010Z> [Notice] <Connection Flow> CSCCommsComponent::DoStopCommunicationCommon: Update bubble removed for communication connection '900000000021' on channel '0' for Pilot_Example [900000000003] to track their communication partner AImodule_ATC_NewBabbageATC01_900000000022 [900000000022] [Team_CoreGameplayFeatures][Comms]
+<2026-11-26T23:17:13.630Z> [Notice] <Failed to get starmap route data!> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::GetStarmapRouteSegmentData|No Route loaded! [Team_CGP4][QuantumTravel]
+<2026-11-26T23:17:16.983Z> [Notice] <LandingArea_UnregisterFromExternalSystems_StowingVehicle> [STOWING ON UNREGISTER] LandingArea_ShipElevator_HangarSmallFront [900000000023] - Attempting to stow current vehicle [900000000024] due to landing area unregistering. Vehicle Zone Host [900000000025], IsAuthorityPossible [0] [Team_MissionFeatures][ATC]
+<2026-11-26T23:17:17.081Z> [Notice] <SHUDEvent_OnNotification> Added notification "Joined hangar queue.
+<2026-11-26T23:17:17.081Z> Your place: 1. Max. estimated wait: 100.000000 s.: " [4] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:17:17.081Z>    "Joined hangar queue.
+<2026-11-26T23:17:17.081Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3]
+<2026-11-26T23:17:17.081Z>    "Joined hangar queue.
+<2026-11-26T23:17:17.081Z> Your place: 1. Max. estimated wait: 100.000000 s.: " [4]
+<2026-11-26T23:18:01.346Z> [Notice] <SHUDEvent_OnNotification> Added notification "Quantum Travel: Your destination is obstructed and Quantum Travel cannot be initiated. You may need to travel somewhere else first to find a clear path." [5] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:18:01.346Z>    "Joined hangar queue.
+<2026-11-26T23:18:28.197Z> [Notice] <SHUDEvent_OnNotification> Added notification "Hangar Request Completed: " [6] to queue. New queue size: 3, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:18:28.197Z>    "Joined hangar queue.
+<2026-11-26T23:18:41.702Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entering Armistice Zone - Combat Prohibited: " [7] to queue. New queue size: 3, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:18:41.702Z>    "Quantum Travel: Your destination is obstructed and Quantum Travel cannot be initiated. You may need to travel somewhere else first to find a clear path." [5]
+<2026-11-26T23:19:04.767Z> [Notice] <Player Selected Quantum Target - Local> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::OnPlayerSelectedQuantumTarget|Player has selected point LOC_RR_S3_L4 as their destination, routing locally [Team_CGP4][QuantumTravel]
+<2026-11-26T23:19:04.767Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::CalculateRoute|Projected Start Location is New Babbage for route to destination LOC_RR_S3_L4 [Team_CGP4][QuantumTravel]
+<2026-11-26T23:19:04.767Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::CalculateRoute|Successfully calculated route to LOC_RR_S3_L4 fuel estimate 153453.046875 [Team_CGP4][QuantumTravel]
+<2026-11-26T23:19:13.549Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000006] -> [900000000026]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:19:29.142Z> [Notice] <SHUDEvent_OnNotification> Added notification "Leaving Armistice Zone - Caution Advised: " [8] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:19:29.142Z>    "Entering Armistice Zone - Combat Prohibited: " [7]
+<2026-11-26T23:20:40.262Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000026] -> [900000000027]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:20:43.022Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered UEE Jurisdiction: " [10] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:20:43.022Z>    "Entered UEE Jurisdiction: " [10]
+<2026-11-26T23:22:50.569Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000027] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:22:51.449Z> [Notice] <Quantum Drive Arrived - Arrived at Final Destination> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::OnQuantumDriveArrived|Quantum Drive has arrived at final destination [Team_CGP4][QuantumTravel]
+<2026-11-26T23:24:09.980Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000029]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:24:43.097Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000029] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:36:02.456Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000030]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:36:47.578Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000030] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:37:00.786Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000030]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:37:56.557Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000030] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:38:26.279Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000029]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:39:20.951Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000029] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:39:30.223Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000029]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:41:25.619Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000029] -> [900000000028]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-26T23:58:41.008Z> [Notice] <Player Selected Quantum Target - Local> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::OnPlayerSelectedQuantumTarget|Player has selected point LOC_RR_S4_L2 as their destination, routing locally [Team_CGP4][QuantumTravel]
+<2026-11-26T23:58:41.008Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::CalculateRoute|Projected Start Location is ARC L4 for route to destination LOC_RR_S4_L2 [Team_CGP4][QuantumTravel]
+<2026-11-26T23:58:41.008Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::CalculateRoute|Successfully calculated route to LOC_RR_S4_L2 fuel estimate 169242.656250 [Team_CGP4][QuantumTravel]
+<2026-11-27T00:00:40.268Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000028] -> [900000000027]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:02:58.940Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000027] -> [900000000031]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:03:04.005Z> [Notice] <Quantum Drive Arrived - Arrived at Final Destination> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_900000000014[900000000014]|CSCItemNavigation::OnQuantumDriveArrived|Quantum Drive has arrived at final destination [Team_CGP4][QuantumTravel]
+<2026-11-27T00:03:31.322Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entering Armistice Zone - Combat Prohibited: " [68] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:03:31.322Z>    "Entering Armistice Zone - Combat Prohibited: " [68]
+<2026-11-27T00:03:41.760Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [900000000032]. Location [900000000031] -> [900000000032]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:03:41.763Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[RR_MIC_L2] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:03:48.435Z> [Notice] <SHUDEvent_OnNotification> Added notification "Hangar Request Completed: " [69] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:03:48.435Z>    "Hangar Request Completed: " [69]
+<2026-11-27T00:04:54.473Z> [Notice] <SHUDEvent_OnNotification> Added notification "Leaving Armistice Zone - Caution Advised: " [70] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:04:54.475Z>    "Leaving Armistice Zone - Caution Advised: " [70]
+<2026-11-27T00:05:32.000Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [900000000003] releasing control token for 'DRAK_Golem_900000000014' [900000000014] [Team_CGP4][Vehicle]
+<2026-11-27T00:06:40.034Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entering Armistice Zone - Combat Prohibited: " [71] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:06:40.034Z>    "Entering Armistice Zone - Combat Prohibited: " [71]
+<2026-11-27T00:14:34.465Z> [Notice] <Vehicle Destroyed> Vehicle 'AEGS_Sabre_Unmanned_Salvage_900000000033' [900000000033] class 'AEGS_Sabre_Unmanned_Salvage' (owner player [0], driver [0]) destroyed: reason [GameRules] level [0] -> [2] flags [2030] killer 'OtherPilot_1' [900000000034] authority [0] [Team_CGP4][Vehicle]
+<2026-11-27T00:21:31.157Z> [Notice] <SHUDEvent_OnNotification> Added notification "A Refinery Work Order has been Completed at MIC-L2 Long Forest Station: " [76] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:21:31.157Z>    "A Refinery Work Order has been Completed at MIC-L2 Long Forest Station: " [76]
+<2026-11-27T00:22:07.763Z> [Notice] <CShoppingKioskContextComponent::FlashCallback_OnSellToRefineryPressed> Shopping Kiosk Context Component FlashCallback_OnSellToRefineryPressed [Team_CoreGameplayFeatures][Shops][UI]
+<2026-11-27T00:22:09.662Z> [Notice] <CEntityComponentMiningShopUIProvider::OnRefineryRequest> Sending SShopRefineryRequest - playerId[900000000003] shopId[900000000035] shopName[SCShop_RefineryAdmin_ORE] kioskId[900000000036] request[] currencyType[UEC] [Team_CoreGameplayFeatures][Shops][UI]
+<2026-11-27T00:23:21.122Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [900000000014], LandingArea: Pilot_Example's
+<2026-11-27T00:23:21.122Z> Small Hangar [Team_GameServices][ASOP]
+<2026-11-27T00:24:50.145Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [900000000037], LandingArea: Pilot_Example's
+<2026-11-27T00:24:50.145Z> Small Hangar [Team_GameServices][ASOP]
+<2026-11-27T00:25:22.727Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[RR_MIC_L2] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:25:22.837Z> [Notice] <InventoryManagement> Freight Inventory Grid InventoryDataRequest Successful for Player[Pilot_Example] Inventory[900000000003:Location:900000000032] Inventory Result Item Count:[0]. [Team_CoreGameplayFeatures][Inventory][InventoryContainer]
+<2026-11-27T00:25:43.259Z> [Notice] <SHUDEvent_OnNotification> Added notification "You have joined channel 'Drake Golem OX : Pilot_Example'.
+<2026-11-27T00:25:43.259Z> : " [82] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:25:59.167Z> [Notice] <SHUDEvent_OnNotification> Added notification "Hangar Request Completed: " [83] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:25:59.167Z>    "Hangar Request Completed: " [83]
+<2026-11-27T00:26:16.397Z> [Notice] <Player Selected Quantum Target - Local> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_OX_900000000037[900000000037]|CSCItemNavigation::OnPlayerSelectedQuantumTarget|Player has selected point NewBabbage_LOC as their destination, routing locally [Team_CGP4][QuantumTravel]
+<2026-11-27T00:26:16.397Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_OX_900000000037[900000000037]|CSCItemNavigation::CalculateRoute|Projected Start Location is MIC-L2 Long Forest Station for route to destination NewBabbage_LOC [Team_CGP4][QuantumTravel]
+<2026-11-27T00:26:16.397Z> [Notice] <Calculate Route> [ItemNavigation][CL][4616] | NOT AUTH | DRAK_Golem_OX_900000000037[900000000037]|CSCItemNavigation::CalculateRoute|Successfully calculated route to NewBabbage_LOC fuel estimate 20423.855469 [Team_CGP4][QuantumTravel]
+<2026-11-27T00:26:59.741Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000032] -> [0]. Location [900000000032] -> [900000000031]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:27:05.291Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000032] -> [0]. Location [900000000031] -> [900000000027]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:27:31.842Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000032] -> [0]. Location [900000000027] -> [900000000026]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:28:22.712Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered microTech Jurisdiction: " [90] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:28:22.712Z>    "Entered microTech Jurisdiction: " [90]
+<2026-11-27T00:28:48.930Z> [Notice] <SHUDEvent_OnNotification> Added notification "Hangar Request Completed: " [92] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:28:48.930Z>    "Hangar Request Completed: " [92]
+<2026-11-27T00:29:05.690Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000032] -> [900000000006]. Location [900000000026] -> [900000000006]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:29:05.696Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:31:44.898Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [900000000003] releasing control token for 'DRAK_Golem_OX_900000000037' [900000000037] [Team_CGP4][Vehicle]
+<2026-11-27T00:31:47.278Z>   planet cells:  233 [16384] meshes:   76 [ 2048] name: OOC_Stanton_4_Microtech
+<2026-11-27T00:32:02.958Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:32:03.289Z> [Notice] <InventoryManagement> Freight Inventory Grid InventoryDataRequest Successful for Player[Pilot_Example] Inventory[900000000003:Location:900000000006] Inventory Result Item Count:[182]. [Team_CoreGameplayFeatures][Inventory][InventoryContainer]
+<2026-11-27T00:32:29.969Z> [Notice] <SHUDEvent_OnNotification> Added notification "Multi-Tool - Tractor Beam: Attempting to move a tethered object at too sharp an angle will sever the tractor beam. Adjust carefully to prevent accidental release. " [94] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-27T00:32:29.969Z>    "Multi-Tool - Tractor Beam: Attempting to move a tethered object at too sharp an angle will sever the tractor beam. Adjust carefully to prevent accidental release. " [94]
+<2026-11-27T00:33:08.968Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-27T00:33:09.311Z> [Notice] <InventoryManagement> Freight Inventory Grid InventoryDataRequest Successful for Player[Pilot_Example] Inventory[900000000003:Location:900000000006] Inventory Result Item Count:[182]. [Team_CoreGameplayFeatures][Inventory][InventoryContainer]
+<2026-11-27T00:34:42.999Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [900000000003] releasing control token for 'DRAK_Golem_OX_900000000037' [900000000037] [Team_CGP4][Vehicle]
+<2026-11-27T00:37:29.585Z> [Notice] <Channel Disconnected> cause=30016 reason="Remote Disconnect - Player requested disconnect" frame=278422 isRemote=1 viewState=eCVS_InGame map="megamap" gamerules="SC_Default" hostType="Replicant" remoteAddr=192.0.2.1:64353 localAddr=192.0.2.2:64090 connection={3, 0} session=00000000000000000000000000abc001 node_id=e0000002-0000-4000-8000-000000000002 nickname="Pilot_Example" playerGEID=900000000003 uptime_secs=5070.600098 [Team_Network][Network][Gateway][Disconnection]
+<2026-11-27T00:37:29.585Z> [Notice] <Channel Process Disconnection> cause=30016 reason="Remote Disconnect - Player requested disconnect" frame=278422 isRemote=1 map="megamap" gamerules="SC_Default" hostType="Replicant" remoteAddr=192.0.2.1:64353 localAddr=192.0.2.2:64090 connection={3, 0} session=00000000000000000000000000abc001 node_id=e0000002-0000-4000-8000-000000000002 nickname="Pilot_Example" playerGEID=900000000003 uptime_secs=5070.600586 [Team_Network][Network][Gateway][Disconnection]
+<2026-11-27T00:37:29.621Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="OnLobbyPostGameUnload"!
+<2026-11-27T00:37:29.638Z> [Notice] <SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via console command, exitCode=0, thread id=8472, main thread id=8472 [Team_Unknown][System]

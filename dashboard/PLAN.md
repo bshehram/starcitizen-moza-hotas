@@ -1,8 +1,25 @@
 # Side-screen dashboard: implementation plan
 
-**Status: planned, not built.** Written 2026-11-26. Reviewed 2026-11-27 against the user's logs
-and this PC: the corrections are marked **[seen 2026-11-27]**, and the user's decisions on what
-the review raised are in §15. The build has not started.
+**Status: being built, stage by stage (§12).** Written 2026-11-26. Reviewed 2026-11-27 against
+the user's logs and this PC: the corrections are marked **[seen 2026-11-27]**, and the user's
+decisions are in §15. The build started later that day.
+
+| Stage | State on 2026-11-27 |
+| --- | --- |
+| Reference tables (§10) | Built, checked, committed. |
+| 1. Parser and state | Built, reviewed twice by an independent agent, committed. `python dashboard/scdash.py timeline` works. |
+| 2. Service and a minimal page | Not started. |
+| 3. Views and plan data | Not started. The look is waiting on the user's choice of design direction (§11). |
+| 4. Autostart and the window | Not started. Waits for the side monitor. |
+| 4b. The Claude terminal | Not started. |
+| 5. A flown session | The user's. |
+| 6. The telemetry source | Not started. |
+| 7. Docs and routines | Kept up as stages land; the final pass is not done. |
+
+How the build is run: each stage is built by one agent, checked by the orchestrating session
+(tests, the stage's own check, a scan for the user's private identifiers), reviewed by a second
+agent that tries to break it, fixed, and only then committed, one commit per stage or fix round.
+[`CLAUDE.md`](CLAUDE.md) in this folder has the working notes for what exists.
 
 This file is the brief for the Claude session that builds the dashboard. The user starts that
 session with `@STARCITIZEN.md` and asks for the dashboard to be built from this plan. It says what

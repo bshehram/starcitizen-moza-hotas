@@ -179,7 +179,11 @@ what is new since the page's latest *Recent* entry, in `Game.log`, `logbackups` 
 screenshot folders. Tell me what happened: where I went, which ships I used, the notices that
 matter (refinery orders, blueprints, deliveries), any death or crash, and whether the joysticks
 came up in the right order. Say what the evidence can't show. Then update memory and the page in
-the same turn.
+the same turn. Start from the repo's own reader instead of writing a scratch parser:
+`python dashboard/scdash.py timeline --list --since <date>` lists the sessions with their local
+start, length and how each ended, and `python dashboard/scdash.py timeline <part of a backup's
+name>` prints one session's timeline. It shows what its parser knows; go to the raw log for
+anything it leaves out.
 
 **Changing a binding.** `CLAUDE.md` §10.3 has the workflow. The change is done when all of this
 is true:

@@ -1,0 +1,2 @@
+# Real log lines: keep their bytes exactly (CR LF and bare LF are mixed on purpose).
+*.log -text

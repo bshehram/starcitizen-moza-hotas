@@ -1,0 +1,49 @@
+Third-party code in dashboard/
+==============================
+
+CSR (https://github.com/archelium/csr), commit ba6dad0, file sc_livelog.py, is used under the
+MIT License below. Code adapted from it is marked "From CSR" where it sits, with what was changed:
+
+- dashboard/scdash/events.py
+    line patterns: the notice and its id (sc_livelog.py lines 16 and 45), the notice's mission
+    and objective ids (36), the quantum target (51), the route's fuel estimate (52), the login
+    handle (33), the location inventory (29), the destroyed vehicle (20-23), <EndMission> (35),
+    and, in the notice kinds table, the contract notices (17), the objective notices (53), the
+    jurisdiction notice (18), the armistice notices (395-400), the blueprint notice (28) and the
+    injury notice (19); the notice-cleaning helper `clean` (84-90, here `notice_text` and
+    MARKUP_RE) and `real_mid` (117-119, here `real_mission`).
+- dashboard/scdash/records.py
+    the closing-quote test of a HUD notice (line 46), the waiting for a notice's pieces (248-252)
+    and the joining of its continuation pieces (173-182).
+- dashboard/scdash/state.py
+    from LogState (lines 128-434): the place history (199-204), the quantum target and route
+    (219-232), <EndMission> (241-247), _contract_for (296-299), _objective (301-324) and the
+    contract notices (405-425).
+- dashboard/scdash/tail.py
+    from LiveTail.poll (lines 448-467): a file shorter than the offset is a new log (454), and
+    the unfinished last line is kept for the next read (462-465).
+
+No code from any project other than CSR is used in dashboard/.
+
+
+MIT License
+
+Copyright (c) 2026 archelium (support@archelium.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

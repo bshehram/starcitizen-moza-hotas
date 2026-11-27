@@ -27,8 +27,8 @@ mappings/
 ├─ STARCITIZEN.md            ← the user's session brief for Claude: ramp-up, preferences, recurring asks
 ├─ LICENSE                   ← MIT
 ├─ .gitignore
-├─ dashboard/                ← planned side-screen dashboard (not built yet; the brief is PLAN.md)
-│   └─ PLAN.md · README.md · CLAUDE.md
+├─ dashboard/                ← side-screen dashboard, being built in stages (the plan and its status are in PLAN.md)
+│   └─ PLAN.md · README.md · CLAUDE.md · scdash.py (the `timeline` command) · scdash/ · reference/ · tests/
 ├─ diagrams/                 ← manufacturer button-number maps (source art - do not delete)
 │   └─ MOZA_AB6.png · MOZA_MHG.png · MOZA_MTQ.png · README.md · CLAUDE.md
 ├─ cards/                    ← generated button-reference cheat sheets (PNG + editable SVG)

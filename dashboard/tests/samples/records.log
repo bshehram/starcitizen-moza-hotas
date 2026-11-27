@@ -1,0 +1,23 @@
+<2026-11-26T23:13:40.877Z> Warning in EntitySpawnBatch  Data/objectcontainers/ships/crus/intrepid/intrepid_int_right.soc 
+ Size:[6] State:[state: eBS_BatchCompletion] FromObjectContainer:[true] 
+ LocalBatch:[false] ContainsObjectContainers:[false] ContainsUnstreamables:[false] IsChildBatch:[true]
+<2026-11-26T23:13:40.877Z> Warning in EntitySpawnBatch  Data/objectcontainers/ships/crus/intrepid/intrepid_int_right.soc 
+ Size:[6] State:[state: eBS_BatchCompletion] FromObjectContainer:[true] 
+ LocalBatch:[false] ContainsObjectContainers:[false] ContainsUnstreamables:[false] IsChildBatch:[true]
+<2026-11-26T23:14:48.238Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [900000000001], LandingArea: Pilot_Example's
+<2026-11-26T23:14:48.238Z> XL Hangar [Team_GameServices][ASOP]
+<2026-11-26T23:17:10.584Z> [Notice] <SHUDEvent_OnNotification> Added notification "Joined hangar queue.
+<2026-11-26T23:17:10.584Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-26T23:17:10.584Z>    "Joined hangar queue.
+<2026-11-26T23:17:10.584Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3]
+<2026-11-26T23:17:10.588Z> [Notice] <UpdateNotificationItem> Notification "Joined hangar queue.
+<2026-11-26T23:17:10.588Z> Your place: 2. Max. estimated wait: 200.000000 s.: " [3], Action: Next [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-21T00:12:54.688Z> [SPAM 119][Error] <Invalid path> [TRANSPORT] Path [0 -> 0] not found, carriage will not move this update
+<2026-11-24T00:22:16.773Z> [Notice] <SHUDEvent_OnNotification> Added notification "You have left the channel 'Anvil C8R Pisces Rescue : Pilot_Example'.
+<2026-11-24T00:22:16.773Z> [Notice] <Vehicle Destroyed> Vehicle 'ANVL_C8R_Pisces_900000000001' [900000000001] class 'ANVL_C8R_Pisces' (owner player [900000000002], driver [0]) destroyed: reason [SelfDestruct] level [0] -> [2] flags [2022] killer 'OtherPilot_1' [900000000003] authority [0] [Team_CGP4][Vehicle]
+<2026-11-24T00:22:16.773Z> : " [39] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-24T00:22:16.773Z>    "You have left the channel 'Anvil C8R Pisces Rescue : Pilot_Example'.
+<2026-11-24T00:22:16.773Z> : " [39]
+<2026-11-24T00:22:16.783Z> [Notice] <UpdateNotificationItem> Notification "You have left the channel 'Anvil C8R Pisces Rescue : Pilot_Example'.
+<2026-11-24T00:22:16.783Z> : " [39], Action: Next [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-24T00:22:16.833Z> [Notice] <CMissionLogEntry::UpdateActiveObjective> Objective updated id=e0000001-0000-4000-8000-000000000001, flags=MarkerHidden|ShowInLog|ShowProgress|, hidden=0, hiddenInUI=0, markerHidden=1, uiDisplay[Priority=1][Text=Hostiles Remaining] [Team_MissionFeatures][Missions]
