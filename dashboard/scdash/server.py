@@ -8,8 +8,10 @@ The guard runs before anything else, for every request:
 - **Host.** Every request, reads included, must carry exactly one `Host` header that is
   `127.0.0.1:<port>` or `localhost:<port>`, and an origin-form target ("/..."). Without that check
   a web page that points its own domain name at 127.0.0.1 could read the state and the stream.
-- **Sec-Fetch-Site.** A browser says where a request comes from; anything it sends other than
-  `same-origin` or `none` (a typed address) is refused, on every route.
+- **Sec-Fetch-Site and Origin.** A browser says where a request comes from; a `Sec-Fetch-Site`
+  other than `same-origin` or `none` (a typed address), or an `Origin` other than this server's,
+  is refused on every route. Either header sent twice is refused too. The token header must
+  appear exactly once.
 - **Deadline.** The request head (and a changing request's body) must arrive within
   `REQUEST_TIMEOUT` seconds in all, however slowly it trickles in; the connection is cut after.
 - **Changing requests** (`CHANGE`) also need the token in the `X-SCDash-Token` header, an `Origin`
@@ -506,11 +508,16 @@ class Server:
         sites = h.headers.get_all("Sec-Fetch-Site") or []
         if len(sites) > 1 or (sites and sites[0].strip().lower() not in FETCH_SITES):
             raise Refused(403, "not from this page")
+        origins = h.headers.get_all("Origin") or []      # absent is fine; if sent, it must be ours
+        if len(origins) > 1 or (origins and origins[0].strip().lower() not in self.origins):
+            raise Refused(403, "wrong origin")
 
     def check_guard(self, h, guard, target):
         query = parse_qs(target.query, keep_blank_values=True)
-        if guard.token_header and not self._token_ok(h.headers.get(TOKEN_HEADER)):
-            raise Refused(403, "token missing or wrong")
+        if guard.token_header:
+            tokens = h.headers.get_all(TOKEN_HEADER) or []
+            if len(tokens) != 1 or not self._token_ok(tokens[0]):
+                raise Refused(403, "token missing, doubled or wrong")
         if guard.same_origin and (h.headers.get("Sec-Fetch-Site") or "").strip().lower() != "same-origin":
             raise Refused(403, "not same-origin")
         if guard.origin:

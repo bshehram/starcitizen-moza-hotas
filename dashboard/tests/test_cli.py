@@ -256,14 +256,13 @@ class Trust(CliCase):
     def test_a_hung_instance_is_reported_as_ours_and_left_alone(self):
         import ctypes
         self.inst.write_log(h.log_bytes())
-        self.assertEqual(self.start().returncode, 0)
+        proc = self.inst.spawn(process="nosuchgame.exe")      # our child: we hold its handle
         run = service.read_json(self.inst.data / "run.json")
         self.assertIsInstance(run.get("created"), float)
-        ntdll, k32 = ctypes.WinDLL("ntdll"), ctypes.WinDLL("kernel32")
-        k32.OpenProcess.restype = ctypes.c_void_p
-        handle = k32.OpenProcess(0x0800, False, run["pid"])          # PROCESS_SUSPEND_RESUME, our own test instance
-        self.assertTrue(handle)
-        ntdll.NtSuspendProcess(ctypes.c_void_p(handle))
+        self.assertEqual(run["pid"], proc.pid)
+        ntdll = ctypes.WinDLL("ntdll")
+        handle = ctypes.c_void_p(int(proc._handle))           # the handle Popen created it with
+        ntdll.NtSuspendProcess(handle)
         try:
             st = json.loads(self.cli("status", "--data", self.inst.data, "--json", timeout=60).stdout)
             self.assertTrue(st["hung"])
@@ -278,8 +277,7 @@ class Trust(CliCase):
                                       timeout=60).returncode, 1)
             self.assertIsNotNone(winutil.process_name(run["pid"]), "neither command ended it")
         finally:
-            ntdll.NtResumeProcess(ctypes.c_void_p(handle))
-            k32.CloseHandle(ctypes.c_void_p(handle))
+            ntdll.NtResumeProcess(handle)
         self.assertTrue(h.wait_until(lambda: self.info()["healthy"], 10))
 
 
@@ -289,18 +287,16 @@ class KillAndRestart(CliCase):
         part1 = whole[:whole.rfind(b"\n", 0, len(whole) // 2) + 1]
         self.inst.write_log(part1)
         game = self.game()
-        r = self.start(process=game.name)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        first = self.inst.spawn(process=game.name)           # a child of the test, so it can crash it
         port = self.inst.port
         self.assertTrue(h.wait_until(lambda: (h.status(port) or {}).get("log", {}).get("offset") == len(part1), 15))
         self.inst.write_log(whole[len(part1):], "ab")
         self.assertTrue(h.wait_until(lambda: (h.status(port) or {}).get("log", {}).get("offset") == len(whole), 15))
         self.assertTrue(h.wait_until(lambda: h.status(port)["game"]["running"], 5))
         before = h.state(port)["state"]
-        pid1 = h.kill_instance(self.inst.data)               # killed: no clean shutdown
+        pid1 = self.inst.crash(first)                        # killed: no clean shutdown
         self.assertTrue((self.inst.data / "run.json").exists(), "a kill leaves run.json behind")
-        r = self.start(process=game.name)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        second = self.inst.spawn(process=game.name)
         self.assertNotEqual(self.info()["run"]["pid"], pid1)
         self.assertTrue(h.wait_until(lambda: (h.status(port) or {}).get("log", {}).get("offset") == len(whole), 15))
         after = h.state(port)["state"]
@@ -314,7 +310,7 @@ class KillAndRestart(CliCase):
         payload = h.state(port)
         self.assertFalse(payload["service"]["game_running"])
         self.assertIsNotNone(payload["clock"]["session_end"])
-        h.kill_instance(self.inst.data)                      # killed again, then started with no game
+        self.inst.crash(second)                              # killed again, then started with no game
         self.assertEqual(self.start().returncode, 0)
         self.assertTrue(h.wait_until(lambda: (h.status(port) or {}).get("log", {}).get("status") == "idle", 15))
         self.assertEqual(len(list(sessions.glob("*.json"))), 1)

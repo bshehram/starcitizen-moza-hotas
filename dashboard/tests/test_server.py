@@ -22,7 +22,7 @@ TOKEN = "test-token-not-secret-0123456789abcdef"
 class ServerCase(unittest.TestCase):
     def setUp(self):
         self.hub = Hub("state", min_interval=0.5, keepalive=0.4, retry_ms=1234, max_clients=2)
-        self.srv = Server(h.free_port(), TOKEN, page_vars={"terminal": "off", "mode": "live"}, poll_interval=0.05)
+        self.srv = Server(h.free_port(), TOKEN, page_vars={"terminal": "off", "mode": "live", "instance": "1/x"}, poll_interval=0.05)
         self.calls = []
         self.srv.route("GET", "/api/health", lambda r: (200, {"program": "scdash", "pid": 1, "started": "x"}), READ)
         self.srv.route("POST", "/api/shutdown", self._change, CHANGE)
@@ -181,6 +181,17 @@ class ChangingRequests(ServerCase):
         status, _, _ = h.request(self.port, "GET", "/api/private?token=" + TOKEN, {"Sec-Fetch-Site": "same-origin"})
         self.assertEqual(status, 403, "a token in the URL is not accepted")
         status, _, _ = h.request(self.port, "GET", "/api/private", ok, host="evil.example")
+        self.assertEqual(status, 403)
+
+    def test_doubled_token_or_foreign_origin_is_refused(self):
+        head = "GET /api/private HTTP/1.0\r\nHost: 127.0.0.1:%d\r\nSec-Fetch-Site: same-origin\r\n" % self.port
+        two = head + "%s: wrong\r\n%s: %s\r\n\r\n" % (server.TOKEN_HEADER, server.TOKEN_HEADER, TOKEN)
+        self.assertEqual(h.raw_request(self.port, two.encode())[0], 403)
+        one = head + "%s: %s\r\nOrigin: http://evil.example\r\n\r\n" % (server.TOKEN_HEADER, TOKEN)
+        self.assertEqual(h.raw_request(self.port, one.encode())[0], 403)
+        own = head + "%s: %s\r\nOrigin: %s\r\n\r\n" % (server.TOKEN_HEADER, TOKEN, self.origin)
+        self.assertEqual(h.raw_request(self.port, own.encode())[0], 200)
+        status, _, _ = h.request(self.port, "GET", "/api/health", {"Origin": "http://evil.example"})
         self.assertEqual(status, 403)
 
     def test_every_registration_names_its_guard(self):

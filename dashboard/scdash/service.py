@@ -87,6 +87,9 @@ def lock_name(data_dir):
     return "scdash-" + hashlib.sha256(key).hexdigest()[:24]
 
 
+TEMP_PREFIX = ".scdash-tmp-"                      # atomic_write's temporary files, and only theirs
+
+
 def atomic_write(path, data):
     """Write to a temporary file beside `path`, then rename it into place: a crash never leaves
     half a file. A rename can meet a reader holding the old file for a moment on Windows: retried."""
@@ -94,7 +97,7 @@ def atomic_write(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     if isinstance(data, str):
         data = data.encode("utf-8")
-    tmp = path.with_name(".%s.%d.%s.tmp" % (path.name, os.getpid(), secrets.token_hex(4)))
+    tmp = path.with_name("%s%d-%s-%s.tmp" % (TEMP_PREFIX, os.getpid(), secrets.token_hex(4), path.name))
     try:
         with open(tmp, "wb") as f:
             f.write(data)
@@ -129,12 +132,13 @@ def read_json(path):
         return None
 
 
-TEMP_RE = re.compile(r"^\.(?P<name>.+)\.(?P<pid>\d+)\.[0-9a-f]{8}\.tmp$")
+TEMP_RE = re.compile(r"^\.scdash-tmp-(?P<pid>\d+)-[0-9a-f]{8}-(?P<name>.+)\.tmp$")
 
 
 def sweep_temp_files(folder):
     """Remove the temporary files `atomic_write` leaves when a process dies between writing and
-    renaming: only ours (the `.name.<pid>.<hex>.tmp` form), and only when that process is gone.
+    renaming: only ours (`.scdash-tmp-<pid>-<hex>-<name>.tmp`, a prefix nothing else uses), and
+    only when that process is gone.
     Returns how many were removed."""
     try:
         names = os.listdir(folder)
@@ -564,7 +568,11 @@ class Service:
                     pass
 
     def _page_vars(self):
-        return {"terminal": "on" if self.settings["terminal"]["enabled"] else "off", "mode": self.mode}
+        """What the page is served with: its layout, its mode, and which instance served it (pid
+        and start), so it can tell from the first stream message on whether the service it talks
+        to was restarted and its token is dead."""
+        return {"terminal": "on" if self.settings["terminal"]["enabled"] else "off", "mode": self.mode,
+                "instance": "%d/%s" % (os.getpid(), self.started_iso)}
 
     def _register(self, srv):
         """Every endpoint, behind its guard. Stage 3 adds timers and a forced view here (CHANGE),
@@ -1051,17 +1059,16 @@ def instance_info(paths, port=None):
 
 def run_process_alive(run):
     """Is run.json's process still the one that wrote it? Its name must be python(w).exe and, when
-    run.json recorded it, its creation time must match to the millisecond. Read-only: nothing is
-    signalled or ended here, or anywhere in scdash."""
-    plist = winutil.process_list()
-    name = winutil.process_name(run["pid"], plist)
-    if name is None or name.lower() not in winutil.PYTHON_NAMES:
+    run.json recorded it, its creation time must match to the millisecond; both come from one
+    snapshot of the process table, which opens no process. Read-only: nothing is signalled or ended
+    here, or anywhere in scdash."""
+    entry = next((e for e in winutil.process_table() if e[0] == run["pid"]), None)
+    if entry is None or entry[1].lower() not in winutil.PYTHON_NAMES:
         return False
     recorded = run.get("created")
     if not isinstance(recorded, (int, float)):
         return True
-    created = winutil.process_created(run["pid"], plist)
-    return created is not None and abs(created - recorded) < 0.001
+    return entry[2] is not None and abs(entry[2] - recorded) < 0.001
 
 
 def instance_status(info):

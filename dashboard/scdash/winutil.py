@@ -6,10 +6,11 @@
   it today, but a patch could change that, and a reader must never be the reason it fails.
 - `InstanceLock`: the single-instance lock, a named mutex (PLAN §6). Off Windows, an advisory
   lock on a file.
-- `process_list()` / `process_running()`: the names of running programs from a Toolhelp
-  snapshot. That reads the system's process list without opening any process, so the game's
-  process is never touched (PLAN §6, §8). Never `tasklist`, PowerShell or WMI: starting a program
-  every 10 seconds would cost more than the service's whole budget.
+- `process_list()` / `process_table()` / `process_running()`: the running programs (pid, name,
+  creation time) from the system's process table, read in one `NtQuerySystemInformation` call
+  without opening any process, so the game's process is never touched (PLAN §6, §8); a Toolhelp
+  snapshot (which opens none either) is the fallback for the list. Never `tasklist`, PowerShell
+  or WMI: starting a program every 10 seconds would cost more than the service's whole budget.
 - `below_normal_priority()`: the service yields to the game (PLAN §8).
 - `exclusive_address()`: no second program may bind the service's port (PLAN §6).
 - `own_memory()`: this process's memory, for `status` (PLAN §9).
@@ -17,10 +18,9 @@
 - `process_created()`: a process's creation time, to tell a live instance of ours from a reused
   process id.
 
-Nothing here opens the game's process, or any process to change it. The calls that take a process
-handle use `GetCurrentProcess()`, a pseudo-handle for this process; the one exception,
-`process_created(pid)`, opens a query-only handle and only to a process the snapshot names
-python.exe or pythonw.exe. Nothing here, or anywhere in scdash, ends or signals a process.
+No handle is ever opened to another program's process, the game's or any other. The calls that
+take a process handle use `GetCurrentProcess()`, a pseudo-handle for this process. Nothing here,
+or anywhere in scdash, ends or signals a process.
 """
 import os
 import socket
@@ -92,18 +92,39 @@ if IS_WINDOWS:
     _GetPriorityClass.restype = wintypes.DWORD
     _BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
 
-    # Creation time of a process: this one through its pseudo-handle, one of our own Python
-    # processes through a query-only handle. Never the game's: see process_created().
+    # This process's creation time, through its pseudo-handle (nothing is opened).
     class _FILETIME(ctypes.Structure):
         _fields_ = [("lo", wintypes.DWORD), ("hi", wintypes.DWORD)]
 
     _GetProcessTimes = _kernel32.GetProcessTimes
     _GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(_FILETIME)] * 4
     _GetProcessTimes.restype = wintypes.BOOL
-    _OpenProcess = _kernel32.OpenProcess
-    _OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-    _OpenProcess.restype = wintypes.HANDLE
-    _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000     # the only access ever asked for
+
+    # The system's process table in one call, with no handle to any process: pid, image name and
+    # creation time of every process (the same table Toolhelp copies from).
+    class _UNICODE_STRING(ctypes.Structure):
+        _fields_ = [("Length", ctypes.c_ushort), ("MaximumLength", ctypes.c_ushort), ("Buffer", ctypes.c_void_p)]
+
+    class _SYSTEM_PROCESS_INFORMATION(ctypes.Structure):
+        _fields_ = [("NextEntryOffset", ctypes.c_ulong), ("NumberOfThreads", ctypes.c_ulong),
+                    ("WorkingSetPrivateSize", ctypes.c_longlong), ("HardFaultCount", ctypes.c_ulong),
+                    ("NumberOfThreadsHighWatermark", ctypes.c_ulong), ("CycleTime", ctypes.c_ulonglong),
+                    ("CreateTime", ctypes.c_longlong), ("UserTime", ctypes.c_longlong),
+                    ("KernelTime", ctypes.c_longlong), ("ImageName", _UNICODE_STRING),
+                    ("BasePriority", ctypes.c_long), ("UniqueProcessId", ctypes.c_void_p),
+                    ("InheritedFromUniqueProcessId", ctypes.c_void_p)]
+
+    try:
+        _ntdll = ctypes.WinDLL("ntdll")
+        _NtQuerySystemInformation = _ntdll.NtQuerySystemInformation
+        _NtQuerySystemInformation.argtypes = [ctypes.c_ulong, ctypes.c_void_p, ctypes.c_ulong,
+                                              ctypes.POINTER(ctypes.c_ulong)]
+        _NtQuerySystemInformation.restype = ctypes.c_long
+    except (OSError, AttributeError):             # pragma: no cover - ntdll is always there
+        _NtQuerySystemInformation = None
+    _SYSTEM_PROCESS_INFORMATION_CLASS = 5
+    _STATUS_INFO_LENGTH_MISMATCH = 0xC0000004
+    _EPOCH_1601 = 11644473600.0                     # seconds from 1601-01-01 to 1970-01-01
 
     class _PROCESS_MEMORY_COUNTERS_EX2(ctypes.Structure):
         _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
@@ -232,9 +253,68 @@ class InstanceLock:
 
 # ------------------------------------------------------------------------- processes
 
+_nt_size = 1 << 19                                  # the snapshot buffer; grown when the table is larger
+
+
+def _nt_table():
+    """[(pid, image name, creation time)] from NtQuerySystemInformation, or None if it fails.
+    One call, no handle to any process; the creation time is in seconds since the epoch."""
+    global _nt_size
+    if _NtQuerySystemInformation is None:
+        return None
+    for _ in range(6):
+        size = _nt_size
+        buf = ctypes.create_string_buffer(size)
+        need = ctypes.c_ulong(0)
+        status = _NtQuerySystemInformation(_SYSTEM_PROCESS_INFORMATION_CLASS, buf, size, ctypes.byref(need))
+        if (status & 0xFFFFFFFF) == _STATUS_INFO_LENGTH_MISMATCH:
+            _nt_size = max(size * 2, need.value + (64 << 10))
+            continue
+        if status < 0:
+            return None
+        break
+    else:
+        return None
+    base = ctypes.addressof(buf)
+    entry_size = ctypes.sizeof(_SYSTEM_PROCESS_INFORMATION)
+    out, off = [], 0
+    while off + entry_size <= size:
+        e = _SYSTEM_PROCESS_INFORMATION.from_buffer(buf, off)
+        n = e.ImageName
+        name = ""
+        if n.Buffer and n.Length and base <= n.Buffer and n.Buffer + n.Length <= base + size:
+            name = ctypes.wstring_at(n.Buffer, n.Length // 2)
+        created = e.CreateTime / 1e7 - _EPOCH_1601 if e.CreateTime > 0 else None
+        out.append((e.UniqueProcessId or 0, name, created))
+        if not e.NextEntryOffset:
+            break
+        off += e.NextEntryOffset
+    return out
+
+
+def process_table():
+    """[(pid, exe name, creation time or None)] of every running process, in one snapshot with no
+    handle to any process. Off Windows (or should the system call fail) the creation time is None."""
+    if IS_WINDOWS:
+        table = _nt_table()
+        if table is not None:
+            return table
+    return [(pid, name, None) for pid, name in _listed_processes()]
+
+
 def process_list():
-    """[(pid, exe name)] of every running process, from a Toolhelp snapshot: no process is opened.
-    Off Windows, from /proc where there is one, else an empty list (the game runs on Windows)."""
+    """[(pid, exe name)] of every running process: the system's process table, read in one call
+    without opening any process. Off Windows, from /proc where there is one, else an empty list
+    (the game runs on Windows)."""
+    if IS_WINDOWS:
+        table = _nt_table()
+        if table is not None:
+            return [(pid, name) for pid, name, _ in table]
+    return _listed_processes()
+
+
+def _listed_processes():
+    """The fallback: a Toolhelp snapshot (it opens no process either), or /proc off Windows."""
     if IS_WINDOWS:
         snap = _CreateToolhelp32Snapshot(_TH32CS_SNAPPROCESS, 0)
         if snap == _INVALID_HANDLE or not snap:
@@ -284,34 +364,24 @@ def process_name(pid, plist=None):
 PYTHON_NAMES = ("python.exe", "pythonw.exe", "python", "python3", "pythonw")
 
 
-def process_created(pid=None, plist=None):
+def process_created(pid=None, table=None):
     """When a process was created, in seconds since the epoch (to 100 ns), or None.
 
-    pid None: this process, through its pseudo-handle (nothing is opened). Another pid: only when
-    the process list names it python.exe or pythonw.exe, through a handle that can only query
-    (PROCESS_QUERY_LIMITED_INFORMATION). The game's process is never opened: its name is not on
-    that list. Used to tell a live instance of ours from a reused process id. Off Windows: None."""
+    pid None: this process, through its pseudo-handle. Another pid: from the process table
+    (`process_table()`, or the one passed in), so no handle is opened to any process. Used to tell
+    a live instance of ours from a reused process id. Off Windows: None."""
     if not IS_WINDOWS:
         return None
     if pid is None or pid == os.getpid():
-        handle, opened = _GetCurrentProcess(), False
-    else:
-        name = process_name(pid, plist)
-        if name is None or name.lower() not in PYTHON_NAMES:
-            return None
-        handle = _OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-        if not handle:
-            return None
-        opened = True
-    try:
         times = [_FILETIME() for _ in range(4)]
-        if not _GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
+        if not _GetProcessTimes(_GetCurrentProcess(), *[ctypes.byref(t) for t in times]):
             return None
         ft = (times[0].hi << 32) | times[0].lo          # 100 ns units since 1601-01-01
-        return ft / 1e7 - 11644473600.0
-    finally:
-        if opened:
-            _CloseHandle(handle)
+        return ft / 1e7 - _EPOCH_1601
+    for p, _name, created in (table if table is not None else process_table()):
+        if p == pid:
+            return created
+    return None
 
 
 # ------------------------------------------------------------------------- this process

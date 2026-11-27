@@ -538,10 +538,10 @@ class Leftovers(Case):
     def test_stale_temporary_files_are_swept_and_live_ones_kept(self):
         d = self.inst.data
         d.mkdir(parents=True, exist_ok=True)
-        dead = d / ".state.json.4.deadbeef.tmp"                 # pid 4 is the System process, never ours
-        dead2 = d / ".run.json.999999999.0badf00d.tmp"           # no such process
-        mine = d / (".stopped.json.%d.cafef00d.tmp" % os.getpid())
-        other = d / "notes.tmp"
+        dead = d / ".scdash-tmp-4-deadbeef-state.json.tmp"       # pid 4 is the System process, never ours
+        dead2 = d / ".scdash-tmp-999999999-0badf00d-run.json.tmp"  # no such process
+        mine = d / (".scdash-tmp-%d-cafef00d-stopped.json.tmp" % os.getpid())
+        other = d / ".x.999999999.0badf00d.tmp"                  # a user's file in the old form: kept
         for f in (dead, dead2, mine, other):
             f.write_text("x", encoding="utf-8")
         removed = service.sweep_temp_files(d)
@@ -554,7 +554,7 @@ class Leftovers(Case):
         self.inst.write_log(h.log_bytes())
         d = self.inst.data
         d.mkdir(parents=True, exist_ok=True)
-        stale = d / ".state.json.999999999.0badf00d.tmp"
+        stale = d / ".scdash-tmp-999999999-0badf00d-state.json.tmp"
         stale.write_text("half", encoding="utf-8")
         svc = self.make(running=False)
         t = threading.Thread(target=svc.run)
@@ -622,25 +622,19 @@ class NothingEndsAProcess(unittest.TestCase):
                     hits.append("%s:%d" % (f.name, i))
         self.assertEqual(hits, [])
 
-    def test_open_process_is_query_only(self):
-        src = (lib.DASHBOARD / "scdash" / "winutil.py").read_text(encoding="utf-8")
-        calls = re.findall(r"_OpenProcess\(([^)]*)\)", src)
-        self.assertTrue(calls)
-        for args in calls:
-            self.assertTrue(args.strip().startswith("_PROCESS_QUERY_LIMITED_INFORMATION"), args)
-        for f in sorted((lib.DASHBOARD / "scdash").glob("*.py")):
-            if f.name != "winutil.py":
-                self.assertNotIn("OpenProcess", f.read_text(encoding="utf-8"), f.name)
+    def test_no_process_handle_is_ever_opened(self):
+        for f in sorted((lib.DASHBOARD / "scdash").glob("*.py")) + [lib.DASHBOARD / "scdash.py"]:
+            self.assertNotIn("OpenProcess", f.read_text(encoding="utf-8"), f.name)
 
-    def test_process_created_never_opens_a_non_python_process(self):
+    def test_creation_times_come_from_the_table(self):
         if not service.winutil.IS_WINDOWS:
             self.skipTest("Windows only")
-        plist = service.winutil.process_list()
-        other = next((pid for pid, name in plist if name.lower() not in service.winutil.PYTHON_NAMES and pid > 4), None)
-        self.assertIsNotNone(other)
-        with mock.patch.object(service.winutil, "_OpenProcess", side_effect=AssertionError("opened")):
-            self.assertIsNone(service.winutil.process_created(other, plist))
-        self.assertIsInstance(service.winutil.process_created(), float)
+        table = service.winutil.process_table()
+        mine = next(c for p, n, c in table if p == os.getpid())
+        self.assertIsInstance(mine, float)
+        self.assertLess(abs(mine - service.winutil.process_created()), 0.001)
+        other = next((p, c) for p, n, c in table if p != os.getpid() and c)
+        self.assertEqual(service.winutil.process_created(other[0], table), other[1])
 
 
 if __name__ == "__main__":

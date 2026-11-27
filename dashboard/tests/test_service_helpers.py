@@ -2,11 +2,16 @@
 
 Nothing here touches the real dashboard/data/, the real port or the real Game.log: every test
 instance gets a temporary data folder, a free port, a log of its own, and a process name to
-watch that no real program has."""
+watch that no real program has.
+
+Nothing here ends a process by its number: the tests run while the user plays, and a number can
+belong to someone else by the time it is used. A process a test started itself is ended through
+the Popen object it holds (the handle it was created with); an instance started with the `start`
+command is stopped through its own shutdown endpoint, with a bounded wait; anything that will not
+stop fails the test and names its pid."""
 import json
 import os
 import shutil
-import signal
 import socket
 import subprocess
 import sys
@@ -156,8 +161,10 @@ class FakeGame:
         self.stop()
 
 
-def end_instance(data_dir):
-    """Clean-up: stop whatever instance belongs to this data folder, by request, then by force."""
+def end_instance(data_dir, procs=()):
+    """Clean-up: stop the instance of this data folder through its shutdown endpoint, end the
+    processes the test started itself through their Popen handles, and fail loudly, naming the pid,
+    if the instance still holds its lock afterwards."""
     paths = service.Paths(data_dir)
     run = service.read_json(paths.run)
     if service.valid_run(run):
@@ -167,29 +174,22 @@ def end_instance(data_dir):
                 service.ask_to_stop(info, "test clean-up")
             except Exception:                          # noqa: BLE001
                 pass
-            wait_until(lambda: not paths.lock().held_elsewhere(), 10)
-        kill_pid(run["pid"], run.get("created"))
-    wait_until(lambda: not paths.lock().held_elsewhere(), 10)
+    wait_until(lambda: not paths.lock().held_elsewhere(), 15)
+    for proc in procs:
+        end_popen(proc)
+    if paths.lock().held_elsewhere():
+        raise AssertionError("the test instance in %s (pid %s) did not stop; it was left running"
+                             % (data_dir, run["pid"] if service.valid_run(run) else "unknown"))
 
 
-def kill_pid(pid, created):
-    """End one of our own test instances, by force (tests only: nothing in scdash ends a process).
-    Only a Python process created at the time its run.json recorded: after a pid reuse that id can
-    belong to an unrelated program."""
-    if not isinstance(created, (int, float)) or not service.run_process_alive({"pid": pid, "created": created}):
-        return
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except OSError:
-        pass
-    wait_until(lambda: winutil.process_name(pid) is None, 10)
-
-
-def kill_instance(data_dir):
-    """Kill the instance whose run.json is in this data folder (the crash a test needs)."""
-    run = service.read_json(service.Paths(data_dir).run)
-    kill_pid(run["pid"], run.get("created"))
-    return run["pid"]
+def end_popen(proc, seconds=15.0):
+    """End a process this test started, through its own Popen handle; fail if it will not end."""
+    if proc.poll() is None:
+        proc.kill()
+        try:
+            proc.wait(seconds)
+        except subprocess.TimeoutExpired:
+            raise AssertionError("process %d did not end" % proc.pid) from None
 
 
 def remove_tree(path, seconds=15.0):
@@ -210,6 +210,7 @@ class Instance:
         self.data = self.dir / "data"
         self.log = self.dir / "Game.log"
         self.port = free_port()
+        self.procs = []                                # processes this test started itself
 
     def write_log(self, data, mode="wb"):
         with open(self.log, mode) as f:
@@ -221,9 +222,28 @@ class Instance:
             out += ["--process", process]
         return out + list(extra)
 
+    def spawn(self, process=None):
+        """Start an instance as a child of this test (`run --background`), so the test holds its
+        handle and can crash it with `crash()`. Waits until it answers."""
+        cmd = [sys.executable, str(SCRIPT), "run", "--background"] + [str(a) for a in self.args(process=process)]
+        kw = {"creationflags": subprocess.CREATE_NO_WINDOW} if winutil.IS_WINDOWS else {}
+        proc = subprocess.Popen(cmd, cwd=str(REPO), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, **kw)
+        self.procs.append(proc)
+        paths = service.Paths(self.data)
+        ok = wait_until(lambda: proc.poll() is not None or service.instance_info(paths, self.port)["healthy"], 20)
+        if not ok or proc.poll() is not None:
+            raise AssertionError("the spawned instance did not come up (exit %s)" % proc.poll())
+        return proc
+
+    def crash(self, proc):
+        """The crash a test needs: the instance ends at once, through the handle the test holds."""
+        end_popen(proc)
+        return proc.pid
+
     def cleanup(self):
         try:
-            end_instance(self.data)
+            end_instance(self.data, self.procs)
         finally:
             if not remove_tree(self.dir):
                 raise AssertionError("could not remove %s" % self.dir)

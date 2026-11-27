@@ -39,7 +39,9 @@
   let lastMessageAt = null;           // Date.now() of the last state
   let lostAt = Date.now();            // when the stream was lost (now: not connected yet)
   let reconnectTimer = null;
-  let serviceId = null;               // pid and start of the service this page was served by
+  // Which instance served this page (pid/start, from the HTML): compared from the first message on.
+  const servedBy = document.querySelector('meta[name="scdash-instance"]').getAttribute("content");
+  let serviceId = /^\d+\//.test(servedBy) ? servedBy : null;
   const feedItems = new Map();        // line id -> {li, rev, ...}
 
   // Feed line kinds -> icon and tone (anything else: a dot).

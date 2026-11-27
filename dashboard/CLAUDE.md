@@ -22,7 +22,7 @@ Three rules that hold for everything in this folder:
 | --- | --- |
 | `scdash.py` | Command line, run from the project root: `run`, `start`, `stop`, `status`, `replay`, `timeline`; `install`, `uninstall`, `open` are stage 4 stubs that do nothing. |
 | `scdash/config.py` | Paths (LIVE found from the repo's place, or `SCDASH_LIVE`), read sizes, caps, the expected joysticks; the service settings `DEFAULTS` and `load_settings(data_dir, overrides)`. |
-| `scdash/winutil.py` | Windows-only calls, each with a fallback: `open_shared()`, `InstanceLock` (named mutex), `process_list()` (Toolhelp snapshot), `process_created()` (query-only, our own Python processes), `below_normal_priority()`, `exclusive_address()`, `own_memory()`. |
+| `scdash/winutil.py` | Windows-only calls, each with a fallback: `open_shared()`, `InstanceLock` (named mutex), `process_list()`/`process_table()` (pid, name and creation time from one `NtQuerySystemInformation` call, no handle to any process; Toolhelp as the fallback), `process_created()`, `below_normal_priority()`, `exclusive_address()`, `own_memory()`. |
 | `scdash/server.py` | The web server: `Server` (fixed files, registered routes), the request guard (`READ`, `CHANGE`, `PRIVATE`), `Hub` (one event stream, with its own cap). |
 | `scdash/service.py` | The service: `Service` (life cycle, main loop, data files), clocks and the replay feeder, and the helpers the commands use to talk to an instance (`instance_info`, `probe_health`, `launch_background`). |
 | `scdash/telemetry*.py` | Stage 6's telemetry reader, written by another agent. Not wired into the service. |
@@ -164,17 +164,19 @@ detached, out of the caller's job); in stage 4 `start` goes through the schedule
 **run.json is trusted only as far as the live process confirms it.** Healthy means the health
 answer carries run.json's pid *and* start time. When the lock is held but nothing answers,
 `status` checks run.json's process: a live python(w).exe created at the recorded time (to the
-millisecond, read with a query-only handle) is "ours, not answering" (hung, suspended or busy),
-and `stop` and `start` refuse to act on it. Nothing in scdash ever signals, suspends or ends a
-process; a test scans the source for it.
+millisecond, both read from one snapshot of the process table) is "ours, not answering" (hung,
+suspended or busy), and `stop` and `start` refuse to act on it. No handle is ever opened to another
+process, and nothing in scdash ever signals, suspends or ends one; a test scans the source for
+both. The tests end only processes they started, through their Popen handles, and stop `start`ed
+instances through the shutdown endpoint; one that will not stop fails the test.
 
 **Settings** are bounded on both sides (`config.BOUNDS`); a value outside is a mistake and takes
 the default with a note in the log. `replay` copies the past log into its own folder first
 (`<data>/replay/source.log`) and feeds from the copy, so replaying the live `Game.log` never holds
 it open.
 
-**Files in the data folder**, all written to a temporary file (`.<name>.<pid>.<hex>.tmp`, swept at
-start when its writer is gone) and renamed: `run.json`, `stopped.json`, `state.json` (the public
+**Files in the data folder**, all written to a temporary file (`.scdash-tmp-<pid>-<hex>-<name>.tmp`,
+a prefix only the service uses, swept at start when its writer is gone) and renamed: `run.json`, `stopped.json`, `state.json` (the public
 state plus a `user` block for stage 3's quick timers, loaded at start, saved at most every 10 s and
 only on change), `unmapped.json` (codes with no name, merged across sessions, at most 2,000),
 `sessions/<start>_<build>.json` (newest 500 kept; an undated `session-<hash>` name counts by its
@@ -225,7 +227,8 @@ its socket.
   `terminal.enabled` setting already lays the page out with the region (`data-terminal` on
   `<html>`).
 
-**The page** (direction B, "Avionics", from `data/design/b`): the strip (time and date, state,
+**The page** (direction B, "Avionics"; the chosen mockup is tracked in `design/avionics/`, and the
+working folder with all three directions and their captures is the git-ignored `data/design/`): the strip (time and date, state,
 joystick pass or fail with a quiet "other order" note, session, location, ship), alerts across the
 top of the view, a "Now" placeholder, the feed (major and alert lines, 4 in landscape and 6 in
 portrait; minor ones stay out, `SHOW_MINOR` in `app.js`), and the terminal region when the setting
@@ -273,7 +276,9 @@ with the real game running, and the window (stage 4).
   `run` first checks whether anything answers on the port. Two binds to 127.0.0.1 are refused
   (10048), with or without the other side asking for address reuse.
 - **A Toolhelp process snapshot costs about 5 ms** with about 270 processes: 2.9 ms for the
-  snapshot, the rest walking it through ctypes. Every 10 s that is about 0.05% of a core.
+  snapshot, the rest walking it through ctypes. The `NtQuerySystemInformation` table that
+  replaced it costs 2.6 ms (3.9 ms for Toolhelp in the same run, 266 processes), with the same pids
+  and names and creation times equal to `GetProcessTimes` to 100 ns.
 - **Windows' monotonic clock moves in steps of about 15.6 ms**: a test that sets a 1 ms interval
   and checks at once sees no time pass (tests set `Service._next_probe = 0` instead).
 - **The page's Content-Security-Policy forbids inline `style` attributes.** The mockup's hidden
