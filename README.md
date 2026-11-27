@@ -184,8 +184,8 @@ on a Mac.
   throttle's reverse worked and the press did nothing, because that action takes no button. That
   evening reverse moved to the stick press alone, held for full reverse, and the throttle's
   reverse axis was left unbound so the lever can rest in its idle detent. That last change was
-  loaded the same evening and the game accepted every entry; how the press reverses in flight has
-  not been reported yet. The shield faces and the right-hat banks have not been reported on.
+  loaded the same evening, the game accepted every entry, and the press reversed as intended in
+  flight. The shield faces and the right-hat banks have not been reported on.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
