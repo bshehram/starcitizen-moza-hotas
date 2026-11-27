@@ -109,18 +109,6 @@ at `LIVE\user\client\0\controls\mappings`.
   you advise, and suggest a precaution only if it would have changed the outcome.
 - **My ore is for crafting, not for sale.** Recommend Pyrometric Chromalysis by default: it gives
   the same yield as the slow methods, and a few thousand aUEC to save hours is worth it to me.
-- **Subagents.** Start up to four at once without asking. My settings run them on Opus 5.5 at
-  xhigh effort and stop them starting their own. Each one costs a full briefing and its own
-  tokens, and you still have to check what comes back, so use them where the work is wide and
-  independent, such as reading several sites or many files at once, and do short lookups
-  yourself. A subagent sees neither memory nor this conversation, so its brief has to carry the
-  goal, what to send back, and any rule of mine it must follow, including not to start subagents
-  of its own. I asked for subagents, not multi-agent workflows, so leave the Workflow tool alone
-  here. What a subagent reports is second-hand until you've checked it against the game files,
-  the device diagrams or a lookup of your own, and the edits to `MOZA.xml`, the docs, memory and
-  the page are yours to make: agent guesses have been written into `CLAUDE.md` as fact before. If
-  I name a model for a subagent and my settings would run a different one, tell me before you
-  start anything. I'd rather open a new session on that model and paste in a prompt you write.
 - **The repo is public; memory is not.** Account details, the game plan link, and PC details
   beyond what the bindings need (the rig and its USB wiring are already in `CLAUDE.md`) stay in
   memory. Keep my name, email and machine details out of web requests as well.
@@ -146,7 +134,7 @@ Go ahead with these without asking:
 - installing ordinary dev tools such as pip packages (tell me what you installed);
 - searching the web, reading public pages, and fetching game data from the sources memory lists
   as scriptable;
-- starting research subagents, within the limit above.
+- starting subagents.
 
 Ask me before these:
 
