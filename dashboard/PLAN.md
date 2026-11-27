@@ -8,7 +8,7 @@ decisions are in §15. The build started later that day.
 | --- | --- |
 | Reference tables (§10) | Built, checked, committed. |
 | 1. Parser and state | Built, reviewed twice by an independent agent, committed. `python dashboard/scdash.py timeline` works. |
-| 2. Service and a minimal page | Not started. |
+| 2. Service and a minimal page | Built in the chosen look and reviewed: nothing got through the request guard, and hostile text from a log is shown as text. The review's robustness fixes were being made when this row was written; committed once they are confirmed. The launch check with the service itself is still to do. |
 | 3. Views and plan data | Not started. The look is chosen: direction B, mocked up in every screen (§11). |
 | 4. Autostart and the window | Not started. Waits for the side monitor. |
 | 4b. The Claude terminal | Not started. |
@@ -612,7 +612,12 @@ user's own settings. The project also asks the user before anything that needs a
   `http.server` sets `SO_REUSEADDR`, and on Windows that lets a second process bind the same port
   **[seen: local test, 2026-11-26]**. So the listening socket also sets
   `allow_reuse_address = False` and `SO_EXCLUSIVEADDRUSE`, which the same test showed refuses a
-  second bind. The scheduler's `IgnoreNew` only stops copies the scheduler itself starts, so the
+  second bind. One gap remains, found while building and confirmed in review **[seen
+  2026-11-27]**: when some other program already listens on the port on *all* addresses
+  (0.0.0.0), our exclusive bind to 127.0.0.1 still succeeds and takes the local traffic. So
+  before binding, `run` first checks whether anything answers on the port, and reports a
+  foreign program instead of starting beside it. A probe uses a short connect timeout, because
+  a refused connection takes 2 seconds to fail on this PC (4 to the name `localhost`). The scheduler's `IgnoreNew` only stops copies the scheduler itself starts, so the
   mutex has to cover a manual `start` as well. `data/run.json` records the process id, port,
   start time and a random token. A health endpoint returns the program's name, process id and
   start time, which the commands compare with `run.json`, so a foreign program on the port is
@@ -839,6 +844,21 @@ Budgets to measure against, not promises. Record the measured figures in `dashbo
 The stand-in scripts were scratch files and are not in the repo. The figures need taking again on
 the real program, with the game running and the window on the side monitor.
 
+**The real service, measured 2026-11-27 (stage 2; by the builder and again by the reviewer; no
+game process, a headless page connected):**
+
+| What | Measured | Budget |
+| --- | --- | --- |
+| Memory, idle | 21 to 23 MB private working set | 30 MB |
+| CPU, idle, one page connected | 0.08 to 0.09% of one core, most of it the look at the process list every 10 seconds | "effectively zero" was optimistic |
+| CPU, a real log fed at the pace it was written | 0.115% of one core | 0.2% |
+| CPU, a replay at 13 to 28 times speed | about 0.5% of one core | none set |
+| 100 MB of junk lines appended to the followed log | read in 0.8 s; memory 21.3 to 24.3 MB once, then flat | no growth |
+| 300 idle connections at once | threads 3 to 19 and back to 3; memory 24.0 to 24.9 and back | bounded |
+| The one-second loop under 33,000 requests in 20 s | 1.01 s between updates on average, 1.03 at worst | keeps its rhythm |
+
+Still to measure: the same with the game running, and the Edge app window on the side monitor.
+
 How to stay inside them:
 
 - **Read only what is new.** Once a second, open the log, read just the bytes past the saved
@@ -991,7 +1011,12 @@ files, all local, all bounded.
     chooses one, and its stylesheet becomes the dashboard's (§15).
   - **Checked by looking.** Every view is captured at 1920x1080 and 1080x1920 and looked at by
     the agent that built it and by the reviewing session: alignment, spacing, hierarchy, nothing
-    clipped. A view that works but looks rough is not done.
+    clipped. A view that works but looks rough is not done. Two things learned while capturing
+    **[seen 2026-11-27]**: headless Edge's `--virtual-time-budget` hangs while the page holds
+    its stream open, so use a plain `--screenshot` (with `--force-prefers-reduced-motion` to
+    catch an alert without its fade); and the page's content policy forbids inline `style`
+    attributes, so a meter's fill is set from script with `style.setProperty`, not written into
+    the markup as the mockup does.
   - **Inside the performance rules (§9).** System fonts only (Windows 11 ships good ones), no
     image files (icons are inline SVG), no outside resources, nothing that moves while the page
     is idle.
@@ -1154,10 +1179,19 @@ check that can actually fail.
    **4b. The Claude terminal** (§4, §8). Built after the window works, because it lives in that
    window. `terminal.py`, the pseudo-console calls in `winutil.py`, the xterm.js files, the
    panel in both layouts, the settings.
-   - **Carrying the bytes.** Output goes to the page on an event stream of its own, and
-     keystrokes come back as small posts, both with what the server already has. Try that first:
-     everything is on 127.0.0.1, so the delay should not be felt **[verify by typing in it]**. A
-     hand-written WebSocket is the fallback if it is.
+   - **Carrying the bytes.** Output goes to the page on a stream of its own, and keystrokes come
+     back as small posts, both with what the server already has. Try that first: everything is
+     on 127.0.0.1, so the delay should not be felt **[verify by typing in it]**. A hand-written
+     WebSocket is the fallback if it is.
+   - **The terminal's stream is not an `EventSource`** (settled in the stage 2 review). An
+     `EventSource` cannot send a header, so the token would have to ride in the address, and
+     addresses end up in logs, in the browser's developer tools and in crash dumps. The page
+     reads the stream with `fetch()` instead, which can send the token as a header and works
+     over the server's plain close-at-the-end responses. The server guards it like a changing
+     request: the token header, the `Host` check, and `Sec-Fetch-Site: same-origin` required,
+     which Edge always sends to 127.0.0.1 and no other site can forge. It has a hub of its own
+     that serves one reader, so reconnects of the state stream cannot crowd it out. No guard
+     that accepts a token from the address exists in the server at all.
    - **Start and end.** The service starts Claude when the dashboard window's page connects, and
      ends it when that page has been gone for a minute (a reload must not kill it). A service
      that restarts mid-session cannot keep the old process, so the panel says the session ended
