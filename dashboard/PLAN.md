@@ -215,6 +215,28 @@ settings read from the installed game's program file; it has never been switched
 - **What it still would not give:** position or location, shield or hull values, cargo, anything
   about mining, contracts. So it does not close the gaps that matter most to the mining and
   crafting plans.
+- **What the installed build really declares [seen 2026-11-27: read from `StarCitizen.exe`,
+  build 4.10.201.48085, by two agents with separate extractors that agreed byte for byte].**
+  - Two layout files, 28 messages, 131 fields. One service,
+    `sc.game.telemetry.v1.GameTelemetryService`, with one method, `TelemetryStream`, which takes
+    an empty request and streams snapshots.
+  - A snapshot has six parts: vehicle, weapons, events, actor, force feedback, turret.
+  - Every reading the plan wants has a field: hydrogen fuel, speed, the aUEC balance (a whole
+    number), landing gear, VTOL, coupled, 10 warning lights, 9 power flags, countermeasures by
+    type and amount.
+  - No field for position or location, shields or hull, master mode, quantum state, cargo or
+    contracts. That part of the list above is now first-hand.
+  - Four settings exist in the program file, with descriptions: `grpc.client.server.address`
+    (default `127.0.0.1:2942`), `server.game.telemetry.stream.interval.ms`,
+    `server.game.telemetry.generate.without.clients`, and `server.game.telemetry.test.data`,
+    which makes the game send made-up data. None has been set here.
+  - **The same program file names other local services** that have nothing to do with
+    telemetry: a query service with 11 methods and an editor bridge with pause and resume
+    commands. Whether the game answers them on this port is not known. So "read-only" is proven
+    for the telemetry service only, and the rule that the dashboard calls one method and no
+    other (§8) matters in this build already, not only in 5.0.
+  - A connection that is refused takes about 2 seconds to fail on this PC, so each attempt while
+    the stream is off costs that long **[seen]**.
 - **Quirks other tools recorded on the live build [ref: Starglance's `docs/FIELDS.md`, CSR's
   `docs/telemetry/NOTES.md`].** Check each against the cockpit before showing it.
   - Ship data arrives 5 to 6 seconds after sitting down, and only while seated.
@@ -232,7 +254,11 @@ settings read from the installed game's program file; it has never been switched
   The same strings suggest the game builds no snapshots while nothing is connected.
 - **Where it stands (the user, 2026-11-27).** 5.0 is expected within weeks and is expected to
   make this stream much bigger. The 5.0 test builds add shields, master mode, quantum state and
-  destination, a named location, jurisdiction and the tracked contract **[ref]**. The user wants
+  destination, a named location, jurisdiction and the tracked contract **[ref]**. Only part of
+  that is backed by a layout anyone here has seen: CSR's own copy of a 5.0 test-build layout
+  adds shields, hull health, master mode and two action methods, and nothing on location,
+  quantum state or contracts **[ref, 2026-11-27]**. Treat the longer list as hearsay until 5.0
+  is installed and its program file has been read. The user wants
   the dashboard able to use it. So it is designed in from the start as a second, optional source
   (§5) with its own build stage (§12), and the dashboard must work fully without it.
 - **Cautions that still hold.**
@@ -653,6 +679,17 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
   the game do something, whatever a later build offers. It caps the size of what it will accept
   and treats every byte as untrusted. It does not switch the stream on: that is a step the user
   takes.
+  - **The one method is enforced in the running code, not only promised.** The request the
+    client sends is built once from a single constant, and the one function that writes to the
+    socket refuses any other request. A test scans the whole of `dashboard/` for a second path,
+    and others try to slip one through. Review found three ways past an earlier, weaker test.
+  - **Everything is capped at the scale of a real snapshot** (about 700 bytes): message size,
+    bytes and snapshots per second, fields walked, events kept. A server that floods any of
+    these is dropped and retried later. Review showed that without those caps a hostile or
+    broken stream could hold a core at 100% or grow the service by hundreds of megabytes.
+  - **The program file is read with the same full sharing as the log** (§8, *The log must never
+    be held open*), and only once its size and date have settled, so reading the stream's layout
+    can never get in the way of the launcher patching the game.
 - Other players' names appear in the log. Show them at most in the live feed, and never write
   them to the session records.
 - **The log must never be held open.** At each launch the game copies the old `Game.log` into
