@@ -614,8 +614,10 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 **The Claude terminal (§4).** This is the one part of the dashboard that is not read-only, so it
 is fenced on every side.
 
-- **One fixed program.** The service starts Claude Code's own executable, from a path in the
-  local config, with the project root as its working directory. The program and its arguments
+- **One fixed program.** The service starts Claude Code's own executable with the project root
+  as its working directory. It finds the program the way a terminal would, by looking up
+  `claude` on the user's PATH once at start (`shutil.which`), and writes the full path it found
+  to its log; a path in the local config overrides that. The program and its arguments
   come from the config file and nowhere else: no request carries a command, a path, an argument
   or an environment variable. A test proves that nothing sent to the server can change what is
   started. The session brief it is given (§4) is the file the config names, inside the repo, read
@@ -638,8 +640,19 @@ is fenced on every side.
 - **Off switch.** `terminal.enabled` in the config. With it off, the endpoints do not exist.
 - **Claude Code itself** is not installed as a program of its own on this PC: the only copy is
   inside the VS Code extension, in a folder whose name changes with each update **[seen
-  2026-11-27]**. The stage installs Anthropic's own per-user copy (no administrator rights) and
-  the config points at it. If it is missing, the panel says so and nothing else is tried.
+  2026-11-27]**. The stage installs Anthropic's own per-user copy (no administrator rights). If
+  it is missing, the panel says so and nothing else is tried.
+  - **Install it the way the user's system-refresh kit does,** so a rebuilt PC matches this one:
+    `winget install --id Anthropic.ClaudeCode -e --source winget --scope user`, after checking
+    that `claude --version` does not already work. (The kit is the user's own, outside this
+    repo; a Windows reinstall was planned as of 2026-11-27.)
+  - What is known about the two ways to install it **[ref: the session that built the kit, from
+    Anthropic's set-up documentation, 2026-11-27; neither was run]**: the winget package is one
+    portable `claude.exe`, expected under `%LOCALAPPDATA%\Microsoft\WinGet\` with a link on the
+    user's PATH, and it does not update itself (`winget upgrade Anthropic.ClaudeCode`).
+    Anthropic's own installer script puts it in `%USERPROFILE%\.local\bin`, does not add that
+    folder to PATH, and updates itself. The two places differ, which is why the dashboard looks
+    on PATH and not at a fixed path.
 
 **Privacy.** The repo is public.
 
@@ -1045,8 +1058,9 @@ build confirms them on this PC; each names its source.
 10. For the Claude terminal (stage 4b), all **[verify]**: that Claude Code's interface runs
     correctly under a pseudo-console created through `ctypes` by a windowless (`pythonw`) parent;
     that it is usable at the below-normal priority it would inherit from the service (§6), or
-    whether it should be started at normal priority; how Anthropic's installer places the
-    program and whether it updates itself in place; which xterm.js release to pin; and what a
+    whether it should be started at normal priority; where the winget package really puts the
+    program and whether the service, started by Task Scheduler, sees it on PATH (§8 has what is
+    known second-hand); which xterm.js release to pin; and what a
     fresh Claude Code process really costs in memory. The open question in point 3 matters more
     now: the user will switch away from the game on purpose, so test on the ground whether the
     game still takes stick and throttle input while the dashboard has the keyboard.
@@ -1098,6 +1112,14 @@ can read the stream, not only the dashboard. To undo it, delete the variable
 
 - `dashboard/README.md` for people and `dashboard/CLAUDE.md` for Claude, following the docs
   convention in [`../CLAUDE.md`](../CLAUDE.md). Replace the stubs that sit there now.
+- **A "set up on a fresh Windows install" section in `dashboard/README.md`,** complete enough to
+  follow with nothing else open. The user's system-refresh kit restores the project folder and
+  the tools (Python, Git, Edge, Claude Code) and then only points at this README, so everything
+  the dashboard changes outside the repo has to be listed there, in order, each step safe to
+  repeat: `python dashboard\scdash.py install` for the logon task, the
+  `GRPC_CLIENT_SERVER_ENABLED` variable for telemetry, Claude Code's install command and its
+  one-time sign-in, and how to check each one took (`status`). Keep the list true as stages add
+  to it.
 - [`../CLAUDE.md`](../CLAUDE.md): the folder layout, and a short pointer to this folder.
 - `dashboard/THIRD_PARTY_NOTICES`: CSR's copyright line and license text, if its code was used
   (§5), and a pointer to it from `dashboard/README.md`.
