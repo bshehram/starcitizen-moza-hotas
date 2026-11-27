@@ -96,8 +96,6 @@ at `LIVE\user\client\0\controls\mappings`.
   truth and my rollback point, so there's no need to wait for "ship it" or to branch. One commit
   per logical change, with every file that describes the change in it. Scratch files go in your
   scratchpad so the repo stays clean.
-- **Defaults over extras.** Write the bare form and rely on the default. Add an attribute or an
-  option once you've established that the default is wrong for the goal, not as a guard.
 - **The rig is for ships only.** On foot and in ground vehicles I use an Xbox controller on the
   game's stock layout, so on-foot and ground bindings would be clutter. The few entries in those
   actionmaps are clears of stock defaults, and they stay.
