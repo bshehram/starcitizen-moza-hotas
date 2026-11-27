@@ -107,6 +107,10 @@ at `LIVE\user\client\0\controls\mappings`.
   you advise, and suggest a precaution only if it would have changed the outcome.
 - **My ore is for crafting, not for sale.** Recommend Pyrometric Chromalysis by default: it gives
   the same yield as the slow methods, and a few thousand aUEC to save hours is worth it to me.
+- **Community tools: source, not binaries.** I don't like precompiled programs from community
+  projects. If someone's tool would do a job, it has to be open source and we build or run it
+  from source ourselves; a project with no license doesn't count as open source. Otherwise we
+  build our own.
 - **The repo is public; memory is not.** Account details, the game plan link, and PC details
   beyond what the bindings need (the rig and its USB wiring are already in `CLAUDE.md`) stay in
   memory. Keep my name, email and machine details out of web requests as well.

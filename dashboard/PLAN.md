@@ -1,6 +1,8 @@
 # Side-screen dashboard: implementation plan
 
-**Status: planned, not built.** Written 2026-11-26.
+**Status: planned, not built.** Written 2026-11-26. Reviewed 2026-11-27 against the user's logs
+and this PC: the corrections are marked **[seen 2026-11-27]**, and the user's decisions on what
+the review raised are in §15. The build has not started.
 
 This file is the brief for the Claude session that builds the dashboard. The user starts that
 session with `@STARCITIZEN.md` and asks for the dashboard to be built from this plan. It says what
@@ -54,7 +56,7 @@ in `LIVE\logbackups\`, not from the wording here.
 | Entered the game world, and every respawn after it | `[CSessionManager::OnClientSpawned] Spawned!` (215 times in 63 November logs, so not once per session) |
 | Quantum target chosen | `<Player Selected Quantum Target - Local> ... selected point <CODE>` |
 | Route start and fuel estimate | `<Calculate Route> ... Projected Start Location is <name> for route to destination <CODE>` and `... fuel estimate <n>` |
-| Quantum arrival | `<Quantum Drive Arrived - Arrived at Final Destination>` |
+| Quantum arrival | `<Quantum Drive Arrived - Arrived at Final Destination>`. The line can be for someone else's ship: on 2026-11-27 one named a Golem OX that was not the user's, while the user's own jump logged a target and no arrival. Match the vehicle id **[seen 2026-11-27]**. |
 | Arrival at a station or landing zone | `RequestLocationInventory Location[<name>]`, `Update Inventory Location` |
 | Ship retrieved | `SetVehicleSpawningInformations - VehicleEntityId: [<id>]` |
 | Ship name | notice `You have joined channel '<Ship name> : <handle>'` |
@@ -76,7 +78,8 @@ in `LIVE\logbackups\`, not from the wording here.
 | What a supply shop offers | `LoadShopInventoryData ... AddingCommodityBox ... shopName[...] commodityName[ResourceType.<Name>]` when a shop lists its goods (153 lines in one log, at a base's admin shop: fuel, ammunition, RMC, metals) **[seen 2026-11-27]**. The line has the name but no resource id, so it cannot name the ids in a sale line: `resources.json` still comes from `Game2.dcb` (§10). |
 | Which contract a mission id is | `<CLocalMissionPhaseMarker::CreateMarker> ... missionId [<guid>], generator name [<giver>_<kind>], contract [<internal name>]` (110) **[seen 2026-11-27]** |
 | Shop purchases and sales | `SendShopBuyRequest` / `SendShopSellRequest` (shop, price, item) and `ShopFlowResponse ... result[...]` |
-| Ore sold to a refinery | `OnRefineryRequest ... SShopRefineryRequest ... shopName[SCShop_RefineryAdmin_ORE]` |
+| Ore sold to a refinery | `<...FlashCallback_OnSellToRefineryPressed>`, then about a second later `OnRefineryRequest ... SShopRefineryRequest ... shopName[SCShop_RefineryAdmin_ORE]`. Neither says what was sold or for how much. Seen on 2026-11-26 and 2026-11-27. |
+| The fabricator screen opened | `ReuseChannel ... blueprint_library.v1.BlueprintLibraryService`, then at once `<Query Inventory> ... Inventory[<fabricator id>:Container:0]`. Nothing else names a placed fabricator: placing it logs nothing, and so does its disappearing **[seen 2026-11-27]**. |
 | Commodity sold or bought at a trade terminal | `SendCommoditySellRequest` / `SendCommodityBuyRequest`: shop name, amount in aUEC, a resource id, quantity and box size. Seen 2026-11-26 at the New Babbage TDD. The commodity is an id, not a name. |
 | Joined a server | `<Join PU> ... shard[...]` |
 | A ship stowed: the user's, or anyone's nearby | `[STOWING ON UNREGISTER] ... Attempting to stow current vehicle [<id>]`. Logged for every hangar around, 1,042 times in the November logs. It is the user's ship only when `<id>` matches their own `SetVehicleSpawningInformations` **[seen 2026-11-27]**. |
@@ -223,8 +226,8 @@ months old.
 So the recommendation stands: build this one. The reasons are the things no existing tool does
 together: it shows the user's own plan and the numbers for the job in hand, it runs timers, it
 checks this rig's joystick order at launch, it switches views by itself for a screen nobody
-touches, it is readable from a seat away, it stays light, and it is ready for telemetry. The
-decision is the user's (§15).
+touches, it is readable from a seat away, it stays light, and it is ready for telemetry. The user
+agreed on 2026-11-27: we build (§15).
 
 What the audits change in how it is built:
 
@@ -257,7 +260,9 @@ What the audits change in how it is built:
    cost the user sessions, so it gets the loudest alert on the page. Also shows the plan's
    "before you fly" notes.
 3. **Now view.** Objectives in order, the next step, needed against held for each material,
-   pending orders and timers, and what there is to do at the current location.
+   pending orders and timers, what there is to do at the current location, and the active
+   contract with its current objective (contract tracking is in the first version: the user's
+   decision, §15).
 4. **Travel view.** Destination, the legs of the current run with the finished ones marked, and
    what to do on arrival.
 5. **Mining view.** For the run's target ores: the scan numbers for each cluster size in large
@@ -312,8 +317,8 @@ waits for them.
 - Switching views from the stick base's two unbound levers. The page cannot read them: the browser
   exposes at most 32 buttons per device and these are numbered 57 to 62 **[ref: Chromium source,
   §14]**. The service would have to read the stick itself through DirectInput.
-- Contract tracking. The markers are now confirmed in the user's logs (§3), so whether it moves
-  into the first version is a decision in §15.
+- More on contracts than the first version shows: a history, pay and standing per contract, and
+  the contract's internal name from the marker line (§3).
 
 ## 5. Shape
 
@@ -790,7 +795,9 @@ check that can actually fail.
      ignored.
    - **One request path, as a constant,** with a test that fails if any other path is ever
      requested (§8).
-   - **How the reader learns the stream's layout** is a choice for the user (§15).
+   - **The reader learns the stream's layout from the installed game's program file,** read-only,
+     at start, and keeps it in `data/`, never in git: the user's decision (§15). CSR's loader
+     does this, keyed on the file's size and date so it rereads after a patch.
    - Retry quietly every 5 to 10 seconds while the game runs, slowing to once a minute after a
      few minutes of refusals. That also covers a build that ships with the stream switched off.
    *Done when:* with the stream on, the strip shows fuel, speed and the coupled, gear and power
@@ -907,17 +914,24 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Port | 47826 |
 | Commit the generic reference data | Yes |
 | Keyboard hotkeys for views | Not in the first version |
+| Where the browser profile lives | `%LOCALAPPDATA%\scdash\browser`, outside the repo and the game folder (§10) |
 
-Raised by the review on 2026-11-27, and waiting for the user's answer:
+**Decided by the user on 2026-11-27**, after the review and the survey of community tools:
 
-| Decision | Default until they answer | The other choice |
+| Decision | Their answer | What was turned down |
 | --- | --- | --- |
-| Build this, or adopt a community tool (§3) | Build it, reusing CSR's code for the log state and the telemetry reader. | QuantumWake is the nearest existing tool: Claude would push the plan into it after each session. It means installing .NET 10, accepting its memory use, reloading its page by hand to see a new plan, and going without timers, the joystick check and telemetry. |
-| What draws the display | A web page in an Edge app window, as agreed: about 108 MB in 11 processes (§9), easy to restyle, and it needs the local web server and its safeguards (§8). | A native window drawn by the service itself with Python's `tkinter`: about 12 MB, one process, no web server, no port, no browser. Plainer to look at, and not HTML. |
-| The game's telemetry stream (§3) | Designed in, and built as stage 6 (§12): the user said on 2026-11-27 that the dashboard must be able to use it, with 5.0 close. Still theirs to decide when that stage starts: switching the stream on, and which way. | The environment variable on the launcher touches no game file and can be set for one session only. The `user.cfg` line is a file in the game folder that stays until removed. |
-| Contract tracking | In the first version, now that the markers are confirmed in the user's logs (§3): the active contract and its current objective on the Now view. | Leave it for later, as first planned. |
-| Where the browser profile lives | `%LOCALAPPDATA%\scdash\browser`, outside the repo and the game folder (§10). | Inside `dashboard/data/`, as first planned. |
-| How the telemetry reader learns the stream's layout (stage 6) | Read the layout out of the installed game's program file at start, read-only, and keep it in `data/`, never in git. It follows a patch by itself, and it is what every open-source reader found does. It is also the step closest to the terms of service's wording on reverse engineering. | Write the field numbers into the code by hand from other tools' published notes. Nothing is read from the program file, but it has to be redone when 5.0 changes the layout. |
+| Build this, or adopt a community tool (§3) | **Build it**, reusing CSR's code for the log state and the telemetry reader (§5). | QuantumWake, the nearest existing tool, with Claude pushing the plan into it. |
+| What draws the display | **The web page**, in an Edge app window: about 108 MB in 11 processes (§9). | A native window drawn with Python's `tkinter`: about 12 MB, no web server, plainer. |
+| Contract tracking | **In the first version:** the active contract and its current objective on the Now view (§4). | Leaving it for later. |
+| The game's telemetry stream (§3) | **Supported**, as stage 6 (§12), with 5.0 close. | Leaving it out. |
+| How the telemetry reader learns the stream's layout | **Read it from the installed game's program file**, read-only, at start: "most reliable", in their words. It follows a patch by itself. | Field numbers written into the code by hand. |
+| Community tools in general | **No precompiled binaries.** A community tool has to be open source and built or run from source here; otherwise we build our own. Now a standing rule in [`../STARCITIZEN.md`](../STARCITIZEN.md). | - |
+
+One thing is still to settle when stage 6 starts: **which way the stream is switched on.** The
+environment variable on the launcher touches no game file and can be set for a single session;
+the `user.cfg` line is a file in the game folder that stays until removed. The first is the
+recommendation. Either changes something outside this repo, so the user is told before it is
+done.
 
 ## 16. When it ships
 
