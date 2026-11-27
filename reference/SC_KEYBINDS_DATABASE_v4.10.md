@@ -9,7 +9,7 @@
 > `Action` is the internal name for `<action name="...">`. The default columns are what the game binds
 > out of the box; **joystick defaults apply to joystick 1 (`js1`)** and stay live under a custom profile
 > unless that profile rebinds or clears the action. Actions with no label are hidden from the in-game
-> Keybindings menu. Regenerate with `python tools/gamedata.py catalogue`.
+> Keybindings menu. Regenerate with `python tools/gamedata.py catalog`.
 
 ## Contents
 

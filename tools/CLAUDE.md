@@ -22,7 +22,7 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     (they land on `js1`) the profile neither rebinds nor clears. A ghost on an input the profile
     also uses double-fires wherever both maps are active — judge each one by whether the two
     contexts can be live together; many (spectator, menus, turret aim) are harmless or wanted.
-  - `python tools/gamedata.py catalogue` — rewrites the catalogue in
+  - `python tools/gamedata.py catalog` — rewrites the catalog in
     [`../reference/`](../reference/CLAUDE.md) and removes the previous snapshot. After it runs,
     update the version stamp in [`../CLAUDE.md`](../CLAUDE.md).
   - Needs `zstandard` on Python < 3.14 (installed with `--user` into the system Python 3.12 on
@@ -54,5 +54,5 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
 ## Where the detail lives
 
 - Card generator internals and layout knobs: [`../CLAUDE.md` §8](../CLAUDE.md).
-- Catalogue refresh and why the source changed from starbinder to the game files: [`../CLAUDE.md` §7](../CLAUDE.md).
+- Catalog refresh and why the source changed from starbinder to the game files: [`../CLAUDE.md` §7](../CLAUDE.md).
 - Actionmap correctness and the two-step check workflow: [`../CLAUDE.md` §10](../CLAUDE.md).

@@ -126,7 +126,7 @@ def get_sub_diagram(file, box, black=0.45, white=0.85):
 
 # Lay recolored sub-views into the left part of the card as a stack of BANDS. Each band
 # spans the zone width and gets height ~ HFrac (equal by default). A band holds one or
-# more images side by side: each owns a cell = Frac of the zone width (cells centred in
+# more images side by side: each owns a cell = Frac of the zone width (cells centered in
 # the band), is fit (aspect-preserved) in its cell, and is aligned vertically by VA
 # ('t'op / 'c'entre (default) / 'b'ottom) - used to STAGGER a side-by-side pair (one
 # high, one low) so they use the band's whitespace. Optional caption under each image.
@@ -341,7 +341,7 @@ MTQ_L = [
     {'Label': '19', 'Primary': 'Scan mode', 'Hint': 'knob detent 3'},
     {'Label': '20', 'Primary': 'Mining mode', 'Hint': 'knob detent 4'},
     {'Label': '21', 'Primary': 'Salvage mode', 'Hint': 'knob detent 5'},
-    {'Label': '22', 'Primary': 'Rocker centre', 'Hint': 'rest', 'Unbound': True},
+    {'Label': '22', 'Primary': 'Rocker center', 'Hint': 'rest', 'Unbound': True},
     {'Label': '23', 'Primary': 'Master power OFF', 'Hint': 'rocker left'},
     {'Label': '24', 'Primary': 'Flight ready / power ON', 'Hint': 'rocker right'},
     {'Label': '25', 'Primary': 'Unlock + open all doors', 'Hint': 'toggle A up'},
@@ -400,7 +400,7 @@ def main():
 
     # Layout: LEFT ~60% of the sheet = images (two stacked bands - the two small views side by
     # side on top, the one big view below); RIGHT ~40% = the lookup table in two columns.
-    # CanvasW:CanvasH = 11:8.5 (1.294) fills a Letter sheet in landscape. F is dialled down so
+    # CanvasW:CanvasH = 11:8.5 (1.294) fills a Letter sheet in landscape. F is dialed down so
     # the narrow 40% table still fits. Geometry: image zone x=24..1064 (W=1040); table at x=1090.
     print('Rendering print cards (2x via %s)...' % os.path.basename(browser))
 

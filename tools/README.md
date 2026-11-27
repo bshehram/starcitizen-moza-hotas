@@ -1,7 +1,7 @@
 # `tools/` — regeneration and validation scripts
 
 The scripts that rebuild the generated parts of this repo — the **reference cards** and the
-**keybind action catalogue** — and check the profile against the game. None is needed to *use*
+**keybind action catalog** — and check the profile against the game. None is needed to *use*
 the profile, only to maintain it. All are plain **Python 3**, so they run on Windows, macOS or
 Linux, and all are written to be **run from the project root** (one level up), not from inside
 this folder.
@@ -10,7 +10,7 @@ this folder.
 
 | File | What it does |
 | --- | --- |
-| `gamedata.py` | **Reads the game's own control definitions out of `Data.p4k`** (read-only, about a second). `check` pre-flights [`../MOZA.xml`](../MOZA.xml) against the installed build: unknown action names, actions in the wrong actionmap, actions given more than one binding (the game keeps only the last), and game-default joystick bindings the profile doesn't override. `catalogue` regenerates the action catalogue in [`../reference/`](../reference/README.md). Run both when a new SC patch ships. |
+| `gamedata.py` | **Reads the game's own control definitions out of `Data.p4k`** (read-only, about a second). `check` pre-flights [`../MOZA.xml`](../MOZA.xml) against the installed build: unknown action names, actions in the wrong actionmap, actions given more than one binding (the game keeps only the last), and game-default joystick bindings the profile doesn't override. `catalog` regenerates the action catalog in [`../reference/`](../reference/README.md). Run both when a new SC patch ships. |
 | `validate_actionmaps.py` | **Confirms the game holds exactly what the profile declares.** Diffs [`../MOZA.xml`](../MOZA.xml) against the game's own normalized export (`…\Profiles\default\actionmaps.xml`) and flags any action the game files under a different map (`MISMATCH`), holds on a different input (`INPUT-DIFF`), still has bound although the profile no longer mentions it (`LEFTOVER`), or doesn't list at all (`NOT-IN-EXPORT`). Load the profile in-game and quit the game first so the export is current. |
 | `regen_cards.py` | **Rebuilds the reference cards.** Takes the manufacturer art in [`../diagrams/`](../diagrams/README.md) plus binding tables embedded in the script, crops and recolors the diagrams, composites them with the lookup table in SVG, and rasterizes to PNG with a headless Chrome, Edge or Chromium. Writes all four files in [`../cards/`](../cards/README.md). Re-run after any binding change. |
 | `requirements.txt` | The Python packages the scripts need: Pillow, and zstandard on Python older than 3.14. |
@@ -22,7 +22,7 @@ From the project root:
 ```sh
 python -m pip install -r tools/requirements.txt   # one-time setup
 python tools/gamedata.py check                    # pre-flight MOZA.xml against the installed game build
-python tools/gamedata.py catalogue                # regenerate the action catalogue for the installed build
+python tools/gamedata.py catalog                # regenerate the action catalog for the installed build
 python tools/validate_actionmaps.py               # after loading MOZA.xml in-game: does the game hold exactly these bindings?
 python tools/regen_cards.py                       # rebuild the reference cards
 ```
@@ -66,5 +66,5 @@ proof that the running game really kept each binding.
   row there too. The XML is the source of truth; the card tables are a view of it.
 - **Card fonts depend on the machine.** The cards ask for Segoe UI, then Arial. Rendered on a Mac
   they use Arial, which runs slightly wider, so check the PNG for clipped table text.
-- **After a catalogue refresh**, the SC version may change; update the version stamp where the
+- **After a catalog refresh**, the SC version may change; update the version stamp where the
   repo records it.

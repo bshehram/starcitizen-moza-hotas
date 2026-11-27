@@ -40,7 +40,7 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 
 Regenerating the docs and cards (not needed just to *use* the profile) takes Python 3 on
 Windows, macOS or Linux (`python -m pip install -r tools/requirements.txt`), plus Chrome, Edge
-or Chromium for the cards. The action catalogue and the game-data check also need the game
+or Chromium for the cards. The action catalog and the game-data check also need the game
 installed. No internet access is needed. See [`tools/`](tools/README.md).
 
 ---
@@ -126,7 +126,7 @@ README.md           this file
 LICENSE             MIT license
 diagrams/           manufacturer button-number maps (source art) + button-index tables
 cards/              generated printable cheat sheets (PNG + editable SVG)
-reference/          action catalogue read from the game files (v4.10) + an HTML binding sheet
+reference/          action catalog read from the game files (v4.10) + an HTML binding sheet
 tools/              regeneration and validation scripts (run from the project root)
 ```
 
@@ -146,7 +146,7 @@ All run from the project root. Full usage, requirements, and gotchas are in
 ```sh
 python -m pip install -r tools/requirements.txt   # one-time setup (Pillow, plus zstandard on Python < 3.14)
 python tools/gamedata.py check                    # pre-flight MOZA.xml against the installed game build
-python tools/gamedata.py catalogue                # regenerate the action catalogue for a new SC patch
+python tools/gamedata.py catalog                # regenerate the action catalog for a new SC patch
 python tools/validate_actionmaps.py               # after loading in-game: did the game keep every binding?
 python tools/regen_cards.py                       # rebuild the reference cards after a binding change
 ```
@@ -168,13 +168,13 @@ on a Mac.
 - **Validated against the Alpha 4.10.3 game data.** Every action name and actionmap in the
   profile was checked against the game's own `defaultProfile.xml` for build `4.10.201.48085`
   (`python tools/gamedata.py check`): no unknown actions, none in a wrong actionmap. The action
-  catalogue in [`reference/`](reference/README.md) is generated from the same file.
+  catalog in [`reference/`](reference/README.md) is generated from the same file.
 - **In-game testing.** The core layout was flown and verified in Alpha 4.8 (June 2026),
   including the mining-laser and salvage-spacing slider axes, confirmed in a Golem and a
   Salvation. The November 2026 changes — the 10 cleared defaults, *Docking* on the AP key,
   *Request Cargo Loading* on the ALT key and proportional reverse — were loaded in Alpha 4.10.3 and
   the game accepted every entry; proportional reverse was flown in an Avenger Titan. Docking and
-  cargo loading have not been exercised yet. On 26 November the decoupled toggle moved back to the
+  cargo loading have not been exercised yet. On November 26 the decoupled toggle moved back to the
   MTQ's COM hat press (a hold there pins the target), the AB6 wings became the power panel, the
   mining and salvage banks moved to the stick's right hat, and shield faces went on the MTQ's WPN
   hat as a trial. That version was loaded the same day and the wing power panel worked. The load
@@ -219,7 +219,7 @@ Two third-party *inputs* are **not** covered by the MIT license and remain their
 
 - the **manufacturer diagrams** (`diagrams/*.png`) — MOZA's own button-number art, used as the
   source layer for the cards; and
-- the **action catalogue** in `reference/` — a listing of action names, labels and default
+- the **action catalog** in `reference/` — a listing of action names, labels and default
   bindings read from Star Citizen's own game data, which belongs to Cloud Imperium Games.
 
 Star Citizen is a trademark of Cloud Imperium Games. This is an unofficial, fan-made config and

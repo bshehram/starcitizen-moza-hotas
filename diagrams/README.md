@@ -39,7 +39,7 @@ button-index tables in text, so you can look up a number without opening the ima
 | 14 | Right hat, down | 29 | Top coolie hat, center press |
 | 15 | Right hat, left | | |
 
-The "top coolie hat" (25–29) is the round mini-stick at the top-centre of the grip head. It
+The "top coolie hat" (25–29) is the round mini-stick at the top-center of the grip head. It
 reports as these five buttons only while MOZA Cockpit has it in **Button Mapping** mode (MHG →
 Grip Settings); in **Axis Mode** it reports two analog axes and no buttons, and the diagram in
 MOZA Cockpit stops showing 25–29. This profile needs Button Mapping.

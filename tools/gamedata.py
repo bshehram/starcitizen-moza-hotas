@@ -7,7 +7,7 @@ The game ships its authoritative list of bindable actions as
 packed inside the ~160 GB Data.p4k. This tool reads just those two entries (read-only, a few
 seconds) and does two jobs:
 
-  catalogue   Regenerate reference/SC_KEYBINDS_DATABASE_v<major.minor>.md - every bindable action
+  catalog   Regenerate reference/SC_KEYBINDS_DATABASE_v<major.minor>.md - every bindable action
               grouped by its TRUE actionmap, with label, description and default bindings.
               Older SC_/STARBINDER_ snapshots in reference/ are removed.
 
@@ -23,7 +23,7 @@ seconds) and does two jobs:
 
 Usage (from the project root):
     python tools/gamedata.py check
-    python tools/gamedata.py catalogue
+    python tools/gamedata.py catalog
     python tools/gamedata.py check --p4k "D:\\...\\LIVE\\Data.p4k" --mapping MOZA.xml
 
 Requires Python 3 and a zstd decoder: Python 3.14+ has one built in; on older Pythons run
@@ -214,8 +214,8 @@ def game_maps(profile):
     return [(am.get('name'), am, am.findall('action')) for am in profile.findall('actionmap')]
 
 
-# --------------------------------------------------------------------------- catalogue
-def cmd_catalogue(args):
+# --------------------------------------------------------------------------- catalog
+def cmd_catalog(args):
     profile, labels = load_game_data(args.p4k)
     info = build_info(args.p4k)
 
@@ -244,7 +244,7 @@ def cmd_catalogue(args):
         '> `Action` is the internal name for `<action name="...">`. The default columns are what the game binds',
         '> out of the box; **joystick defaults apply to joystick 1 (`js1`)** and stay live under a custom profile',
         '> unless that profile rebinds or clears the action. Actions with no label are hidden from the in-game',
-        '> Keybindings menu. Regenerate with `python tools/gamedata.py catalogue`.',
+        '> Keybindings menu. Regenerate with `python tools/gamedata.py catalog`.',
         '',
         '## Contents',
         '',
@@ -347,12 +347,12 @@ def cmd_check(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('command', choices=('catalogue', 'check'))
+    ap.add_argument('command', choices=('catalog', 'check'))
     ap.add_argument('--p4k', type=Path, default=LIVE / 'Data.p4k' if LIVE else None,
                     help='path to Data.p4k (default: this install)')
     ap.add_argument('--mapping', type=Path, default=ROOT / 'MOZA.xml', help='profile to check (default: MOZA.xml)')
     args = ap.parse_args()
-    return cmd_catalogue(args) if args.command == 'catalogue' else cmd_check(args)
+    return cmd_catalog(args) if args.command == 'catalog' else cmd_check(args)
 
 
 if __name__ == '__main__':

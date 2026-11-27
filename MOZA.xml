@@ -18,13 +18,13 @@
   <!-- ================================================================ -->
   <!-- POWER MANAGEMENT                                                 -->
   <!-- ================================================================ -->
-  <!-- MTQ bottom-centre 3-position rocker (22/23/24): LEFT (23) = master power OFF (below), RIGHT (24) = Flight Ready / power ON (v_flightready in spaceship_general), CENTRE (22) = rest, intentionally UNBOUND (a binding there would fire on every return-to-centre). -->
+  <!-- MTQ bottom-center 3-position rocker (22/23/24): LEFT (23) = master power OFF (below), RIGHT (24) = Flight Ready / power ON (v_flightready in spaceship_general), CENTER (22) = rest, intentionally UNBOUND (a binding there would fire on every return-to-center). -->
   <actionmap name="spaceship_power">
     <action name="v_power_toggle_weapons">
       <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 (top) - weapons power on/off (only meaningful in SCM; weapons stow in NAV) -->
     </action>
     <action name="v_power_toggle_thrusters">
-      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - thruster power on/off (off = cannot manoeuvre, lower engine signature / cold running) -->
+      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - thruster power on/off (off = cannot maneuver, lower engine signature / cold running) -->
     </action>
     <action name="v_power_toggle_shields">
       <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - shield power on/off (re-enable incurs a boot delay; shields are offline in NAV regardless) -->
@@ -110,7 +110,7 @@
       <rebind input="js1_button28"/>  <!-- MHG top mini-stick LEFT - strafe left -->
     </action>
 
-    <!-- Throttle. FORWARD = js2_roty as a one-way half-action: SC locks a single throttle axis's neutral to axis-CENTRE (32767) with only centre-symmetric options, so one full-range v_strafe_longitudinal would read the MTQ's idle as deep reverse. REVERSE = the MHG stick PRESS (js1_button29) on v_strafe_back since the evening of 2026-11-26: held = full reverse, so the lever can rest in the idle detent and never has to be pulled through the detent lock. The MTQ reverse-thrust axis js2_rotz, which held this action from 2026-11-20 (proportional reverse behind the detent), is UNBOUND by the user's choice. ONE JOYSTICK INPUT PER ACTION: the game keeps a single joystick binding per action, and when a file lists two the LAST one wins. Seen in the game's export after the 2026-11-26 load: v_strafe_back listed js2_rotz then js1_button29, the game kept only the button, and the throttle's reverse went dead. So the stick press and the throttle axis cannot share v_strafe_back. A press on v_strafe_longitudinal was tried instead and FAILED in flight (that action has no press/release trigger, so a button never fires it); the user then gave v_strafe_back to the press alone. DEVICE SETTING (no binding depends on it now that the reverse axis is unbound, but it is how the MTQ is set, and it keeps the forward axis at 0 at and below the detent): MOZA Cockpit > MTQ > Throttle Detent Settings > Limit Output Mode = REVERSE THRUST (the ~13% of lever travel behind the idle detent becomes its own axis pair, Z = left body / RZ = right body), with REV IDLE calibrated just behind the detent (2026-11-26: ~11% of travel) - "rev idle" is where reverse STARTS; calibrated AT the rear stop the zone is zero-size and RZ stays 0. FORWARD CREEP with the lever resting in the idle detent is a DEVICE fix, not a profile one (SC's axis options are centre-symmetric, so an SC deadzone acts at mid-throw): in MOZA Cockpit > MTQ > Throttle Detent Settings, run the IDLE calibration with the levers pushed a few mm FORWARD of the detent, so the forward axis stays 0 across the detent's slack (2026-11-26: Idle at ~15% of travel, detent at ~13%, Rev idle ~11%, so ~11-15% is a neutral band). History: until 2026-11-20 reverse was the rear-detent BUTTON js2_button34 (Limit Output Mode = Button). -->
+    <!-- Throttle. FORWARD = js2_roty as a one-way half-action: SC locks a single throttle axis's neutral to axis-CENTER (32767) with only center-symmetric options, so one full-range v_strafe_longitudinal would read the MTQ's idle as deep reverse. REVERSE = the MHG stick PRESS (js1_button29) on v_strafe_back since the evening of 2026-11-26: held = full reverse, so the lever can rest in the idle detent and never has to be pulled through the detent lock. The MTQ reverse-thrust axis js2_rotz, which held this action from 2026-11-20 (proportional reverse behind the detent), is UNBOUND by the user's choice. ONE JOYSTICK INPUT PER ACTION: the game keeps a single joystick binding per action, and when a file lists two the LAST one wins. Seen in the game's export after the 2026-11-26 load: v_strafe_back listed js2_rotz then js1_button29, the game kept only the button, and the throttle's reverse went dead. So the stick press and the throttle axis cannot share v_strafe_back. A press on v_strafe_longitudinal was tried instead and FAILED in flight (that action has no press/release trigger, so a button never fires it); the user then gave v_strafe_back to the press alone. DEVICE SETTING (no binding depends on it now that the reverse axis is unbound, but it is how the MTQ is set, and it keeps the forward axis at 0 at and below the detent): MOZA Cockpit > MTQ > Throttle Detent Settings > Limit Output Mode = REVERSE THRUST (the ~13% of lever travel behind the idle detent becomes its own axis pair, Z = left body / RZ = right body), with REV IDLE calibrated just behind the detent (2026-11-26: ~11% of travel) - "rev idle" is where reverse STARTS; calibrated AT the rear stop the zone is zero-size and RZ stays 0. FORWARD CREEP with the lever resting in the idle detent is a DEVICE fix, not a profile one (SC's axis options are center-symmetric, so an SC deadzone acts at mid-throw): in MOZA Cockpit > MTQ > Throttle Detent Settings, run the IDLE calibration with the levers pushed a few mm FORWARD of the detent, so the forward axis stays 0 across the detent's slack (2026-11-26: Idle at ~15% of travel, detent at ~13%, Rev idle ~11%, so ~11-15% is a neutral band). History: until 2026-11-20 reverse was the rear-detent BUTTON js2_button34 (Limit Output Mode = Button). -->
     <action name="v_strafe_forward">
       <rebind input="js2_roty"/>  <!-- MTQ main throttle lever axis (RY) - forward throttle, idle detent = 0 thrust. Its synced twin js2_rotx (RX) is intentionally left UNBOUND. -->
     </action>
@@ -157,7 +157,7 @@
       <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, TAP - toggle coupled/decoupled flight (hold = pin target) -->
     </action>
     <action name="v_ifcs_toggle_gforce_safety">
-      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps manoeuvres to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now part of the AB6 power panel). -->
+      <rebind input="js2_button16"/>  <!-- MTQ lower encoder CENTER PRESS - toggle G-Safe (caps maneuvers to prevent blackout; off = full performance, blackout risk). Moved here from js1_button51 (now part of the AB6 power panel). -->
     </action>
     <!-- ESP and proximity-assist toggles are intentionally LEFT UNBOUND: the user keeps both ENABLED by default in SC settings and never toggles them. v_ifcs_toggle_esp previously sat on keypad A4 (now LAMP); v_ifcs_proximity_assist_toggle is also a confirmed no-op in 4.x. -->
 
@@ -227,7 +227,7 @@
       <rebind input="js2_button18"/>  <!-- MTQ mode knob detent 2 - Missile operator mode (also the quick toggle on js1_button4) -->
     </action>
     <action name="v_set_scan_mode">
-      <rebind input="js2_button19"/>  <!-- MTQ mode knob detent 3 (centre) - Scan operator mode (radar/ping) -->
+      <rebind input="js2_button19"/>  <!-- MTQ mode knob detent 3 (center) - Scan operator mode (radar/ping) -->
     </action>
     <action name="v_set_mining_mode">
       <rebind input="js2_button20"/>  <!-- MTQ mode knob detent 4 - Mining operator mode (mining-capable ships) -->
@@ -239,7 +239,7 @@
       <rebind input="js2_button4"/>  <!-- MTQ keypad "A4" - LAMP canopy night-vision toggle (LAMP-equipped ships), on its own: the user uses it far more than decoupling, which went to the COM hat press. Back on A4 after ESP was unbound; the earlier LAMP/lights-switch pairing was dropped (27/28 are lights-only). -->
     </action>
     <action name="v_view_look_behind">
-      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera. MUST live in seat_general, NOT spaceship_view: despite the v_view_ prefix, CIG files look-behind under "seats & operator modes" (catalogue confirms), and the first attempt in spaceship_view silently did nothing. REPLACED v_view_freelook_mode (which genuinely IS a spaceship_view action - hence the map swap): freelook detached the view from ship facing, and an unconscious pinky-hold felt like losing control. Look-behind keeps FULL stick/flight control (camera swings rear, snaps back on release). Bare binding - hold is the action's native behavior; add activationMode="hold" only if it doesn't behave as hold. -->
+      <rebind input="js1_button3"/>  <!-- MHG lower side button (pinky) - HOLD for rear-view camera. MUST live in seat_general, NOT spaceship_view: despite the v_view_ prefix, CIG files look-behind under "seats & operator modes" (catalog confirms), and the first attempt in spaceship_view silently did nothing. REPLACED v_view_freelook_mode (which genuinely IS a spaceship_view action - hence the map swap): freelook detached the view from ship facing, and an unconscious pinky-hold felt like losing control. Look-behind keeps FULL stick/flight control (camera swings rear, snaps back on release). Bare binding - hold is the action's native behavior; add activationMode="hold" only if it doesn't behave as hold. -->
     </action>
   </actionmap>
 
@@ -251,7 +251,7 @@
       <rebind input="js1_button11"/>  <!-- MHG left hat CENTER PRESS - hard-lock the selected target (lead pips + missile lock). Also = cycle salvage modifiers in Salvage mode. -->
     </action>
     <action name="v_target_pin_selected_hold">
-      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, HOLD (~0.25 s) - pin the current target (cycle back to it later via COM hat LEFT). Since 2026-11-26 this is the game's own HOLD version of pin (stock mode delayed_press, so no attribute): a TAP on the same press is now the decoupling toggle (v_ifcs_vector_decoupling_toggle, stock tap, in spaceship_movement). Until then it was the tap version, v_target_pin_selected. Pin moved here from the MHG mini-stick press (js1_button29) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPPED the tap version of pin from the advanced map (so pinning did nothing) and files it here with the basic lock action; the catalogue lists the hold version in this map too. -->
+      <rebind input="js2_button57"/>  <!-- MTQ "COM" hat CENTER PRESS, HOLD (~0.25 s) - pin the current target (cycle back to it later via COM hat LEFT). Since 2026-11-26 this is the game's own HOLD version of pin (stock mode delayed_press, so no attribute): a TAP on the same press is now the decoupling toggle (v_ifcs_vector_decoupling_toggle, stock tap, in spaceship_movement). Until then it was the tap version, v_target_pin_selected. Pin moved here from the MHG mini-stick press (js1_button29) on 2026-11-23. MUST be in spaceship_targeting, NOT spaceship_targeting_advanced: the game's exported actionmaps.xml DROPPED the tap version of pin from the advanced map (so pinning did nothing) and files it here with the basic lock action; the catalog lists the hold version in this map too. -->
     </action>
   </actionmap>
 
@@ -260,7 +260,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_targeting_advanced">
     <action name="v_target_under_reticle">
-      <rebind input="js1_button5"/>  <!-- MHG lower-centre face button - lock whatever is under the crosshair ("target what I'm aiming at") -->
+      <rebind input="js1_button5"/>  <!-- MHG lower-center face button - lock whatever is under the crosshair ("target what I'm aiming at") -->
     </action>
     <action name="v_target_cycle_hostile_fwd">
       <rebind input="js1_button8"/>  <!-- MHG left hat RIGHT - cycle to next hostile (also = fire salvage FRACTURE beam in Salvage mode) -->
@@ -388,8 +388,8 @@
     <action name="v_view_cycle_fwd">
       <rebind input="js2_button62"/>  <!-- MTQ Left Module mini-stick PRESS - cycle camera view (cockpit <-> external/chase). Moved off MHG coolie press js1_button29 (now = reverse). -->
     </action>
-    <!-- view_restore_defaults was REMOVED from here (it shared js2_button62): the game DROPS it from spaceship_view, so it did nothing - the cockpit recentre-on-view-cycle is v_view_cycle_fwd's own behaviour. It is only accepted in the view_director_mode actionmap (the cinematic/Director camera), which this combat profile doesn't use. -->
-    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centres at 32767 = neutral, so no off-centre calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now strafe). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
+    <!-- view_restore_defaults was REMOVED from here (it shared js2_button62): the game DROPS it from spaceship_view, so it did nothing - the cockpit recenter-on-view-cycle is v_view_cycle_fwd's own behavior. It is only accepted in the view_director_mode actionmap (the cinematic/Director camera), which this combat profile doesn't use. -->
+    <!-- Camera look on the MTQ Left Module analog mini-stick (axes js2_x/js2_y, centers at 32767 = neutral, so no off-center calibration needed - unlike the throttle). Moved off the MHG top coolie hat (js1 25/26/27/28, now strafe). Pitch is inverted via flight_view_pitch in the js2 <options> block at the top of this file. -->
     <action name="v_view_yaw">
       <rebind input="js2_x"/>  <!-- MTQ mini-stick X axis - look left/right -->
     </action>
@@ -520,7 +520,7 @@
       <rebind input="js1_button23"/>  <!-- MHG upper rocker DOWN - salvage beam spacing - (narrower gap) -->
     </action>
     <action name="v_salvage_cycle_modifiers_structural">
-      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle the STRUCTURAL salvage field's mode (game HUD: Fracture Field / Disintegration Field / Suction). Same button as the mining laser's fracture/extract switch, so the rocker centre is the "tool mode" press in both modes. Moved off AB6 right wing 4 (js1_button56) on 2026-11-22 for the Gatac Hyun (scraper heads + disintegration area, like the Salvation). Hull SCRAPING is not a mode of this tool - it is the salvage heads on the trigger. -->
+      <rebind input="js1_button24"/>  <!-- MHG upper rocker CENTER - cycle the STRUCTURAL salvage field's mode (game HUD: Fracture Field / Disintegration Field / Suction). Same button as the mining laser's fracture/extract switch, so the rocker center is the "tool mode" press in both modes. Moved off AB6 right wing 4 (js1_button56) on 2026-11-22 for the Gatac Hyun (scraper heads + disintegration area, like the Salvation). Hull SCRAPING is not a mode of this tool - it is the salvage heads on the trigger. -->
     </action>
     <!-- SALVAGE bank on the MHG right hat (js1 12-16; sub-target / attacker cycling and gimbal lock in combat, all operator-gated): UP = focus ALL heads, LEFT / RIGHT = focus the left / right head, DOWN = flip the beam axis, CENTER PRESS = reset the gimbal. Fire-left / fire-right (regardless of focus) are on MTQ keypad A2 / A3, which carry nothing else. Moved off the AB6 wings, which are now the always-live power panel. -->
     <action name="v_salvage_focus_all_heads">
@@ -542,7 +542,7 @@
       <rebind input="js2_button3"/>  <!-- MTQ keypad A3 - toggle-fire the RIGHT beam (regardless of focus) -->
     </action>
     <action name="v_salvage_reset_gimbal">
-      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - reset the salvage gimbal to centre -->
+      <rebind input="js1_button16"/>  <!-- MHG right hat CENTER PRESS - reset the salvage gimbal to center -->
     </action>
     <!-- TRIAL, UNVERIFIED IN-SHIP: vehicle tractor-beam distance on the MHG lower hat UP / DOWN (scan-angle +/- in Scan mode, operator-gated). For the Golem OX, whose tractor turret hangs off a salvage controller in the game files (CLAUDE.md section 6 item 15). A no-op on ships with no vehicle tractor. Remove if the OX tractor turns out not to run through Salvage mode. -->
     <action name="tractor_beam_vehicle_increase_distance">

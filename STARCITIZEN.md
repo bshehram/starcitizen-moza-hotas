@@ -58,7 +58,7 @@ on each other.
 Then report briefly: where I am on the *Now* list and the next step, what has changed since the
 page was last updated, what is waiting on me (things to test in a ship, decisions to make), and
 anything that looks off, such as a validator difference, a new game build, or joysticks
-enumerated in the wrong order. I don't need the docs summarised back to me.
+enumerated in the wrong order. I don't need the docs summarized back to me.
 
 ## Where things live
 
@@ -83,7 +83,7 @@ at `LIVE\user\client\0\controls\mappings`.
 - **I'm not in a rush, and I want the complete, correct result.** Plan so the finished thing
   comes out right the first time: every material at the target quality, then the whole set crafted
   together. I've turned down interim versions offered to save time, such as "craft now, upgrade
-  later" or three armour pieces now and the helmet later, so leave those out. The same goes for
+  later" or three armor pieces now and the helmet later, so leave those out. The same goes for
   repo work.
 - **It's my repo and my layout, and you keep it correct.** Which control does what is my
   decision. If a change means moving or displacing a control I didn't mention, show me the options
@@ -118,6 +118,9 @@ at `LIVE\user\client\0\controls\mappings`.
   label you made up during the work. On a long job, say in a line what you're about to do, give a
   short update now and then, and close with a recap that stands on its own: what you found, what
   you did, what's next. Use a table for routes and numbers, and give times in my local time.
+- **American English.** I'm American, so write American spelling and usage everywhere: replies,
+  the docs, memory, the page and commit messages. That means "center", "armor" and "catalog", and
+  dates written month first. Text quoted from the game keeps the game's own spelling.
 
 ### What needs no approval, and what does
 
@@ -155,12 +158,12 @@ So the docs, memory and the page all mark how each thing is known, and I want th
   quit), and working in a ship. Say which state a thing is in. Only I can report the last one.
 - **Say where a game fact comes from.** Read from the game's files (`[game]` in the docs), taken
   from a community source (`[ref]`), seen in my log or a screenshot, or told to you by me.
-  Second-hand stays labelled second-hand until it has been checked.
+  Second-hand stays labeled second-hand until it has been checked.
 - **The log is silent about a lot.** It doesn't record what I mined or carried, or the start of a
   refinery job; memory `sc-game-log-reading` has the full list. When it is silent, ask me or look
   for a screenshot instead of filling the gap.
 - **Notes are dated.** Memory and the docs record what was true when they were written. When one
-  names a file, a setting or a game behaviour that matters to what you're doing, check it against
+  names a file, a setting or a game behavior that matters to what you're doing, check it against
   the thing itself, and correct the note if it has drifted.
 - **Label your own inferences.** "I think", "probably" and "unverified" are all fine. A guess
   stated as fact is what I don't want.
@@ -207,7 +210,7 @@ session I report, update it and republish it to the same link, following the rou
 
 **A new game patch.** `python tools/gamedata.py check` shows whether a bound action was renamed,
 moved or removed and whether new stock defaults overlap my controls. `python tools/gamedata.py
-catalogue` regenerates the action catalogue. `CLAUDE.md` §7 lists the version stamps to update.
+catalog` regenerates the action catalog. `CLAUDE.md` §7 lists the version stamps to update.
 
 **PC trouble.** Memory `pc-usb-dropouts` has the hardware, the USB wiring and the Windows logs
 that show a device dropping. Diagnose from the logs.
