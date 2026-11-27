@@ -125,8 +125,9 @@ picked by hand stays until the context next changes.
   the user first.
 - A device watch that flags a stick or throttle dropping off USB.
 - A controls view per operator mode, from the same tables the reference cards use.
-- Switching views from the stick base's two unbound levers. The page probably cannot read them:
-  whether a browser exposes that many joystick buttons, or any while unfocused, is **[verify]**.
+- Switching views from the stick base's two unbound levers. The page cannot read them: the browser
+  exposes at most 32 buttons per device and these are numbered 57 to 62 **[ref: Chromium source,
+  §14]**. The service would have to read the stick itself through DirectInput.
 - Contract tracking, once the markers for accepting and completing a contract are confirmed.
 
 ## 5. Shape
@@ -156,6 +157,12 @@ idempotence in §7.
 **Standard library only**, so there is nothing to install and nothing extra in memory. The repo's
 tools must stay usable on a Mac ([`../tools/CLAUDE.md`](../tools/CLAUDE.md)), so keep every
 Windows-only call in `winutil.py`: the parser, `timeline` and the tests then run anywhere.
+
+**The event stream on `http.server` [ref, §14].** Keep the server's default HTTP/1.0 responses:
+HTTP/1.1 would need an exact length on every response. Each connected page holds one thread. A
+closed page is only noticed when a write fails, so send a comment line every 15 seconds and catch
+the connection errors. Send a `retry:` value so the page reconnects quickly, and cap the number of
+connected pages: the browser allows six connections to one address.
 
 ## 6. The service
 
@@ -286,7 +293,7 @@ Budgets to measure against, not promises. Record the measured figures in `dashbo
 | Service CPU, game running | 0.2% of one core or less, averaged over 10 minutes |
 | Service CPU, no game | effectively zero: one process check every 10 seconds |
 | Reading a whole 5 MB log at startup | 1 second or less |
-| Dashboard window, whole browser process tree | 250 MB or less **[verify: estimate, research pending in §14]** |
+| Dashboard window, whole browser process tree | 250 MB or less. Expect 100 to 200 MB **[ref: an estimate from measurements of the same engine, §14; measure it]** |
 
 How to stay inside them:
 
@@ -301,11 +308,14 @@ How to stay inside them:
   one-second timer drives the clocks and countdowns. Only the parts that changed are redrawn.
 - **Write to disk rarely.** The state file is saved at most every 10 seconds, and only when
   something changed.
+- **Clocks from the system time.** Each tick computes the time from the clock instead of counting
+  ticks, so a page that was paused or slowed is right again the moment it is visible.
 - **Give memory back.** The window can close itself a few minutes after the game exits.
 
-If the window goes over budget, measure before changing anything, then try in this order: a
-dedicated browser profile with no extensions, switches that turn off background work, and only
-then a different way of showing the page.
+If the window goes over budget, measure with the browser's own task manager (Shift+Esc) before
+changing anything. Showing the page in the browser the user already has open would cost roughly
+one page less **[ref]**, but the placement switches are then ignored and their extensions run in
+the page. The research turned up no way to show an HTML page in tens of megabytes.
 
 ## 10. Data
 
@@ -377,6 +387,26 @@ files, all local, all bounded.
 - Numbers the user acts on (scan values, quality figures, countdowns) get the largest type.
 - Times are local. American spelling and month-first dates, as everywhere in this project.
 - No sound: browsers block it until someone clicks the page.
+
+**Opening the window [ref, §14].** Use the browser's app mode with a profile folder of its own:
+
+```
+msedge.exe --user-data-dir=<dashboard\data\browser> --app=http://127.0.0.1:<port>/
+           --window-position=<x>,<y> --start-fullscreen --no-first-run
+```
+
+- The separate profile folder is required. Without it the launch is handed to the browser that is
+  already running, and the placement switches are dropped.
+- `<x>,<y>` is any point well inside the side monitor. Full screen then fills that monitor. F11
+  leaves full screen and Alt+F4 closes the window.
+- Do not use `--kiosk`: it ignores placement and is awkward to leave.
+- `--disable-background-networking`, `--disable-component-update` and
+  `--no-default-browser-check` are low-risk for a page served from this PC. Leave `--disable-gpu`
+  and `--single-process` alone.
+- A window that is visible but not focused keeps updating at full rate. One that is minimized or
+  fully covered is slowed down, which costs nothing here.
+- The game should run in borderless window mode, so a click on the side screen does not minimize
+  it.
 
 View rules, kept as a small table in code so they are easy to tune:
 
@@ -451,9 +481,22 @@ build confirms them on this PC; each names its source.
    not from Microsoft. Still open: whether the task's command needs quotes around a path with
    spaces, which file encoding `schtasks /XML` accepts, and whether PowerShell's
    `Register-ScheduledTask -AtLogOn -User <self>` also works without elevation.
-2. How the browser's app-window switches behave, how to place the window on the side monitor,
-   what the window really costs in memory, and whether an unfocused but visible window keeps
-   updating.
+2. **Answered, the window [ref].** Placement switches are read only from a browser process's own
+   command line, which is why the separate profile folder is needed
+   ([Chromium source](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/ui/browser_window_state.cc),
+   [Eric Lawrence on Chromium startup](https://textslashplain.com/2022/06/15/chromium-startup/)).
+   Throttling follows visibility, not focus
+   ([Chrome's timer throttling notes](https://developer.chrome.com/blog/timer-throttling-in-chrome-88)).
+   The 32-button limit is in
+   [Chromium's gamepad code](https://chromium.googlesource.com/chromium/src/+/main/device/gamepad/public/cpp/gamepad.h).
+   Event stream behavior is in the
+   [HTML standard](https://html.spec.whatwg.org/multipage/server-sent-events.html) and
+   [Python's `http.server`](https://docs.python.org/3/library/http.server.html). Memory has no
+   official figure: two project reports measured the same engine at about 76 MB for a blank page
+   and 113 MB for a small app, and a separate profile cost about 75 MB more than a shared one.
+   Still open: the window's real memory on this PC, whether `<x>,<y>` are scaled or physical
+   pixels when the main monitor uses display scaling, and whether a game in exclusive full screen
+   counts as covering the side monitor.
 3. What other log-reading tools do, what the publisher has said about them, and whether the game
    keeps taking stick input when another window has focus.
 4. Whether the game truncates `Game.log` in place or deletes and recreates it at launch. Compare
