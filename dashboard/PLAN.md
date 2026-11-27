@@ -949,11 +949,16 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Community tools in general | **No precompiled binaries.** A community tool has to be open source and built or run from source here; otherwise we build our own. Now a standing rule in [`../STARCITIZEN.md`](../STARCITIZEN.md). | - |
 | Which way up the side monitor stands | **Either: landscape or portrait, "depending on my mood".** The page has a layout for each and picks by the shape of its window (§11). | A page designed for landscape only, which is what this plan said before. |
 
-One thing is still to settle when stage 6 starts: **which way the stream is switched on.** The
-environment variable on the launcher touches no game file and can be set for a single session;
-the `user.cfg` line is a file in the game folder that stays until removed. The first is the
-recommendation. Either changes something outside this repo, so the user is told before it is
-done.
+**Decided by the user on 2026-11-27, at the start of the build session:**
+
+| Decision | Their answer | What was turned down |
+| --- | --- | --- |
+| Registering the logon task (§6) | **Claude registers it** once that stage is built and tested, tells the user, and shows them `uninstall`. | The user running `install` themselves; no autostart at all. |
+| How the telemetry stream is switched on (§3) | **The launcher variable, permanently:** a per-user Windows environment variable, `GRPC_CLIENT_SERVER_ENABLED=true` (`setx`). No game file is touched. It takes effect the next time the RSI Launcher is started. Set it when the reader exists (stage 6) and tell the user when it is done. | The variable for one session only (the recommendation); a line in the game's `user.cfg`; leaving the stream off until 5.0. |
+
+What "permanent" means, so nobody is surprised later: while the game runs, any program on this PC
+can read the stream, not only the dashboard. To undo it, delete the variable
+(`reg delete HKCU\Environment /v GRPC_CLIENT_SERVER_ENABLED`) and restart the launcher.
 
 ## 16. When it ships
 
