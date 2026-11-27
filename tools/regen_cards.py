@@ -314,7 +314,7 @@ MHG_R = [
     {'Label': '26', 'Primary': 'Strafe right'},
     {'Label': '27', 'Primary': 'Strafe down'},
     {'Label': '28', 'Primary': 'Strafe left'},
-    {'Label': '29', 'Primary': 'Full reverse (hold, trial)'},
+    {'Label': '29', 'Primary': 'Full reverse (hold)'},
 ]
 
 # ================================================================ MTQ (js2 1-65 + axes)
@@ -373,7 +373,7 @@ MTQ_R = [
     {'Label': '65', 'Primary': 'Boost / afterburner', 'Hint': 'L-Module button'},
     {'Header': 'AXES'},
     {'Label': 'RY', 'Primary': 'Main throttle - forward', 'Hint': 'throttle lever'},
-    {'Label': 'RZ', 'Primary': 'Throttle - reverse', 'Hint': 'behind idle detent'},
+    {'Label': 'RZ', 'Primary': 'Reverse axis - unbound', 'Hint': 'behind idle detent', 'Unbound': True},
     {'Label': 'Slider', 'Primary': 'Mining laser power', 'Hint': 'FLAPS, Mining'},
     {'Label': 'Dial', 'Primary': 'Salvage beam spacing', 'Hint': 'S-brake, Salvage'},
     {'Label': 'X / Y', 'Primary': 'Camera look (yaw / pitch)', 'Hint': 'mini-stick'},
@@ -439,8 +439,8 @@ def main():
                 {'D': sub_mtq_main, 'Frac': 0.74, 'Caption': 'Throttle panel'}]},
         ]},
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MTQ_L}, {'X': 1475, 'W': 365, 'Rows': MTQ_R}],
-        'Legend': ('Throttle forward = axis RY; reverse = axis RZ, the travel behind the idle detent (MOZA Reverse '
-                   'Thrust mode); MHG stick press 29 = full reverse.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
+        'Legend': ('Throttle forward = axis RY; reverse = MHG stick press 29, held. The lever travel behind the idle '
+                   'detent (axis RZ) is unbound.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
                    'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial).'),
     }, browser)
 

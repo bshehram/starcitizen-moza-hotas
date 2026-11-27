@@ -3,7 +3,7 @@
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
 [![Validated](https://img.shields.io/badge/validated-against_4.10_game_data-brightgreen)](#status)
 [![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.10.3-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-121_%2B_10_cleared_defaults-informational)](MOZA.xml)
+[![Bindings](https://img.shields.io/badge/bindings-120_%2B_10_cleared_defaults-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
@@ -32,7 +32,7 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
 | 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
 | 🚀 | **Star Citizen** (validated against **Alpha 4.10.3**, build `4.10.201.48085`) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
-| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** and calibrated (so the travel behind the idle detent is a proportional reverse axis, and the Idle point sits just forward of the detent so the forward throttle reads zero at rest), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
+| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** with its Idle point calibrated just forward of the detent (so the forward throttle reads zero with the lever resting in the detent; the reverse axis behind the detent is not bound), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
 
 > **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
@@ -159,7 +159,7 @@ on a Mac.
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  131 actions, each with one `<rebind>`, across 21 action maps — 121 bindings plus 10 cleared
+  130 actions, each with one `<rebind>`, across 21 action maps — 120 bindings plus 10 cleared
   game defaults. The game keeps a single joystick input per action, so no action carries two.
   Buttons that appear in several maps (the trigger, rocker and stick hats) are intentional
   **operator-mode reuse** — only one of those maps is live at a time, depending on whether the
@@ -179,10 +179,12 @@ on a Mac.
   mining and salvage banks moved to the stick's right hat, and shield faces went on the MTQ's WPN
   hat as a trial. That version was loaded the same day and the wing power panel worked. The load
   also showed that the game keeps only one joystick input per action: a stick-press "full
-  reverse" added beside the throttle's reverse axis had replaced it. Reverse is the throttle axis
-  again, and the stick press now tries full reverse through a separate action. The corrected
-  profile was reloaded the same day and the game's saved bindings match it exactly. That fix,
-  the shield faces and the right-hat banks have not been flown yet.
+  reverse" added beside the throttle's reverse axis had replaced it. The throttle axis was
+  restored and the stick press was tried on a separate action. Flown that afternoon, the
+  throttle's reverse worked and the press did nothing, because that action takes no button. That
+  evening reverse moved to the stick press alone, held for full reverse, and the throttle's
+  reverse axis was left unbound so the lever can rest in its idle detent. That last change has
+  not been loaded yet. The shield faces and the right-hat banks have not been reported on.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
