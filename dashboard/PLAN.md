@@ -69,19 +69,22 @@ The five things the earlier follow-up did:
   those.
 - A request with the token header twice is refused, and so is a foreign `Origin` on any route.
 
-**The second round of reference data: two of seven tables done, the rest not.** It was started
-for the Salvage, Combat, Cargo and Mission views and stopped early for the reinstall. What is
-committed passes its tests, and the generator's `--check` passes.
+**The second round of reference data: all seven tables done (2026-11-27 evening, `0da1a24`).**
+It was started for the Salvage, Combat, Cargo and Mission views, stopped early for the
+reinstall, and finished in the second session. Everything committed is read from the game's
+own files; 41 reference tests pass, also on a clean export of the commit, and the generator's
+`--check` passes. A full generator run takes about a minute and peaks at about 520 MB, so run
+it with the game closed.
 
 | Table | State | What the next agent needs to know |
 | --- | --- | --- |
 | Positions | **Done.** 463 places in `locations.json` carry `pos`, in meters in their system's own coordinates. All 8 route distances held in memory match to 0.1 Gm (New Babbage to ARC-L4 is 32.7). | - |
 | Controls per mode | **Done.** `controls.json`, 5 modes. The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as [`../CLAUDE.md`](../CLAUDE.md) has it; the wording is read from `tools/regen_cards.py` without running it, and a test fails when a card label it names is renamed. | - |
-| Ships | **Code written, not tested, not wired in.** `build_ships()` in `build_reference.py`. | Cargo is counted in 1.25 m grid cells, which gives the Golem OX its 64 SCU. The fleet's jobs for the view rules still have to go in a hand file, from [`../CLAUDE.md`](../CLAUDE.md) §11. |
-| Prices | **Code written, not tested, not wired in.** `fetch_snapshots()` and `build_prices()`. Nothing calls them, so the generator never goes online. | UEX's price and terminal tables, fetched 2026-11-27, are saved in `data/handoff/downloads/`. The fetch must stay behind an explicit flag. |
-| Shops | Not started. | The shop names are in the purchase and sale lines of the logs (§3). |
-| Contract kinds | Not started. | The SCMDB mission lists for 4.10.3 and for the 5.0 test build, fetched 2026-11-27, are in `data/handoff/downloads/`. See the 5.0 note in §4. |
-| Refining | Not started. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast". Which stations have a refinery is the `Refinery` amenity in each star-map record. |
+| Ships | **Done.** `ships.json`: 1,099 vehicle classes keyed as the log prints them, with name, maker, crew, role and cargo in SCU. `ships.hand.json` holds the fleet's jobs: Golem mining, Salvation salvage, Golem OX cargo, M80 combat, every other ship none. | Cargo is counted in 1.25 m grid cells. Many ships carry their grid outside the default loadout, in a vehicle definition this build stores encrypted; there the cargo comes from the one cargo-grid record named for the class (`cargo_how` says which) **[verify]**. All 11 fleet ships resolve, and their cargo matches [`../CLAUDE.md`](../CLAUDE.md) §11.1 (the Golem OX is 64). 226 classes have several grids named for them and are left without a figure. |
+| Contract kinds | **Done.** `contracts.json`: 2,343 contracts from the game's contract generator records (101 generators), each with a kind, a view and, for combat, whether it is on foot or in a ship (from what the mission spawns: 623 in a ship, 211 on foot, 54 not settled); 603 exact titles, 100 title patterns, and fallback rules in `contracts.hand.json`. | **The lookup order is in the file's `_meta.lookup`, and the service must follow it:** the contract name (a trailing `_<n>` is a sub-contract index), then the generator when all its contracts agree, then the title, then the rules, then "mission" and `data/unmapped.json`. The marker names in the samples equal the records' internal names. SCMDB was a local cross-check only (its license text is contradictory, so none of its rows is committed): all but 9 of its 4.10.3 contracts resolve, and of the 337 new in the 5.0 test build the rules place all but 18, which land on "mission". The Bounty Hunters Guild's generators are in this build already, all combat. Unverified: that a legacy contract prints its generator's name in the marker line. |
+| Shops | **Done.** `shops.json`: 310 shop names from the game's object containers, with a kind (item shop, landing services, commodity terminal, rental, refinery, other). | 200 names belong to one place; **110 are shared across a chain** (`SCShop_Admin_lt_base_g` is at 29 places, the refinery desk at 16), so for those the place is the last inventory location in the log, as §3 warned. All nine names from the old logs are there. |
+| Refining | **Done.** `refineries.json` gained `places`: the 29 places with a refinery, by the star map's amenity and by a refinery shop being placed there. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast"; nothing was invented. Levski has the shop but not the amenity. |
+| Prices | **Done, and kept out of git.** `data/reference/prices.json`: 124 commodities, 2,597 dated rows from 135 terminals, each tied to a place and most to a shop. | Built from UEX's tables saved on 2026-11-27. UEX's API page welcomes use in any project, but nothing there or in its terms says the data may be republished, so the snapshot stays local and a missing file means "no prices". The generator goes online only with `--fetch`, never with `--check`; tests prove both. **Open:** `refineries.json` has carried UEX yield rows in git since the first session, by the same source. Whether those move out of git too is the user's call. |
 | The survey of what salvage, combat and hauling leave in the log | **Rebuilt without the logs on 2026-11-27: [`SURVEY.md`](SURVEY.md).** From this plan's own record, the game's files and five other tools' parsers, every item marked with how it is known. What it changes for stage 3: add notice kinds for a failed or withdrawn contract and objective, the crime and fine group, and pay; read hauling and courier stops out of the objective texts; keep a per-session tally of ships destroyed and lost; take a death from the body item, not the whole burst; and the kind of a contract comes from its contract name, with a trailing `_<n>` stripped, because twelve generators mix kinds. Two faults it found in the reader: the tutorial-tip rule would hide a long "Contract Failed" notice, and a failed contract would read "Contract fail". The first survey, below, was: **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
 
 `data/handoff/` is git-ignored. It survived the reinstall through the kit's backup of this
@@ -93,9 +96,10 @@ game's own files, and other open-source tools' parsers, each item marked with ho
 
 1. **Finish the two items above:** have the stage 2 follow-up confirmed by a reviewer, and
    complete the reference tables (ships, prices, shops, contract kinds, refining) and the
-   survey. Stage 3 needs the survey, the ships and the contract kinds first. *All three were
-   handed to agents at 5:10 PM on 2026-11-27 (a reviewer, a reference builder, and a survey
-   rebuilt without the old logs); nothing of theirs is committed until it has been checked.*
+   survey. Stage 3 needs the survey, the ships and the contract kinds first. *Done on
+   2026-11-27 (evening): the reviewer confirmed the follow-up, the reference tables are
+   committed (`0da1a24`) and the survey is [`SURVEY.md`](SURVEY.md). What is left of this step
+   is the fix round the review asked for (above), then its confirmation by the reviewer.*
 2. **The launch check with the service itself** (stage 2's last check): with the game closed run
    `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
    read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
@@ -1256,9 +1260,11 @@ every game patch.
   records. They are a UEX snapshot (its open API, rows dated 2026-10-16 to 2026-11-19) plus 12
   readings off a refinery terminal on 2026-11-26, which agree with UEX on every value. Each
   figure carries its date and source.
-- **Not in the tables yet**, wanted by the views: commodity prices and which shop name in a sale
-  line is which place (Selling), method cost and time and which stations have a refinery
-  (Refinery), and distances (Travel). Stage 3 adds what its views need.
+- **Added in the second round (2026-11-27):** positions for distances, the controls per mode,
+  ships, contract kinds, shops, the places with a refinery, and prices (the last in the
+  git-ignored `data/reference/`). "Where the build stands" at the top has the counts and
+  caveats. Still not anywhere, because the game's files do not hold it: a method's cost and
+  time as numbers.
 - The scan rule, reading = one rock's value x the number of rocks, is community knowledge, not
   from the files. It matches what the user has seen in play.
 

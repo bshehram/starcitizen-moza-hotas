@@ -131,7 +131,11 @@ class PrivacyTest(unittest.TestCase):
             self.skipTest("no local game log")
         for kind in ("player name", "player or character id", "shard", "session id", "server address"):
             self.assertTrue(self.ids[kind], "could not read any %s: the test would be blind" % kind)
-        self.assertGreater(len(self.ids["player name"]), 20, "too few names learned: contexts broken?")
+        # A long history holds dozens of other players' names, so few names there means the
+        # contexts broke. A fresh install has one short session: 3 names on 2026-11-27, the day
+        # a Windows reinstall emptied logbackups. Hold the bar only once there is a history.
+        if identifiers.logs_read >= 10:
+            self.assertGreater(len(self.ids["player name"]), 20, "too few names learned: contexts broken?")
 
     def test_a_slow_machine_still_learns_from_the_minimum(self):
         if self.ids is None:
