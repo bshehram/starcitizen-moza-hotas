@@ -16,33 +16,68 @@ Every log of the user's from before that evening is gone (see "What the Windows 
 changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
 re-run.*
 
-### The third session, 2026-11-28 (in progress when this was written, about 5:30 AM)
+### The third session, 2026-11-28: paused at 5:46 AM for a shutdown
 
-*Kept here so a session that ends without warning loses nothing. Fold it into the sections
-below as each piece lands, then delete it.*
+*The user stopped the session to install memory (an extra 32 GB, by their word). Every agent
+was told to stop at a safe point and write a handoff note; all five have stopped. Nothing is
+lost, but three pieces are half done. A new session picks each one up from the note named
+below. Fold this block into the sections under it as each piece lands, then delete it.*
 
-- **Running, nothing of theirs committed yet:**
-  - A reviewer (Opus 5.5) re-running stage 3's third fix round on a frozen copy of `b399f18`
-    ("Left to do" step 1).
-  - A reviewer (Opus 5.5) attacking the rig reference data on another frozen copy, including a
-    row-by-row check of the card tables against `MOZA.xml`, which nothing had done before.
-  - A builder (Opus 5.5) wiring stage 3 into the service ("Left to do" step 2), working in the
-    tree: `scdash/service.py`, `server.py`, `config.py`, `scdash.py`, their tests,
-    `dashboard/CLAUDE.md`, and a new last section of `STATE.md` for the page's endpoints. If
-    those files are modified and uncommitted, that is its unfinished work: run the suite and
-    read its diff before building on it.
-  - A designer (Fable 5.2) laying out the rig reference section and the Live / Rig reference
-    switcher as a mockup with captures, in `data/design/rig/` (git-ignored; `NOTES.md` there
-    says what it settled). The user has to see it in both orientations before it is built.
-- **Done this session:**
-  - Step 4's first half: the user's own `data/plan.json` exists (written from the game plan
-    page; `plan.normalize` skips nothing; the board builds from it), and the update routine in
-    the memory note `game-plan-artifact` has the `plan.json` step.
-  - The session brief was renamed `SCBOT.md` (it was `STARCITIZEN.md`), and it now says which
-    model a subagent runs on ("How the build is run" below).
-- **The live service is still stopped.** Start it only once the wiring is committed: started
-  now, it would import half-edited code and write to the real data folder.
-- The suite passed on `b399f18` that morning: 467 tests, 141 s.
+**Where everything is.** `data/handoff/session3/` (git-ignored, on this disk) holds one folder
+per agent with its note and scripts. The unfinished wiring is also on the branch
+`wip-dashboard` (`ade771b`, on top of `1b0d305`). The session's scratch folder under `%TEMP%`
+held the frozen copies; they are only exports of `b399f18` and can be made again.
+
+| Piece | State | Pick it up from |
+| --- | --- | --- |
+| Card wording corrected against `MOZA.xml` and the game's catalog | **Done, on `main`** (`1b0d305`): checked by the orchestrator (profile check unchanged, the XML differs in comments only, both cards looked at), not by a second agent. | - |
+| Stage 3's first half, third fix round ("Left to do" step 1) | **Reviewed.** The four claims hold for the cases the docs name, but the tests miss five ways of breaking the fixes, and the review found eight new faults. **No fix round started.** | `session3/review-3a-r3/REPORT.md` |
+| The rig reference data (`34c482d`) | **Reviewed.** Complete and in the right views; the status marks, the mode information and the test are not good enough. Part A of the fix round (card wording) is the commit above. **Part B, the data itself, is not started.** | `session3/review-rig/REPORT.md`, `session3/rig-fix/HANDOFF.md` |
+| Stage 3 wired into the service ("Left to do" step 2) | **Half done, uncommitted, in the working tree:** `scdash/service.py`, `server.py`, `config.py`, `scdash.py`, `tests/test_server.py`, `test_replay.py` and the new `tests/test_wiring.py`. All nine items of the brief are built; 29 new tests pass on their own. **Not done:** a run of the whole suite on the result, `dashboard/CLAUDE.md`, the new last section of `STATE.md` (the message and the four endpoints), the `README.md` line for `replay --plan`, the measurements, the real-session replays, and the headless proof that the page's content policy loads the rig images. | `session3/wiring/HANDOFF.md` |
+| The rig reference section's design ("Left to do" step 3) | **Mockup written, never opened in a browser, no captures.** The design is settled in outline: nine pages (eight pieces of hardware, each a diagram with its rows, plus Find), a mode filter (All, Flight, Mining, Salvage), the switcher at the top right of the strip. | `data/design/rig/NOTES.md` |
+| The user's own `data/plan.json` ("Left to do" step 4) | **Written** from the game plan page; nothing skipped by `plan.normalize`; the board builds from it. The memory note `game-plan-artifact` has the `plan.json` step. | - |
+
+**Next, in this order:**
+
+1. **Finish the wiring.** Read its note, run the whole suite, then the docs, the measurements
+   and the replays its note lists; then a reviewer (the note says what to attack first), then
+   commit. One finding of the stage 3 review belongs here: a lone surrogate (the code point
+   U+D800 written as a JSON escape) in `plan.json` or in a quick timer's label reaches the
+   service's JSON encoder and raises.
+2. **A fix round for stage 3's first half,** from the review's report. Most severe first: the
+   forgotten-name lookup is cubic in a text's hyphen-joined parts (one 2,000-character text
+   takes 1.76 s once more than 1,000 names have been met); comms and notification shapes that
+   `law.py` does not list are shown raw with the name in them; names that differ only in case
+   cut a handle in two; a handle with a leading, trailing or doubled hyphen is not hidden once
+   forgotten; and tests for the five fixes that nothing checks today.
+3. **Part B of the rig data,** with the review's findings 1 to 7 and the designer's ten
+   requests in `data/design/rig/NOTES.md` together (crops as views, the sample readings
+   painted out, a home for every axis row, coordinates per button, fuller wording for the
+   variants, where-it-is hints for the stick rows, trial as a status and not as text). Add a
+   test that checks the card tables against `MOZA.xml`: every joystick input the profile binds
+   has a card row, and every row not marked unbound names an input the profile binds.
+4. **Render the rig mockup,** fix what the first look shows, capture it in the four window
+   shapes, and show the user. The designer's open questions for them are at the end of its
+   notes (the feed while the reference is open, missile in the filter, coordinates per button).
+5. Then the views ("Left to do" step 3) on top of the committed wiring.
+
+**For the user, from this session:**
+
+- In Scan mode, press the stick's lower hat up and say whether the scan cone gets wider or
+  narrower (root [`../CLAUDE.md`](../CLAUDE.md) §6 item 26). The cards now use the game's own
+  wording and claim no direction.
+- The first run chosen as current in `data/plan.json` is "Tungsten home" (collect at MIC-L2,
+  haul to New Babbage), then Run B. That order was the orchestrator's call.
+
+**Also changed this session:** the session brief is `SCBOT.md` (it was `STARCITIZEN.md`), and
+it now says which model a subagent runs on ("How the build is run" below). Once the new memory
+is confirmed, the "while the game runs" limits below can be loosened.
+
+**The live service is still stopped.** Start it only once the wiring is committed: started
+now, it would run half-finished code against the real data folder.
+
+The suite passed on `b399f18` that morning (467 tests, 141 s), and again in the reviewer's
+frozen copy. It has **not** been run on the tree as it stands.
 
 ### The short version
 
@@ -71,7 +106,7 @@ below as each piece lands, then delete it.*
 | The survey | [`SURVEY.md`](SURVEY.md): what salvage, hauling, combat and missions leave in the log, each item marked seen, game text or second-hand, with 16 checks for new sessions. | `bc4108f` | Rebuilt without the old logs, from this plan's record, the game's files and five other tools' parsers. |
 | The look (§11) | Direction B, "Avionics", in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | `7c23588` | The user picked it from captures of every screen in both orientations. |
 | Stage 3, first half: the logic behind the page | `scdash/refdata.py`, `law.py`, `plan.py`, `rules.py`, `alerts.py`, `views.py`, `board.py`, with changes to `events.py`, `state.py`, `names.py`, `words.py`, `summary.py` and `timeline.py`; `plan.example.json`; [`STATE.md`](STATE.md). One entry point, `board.build(state, plans, user, now, game_running)`. | `f094c6c` | 467 tests. Reviewed twice: sixteen fixes confirmed by running, the worst a log line that had stalled the reader for 157 s. Replayed on the user's three real sessions of 2026-11-27 with no plan loaded: Preflight at launch, Now in the game world, Mining on boarding the Golem, Travel on each jump, Mining on arrival at ARC-L4, Idle after the quit. **A third, smaller fix round is in the commit and has not been re-run by the reviewer** ("Unfinished work" below). Not called by the service yet. |
-| Rig reference data (§4 item 18) | `tools/regen_cards.py` also writes `web/rig/`: `rig.json` (93 card rows in 7 views) and six diagram images in the page's colors; `tests/test_rig.py`. Root [`../CLAUDE.md`](../CLAUDE.md) §8.5. | `34c482d` | The cards come out unchanged; the test fails until the files are regenerated after a card change; the generator reproduces its output byte for byte. Checked by the orchestrator, not yet attacked by a second agent. Not served or shown yet. |
+| Rig reference data (§4 item 18) | `tools/regen_cards.py` also writes `web/rig/`: `rig.json` (96 card rows in 8 views since `1b0d305`; 93 in 7 when first built) and six diagram images in the page's colors; `tests/test_rig.py`. Root [`../CLAUDE.md`](../CLAUDE.md) §8.5. | `34c482d` | The cards come out unchanged; the test fails until the files are regenerated after a card change; the generator reproduces its output byte for byte. Checked by the orchestrator, not yet attacked by a second agent. Not served or shown yet. |
 
 The plan itself was corrected throughout from what the build and the reviews found: §3, §4, §8,
 §9, §10, §11, §12 and §15.
