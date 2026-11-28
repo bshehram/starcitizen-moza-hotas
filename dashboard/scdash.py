@@ -270,7 +270,7 @@ def cmd_stop(args):
 
 def cmd_status(args):
     from scdash import service
-    from scdash.words import clock, duration
+    from scdash.words import clean_all, clock, duration
     paths, settings, notes, log = _resolve(args)
     info = service.instance_info(paths, args.port or settings["port"])
     st = service.instance_status(info)
@@ -279,6 +279,10 @@ def cmd_status(args):
            "stop_marker": paths.stopped.exists(), "lock_held": bool(info["lock_held"]),
            "port_user": info["port_user"], "port_note": info["port_note"], "hung": bool(info["hung"]),
            "stale_run_json": bool(info["run"] and not info["healthy"] and not info["hung"]), "status": st}
+    # The session id is the log's first line, and the rest came over the wire: no control or bidi
+    # character from either reaches the console, or a script reading --json.
+    out = clean_all(out)
+    st = out["status"]
     if args.json:
         print(json.dumps(out, indent=2, ensure_ascii=False))
         return 0
@@ -294,7 +298,7 @@ def cmd_status(args):
         if info["lock_held"]:
             print("  An instance holds the lock but does not answer on port %d." % info["port"])
         if info["port_user"] == "foreign":
-            print("  Port %d is used by another program: %s." % (info["port"], info["port_note"]))
+            print("  Port %d is used by another program: %s." % (info["port"], out["port_note"]))
         elif info["port_user"] == "scdash":
             print("  Port %d is used by another dashboard instance (pid %s)." % (info["port"], info["health"]["pid"]))
         if out["stale_run_json"]:
@@ -354,6 +358,10 @@ def cmd_replay(args):
     if data == live_data or live_data in data.parents:
         raise SystemExit("replay never uses the live data folder %s: pick another with --data" % live_data)
     try:
+        for name in ("source.log", "Game.log"):        # both opened in place: never through a link (PLAN §8)
+            bad = service.link_on_the_way(data, data / "replay" / name, include_self=True)
+            if bad is not None:
+                raise SystemExit("replay never writes through a junction or a link: %s" % bad)
         # A copy in the replay's own folder, taken now: the feed may take minutes, and a live
         # Game.log must never be held open that long (PLAN §8).
         copy = service.copy_log(src, data / "replay" / "source.log")

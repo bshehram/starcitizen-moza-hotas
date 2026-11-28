@@ -4,6 +4,7 @@ Every request is refused unless its Host is this server, reads included; a chang
 also needs the token, a JSON body and this server's Origin; no path from a request opens a file;
 the health check does not carry the token; and the event stream merges, keeps alive, caps."""
 import json
+import logging
 import socket
 import threading
 import time
@@ -244,6 +245,219 @@ class Deadline(ServerCase):
             finally:
                 for s in slow:
                     s.close()
+
+
+class HeadLimits(ServerCase):
+    """Review round 2: a request head is capped at 16 KB and 40 header lines, refused as soon as
+    it goes over, before the rest of it is read (the standard library alone takes 100 lines of
+    64 KB, and two clients sending that cost 8 s of CPU in 10 s and 10 MB that stayed)."""
+
+    def head(self, extra):
+        return ("GET /api/health HTTP/1.0\r\nHost: 127.0.0.1:%d\r\n%s\r\n" % (self.port, extra)).encode("latin-1")
+
+    def test_a_head_over_16_kb_is_refused(self):
+        status, _, body = h.raw_request(self.port, self.head("X-Big: %s\r\n" % ("a" * 17000)))
+        self.assertEqual(status, 431)
+        self.assertIn(b"too large", body)
+        self.assertEqual(self.srv.requests, 0, "no route ran")
+
+    def test_more_than_40_header_lines_are_refused(self):
+        many = "".join("X-H%d: v\r\n" % i for i in range(40))     # with Host, 41 header lines
+        status, _, _ = h.raw_request(self.port, self.head(many))
+        self.assertEqual(status, 431)
+        self.assertEqual(self.srv.requests, 0)
+
+    def test_a_head_within_the_limits_is_served(self):
+        lines = "".join("X-H%d: v\r\n" % i for i in range(39))     # with Host, 40 header lines
+        self.assertEqual(h.raw_request(self.port, self.head(lines))[0], 200)
+        self.assertEqual(h.raw_request(self.port, self.head("X-Big: %s\r\n" % ("a" * 16000)))[0], 200)
+
+    def test_a_huge_head_is_cut_off_early(self):
+        line = b"X-A: " + b"a" * 65000 + b"\r\n"
+        data = b"GET /api/health HTTP/1.0\r\nHost: 127.0.0.1:%d\r\n" % self.port + line * 99 + b"\r\n"
+        sent, err = 0, None
+        with socket.create_connection(("127.0.0.1", self.port), timeout=10) as s:
+            try:
+                for i in range(0, len(data), 65536):              # 6.5 MB, the way the stdlib allows
+                    s.sendall(data[i:i + 65536])
+                    sent += 65536
+            except OSError as e:
+                err = e
+        self.assertIsNotNone(err, "the server stopped reading long before 6.5 MB")
+        self.assertLess(sent, 2 << 20)
+        self.assertEqual(self.srv.requests, 0)
+
+
+class WaitingConnections(ServerCase):
+    """Review round 2: a connection takes one of the 16 worker slots only once its whole head is
+    in, within its limits and with a right Host. One that sends nothing is dropped after a second;
+    at most MAX_WAITING wait, and over that the oldest goes."""
+
+    def idle(self, n):
+        out = []
+        for _ in range(n):
+            out.append(socket.create_connection(("127.0.0.1", self.port), timeout=10))
+        return out
+
+    def closed_by_server(self, s, within):
+        s.settimeout(within)
+        try:
+            return s.recv(100) == b""
+        except (ConnectionResetError, ConnectionAbortedError):
+            return True
+        except socket.timeout:
+            return False
+
+    def test_idle_connections_take_no_worker_slot(self):
+        idle = self.idle(40)                                    # more than the 16 slots
+        try:
+            time.sleep(0.2)
+            t0 = time.monotonic()
+            status, _, _ = h.request(self.port, "GET", "/api/health")
+            self.assertEqual(status, 200)
+            self.assertLess(time.monotonic() - t0, 0.8, "served at once, not after a deadline")
+            t0 = time.monotonic()
+            self.assertTrue(all(self.closed_by_server(s, 3) for s in idle), "silent ones are dropped")
+            self.assertLess(time.monotonic() - t0, 2.5, "within about a second")
+        finally:
+            for s in idle:
+                s.close()
+
+    def test_over_the_cap_the_oldest_waiting_connection_is_dropped(self):
+        with mock.patch.object(config, "MAX_WAITING", 8, create=True), \
+                mock.patch.object(config, "FIRST_BYTE_TIMEOUT", 20.0, create=True):
+            conns = []
+            try:
+                for _ in range(12):
+                    conns.extend(self.idle(1))
+                    time.sleep(0.05)                            # in a known order
+                self.assertTrue(all(self.closed_by_server(s, 2) for s in conns[:4]), "the 4 oldest went")
+                self.assertFalse(any(self.closed_by_server(s, 0.3) for s in conns[4:]), "the 8 newest wait")
+                self.assertEqual(h.request(self.port, "GET", "/api/health")[0], 200)
+            finally:
+                for s in conns:
+                    s.close()
+
+    def test_a_wrong_host_is_refused_before_it_takes_a_slot(self):
+        busy = []
+        head = ("POST /api/shutdown HTTP/1.0\r\nHost: 127.0.0.1:%d\r\nContent-Type: application/json\r\n"
+                "Origin: %s\r\n%s: %s\r\nContent-Length: 50\r\n\r\n" % (self.port, self.origin, server.TOKEN_HEADER, TOKEN))
+        try:
+            for _ in range(config.MAX_CONNECTIONS):            # each worker waits for a body that never comes
+                s = socket.create_connection(("127.0.0.1", self.port), timeout=10)
+                s.sendall(head.encode())
+                busy.append(s)
+            time.sleep(0.3)
+            t0 = time.monotonic()
+            status, _, body = h.request(self.port, "GET", "/api/health", host="evil.example")
+            self.assertEqual(status, 403, "refused at once, though no worker is free")
+            self.assertIn(b"wrong host", body)
+            self.assertEqual(h.request(self.port, "GET", "/api/health")[0], 503, "a right one: busy, said so")
+            self.assertLess(time.monotonic() - t0, 1.0)
+        finally:
+            for s in busy:
+                s.close()
+        self.assertTrue(h.wait_until(lambda: h.request(self.port, "GET", "/api/health")[0] == 200, 5),
+                        "the slots come back when those connections go")
+        self.assertEqual(self.calls, [])
+
+
+class GuardSmallOnes(ServerCase):
+    """Review round 2: a doubled Content-Type is refused like every other doubled header, and a
+    deeply nested body is a client's mistake (400), not the server's (500)."""
+
+    def test_a_doubled_content_type_is_refused(self):
+        raw = ("POST /api/shutdown HTTP/1.0\r\nHost: 127.0.0.1:%d\r\nContent-Type: application/json\r\n"
+               "Content-Type: text/plain\r\nOrigin: %s\r\n%s: %s\r\nContent-Length: 2\r\n\r\n{}"
+               % (self.port, self.origin, server.TOKEN_HEADER, TOKEN))
+        self.assertEqual(h.raw_request(self.port, raw.encode())[0], 415)
+        self.assertEqual(self.calls, [])
+
+    def test_a_deeply_nested_body_is_a_400(self):
+        body = b'{"a":' + b"[" * 30000 + b"]" * 30000 + b"}"
+        status, _, _ = self.post(raw=body)
+        self.assertEqual(status, 400)
+        self.assertEqual(self.calls, [])
+
+
+class FrontEndFaults(unittest.TestCase):
+    """Fix round 2: a failure in the front end's turn shows in the file log (WARNING, which it
+    keeps), the first in full and then a line at most every FAULT_REPORT_SECONDS with a count,
+    so a fault that repeats every turn is seen and cannot fill the log."""
+
+    def test_a_repeating_fault_is_logged_at_warning_and_rate_limited(self):
+        records = []
+
+        class Grab(logging.Handler):
+            def emit(self, record):
+                records.append(record)
+        lg = logging.getLogger("scdash-test-frontend-%x" % id(self))
+        lg.setLevel(logging.DEBUG)
+        lg.propagate = False
+        lg.addHandler(Grab())
+        calls = [0]
+
+        def broken():
+            calls[0] += 1
+            raise RuntimeError("broken turn")
+        with mock.patch.object(server, "FAULT_REPORT_SECONDS", 0.5, create=True):
+            srv = Server(h.free_port(), TOKEN, logger=lg, poll_interval=0.05)
+            srv.route("GET", "/api/health", lambda r: (200, {}), READ)
+            srv.start()
+            try:
+                fe = srv._httpd
+                real = fe._turn
+                fe._turn = broken
+                time.sleep(1.3)
+                fe._turn = real
+                self.assertTrue(fe._thread.is_alive(), "an ordinary fault does not end it")
+                self.assertEqual(h.request(srv.port, "GET", "/api/health")[0], 200)
+            finally:
+                srv.stop()
+        warnings = [r.getMessage() for r in records if r.levelno >= logging.WARNING]
+        self.assertGreater(calls[0], 10, "it failed every turn")
+        self.assertIn("broken turn", warnings[0] if warnings else "", "the first, in full")
+        self.assertGreaterEqual(len(warnings), 2)
+        self.assertLessEqual(len(warnings), 5, "then a line every 0.5 s at most: %d" % len(warnings))
+        self.assertRegex(warnings[1], r"failed \d+ more time")
+
+
+class Counters(unittest.TestCase):
+    def test_no_count_is_lost_between_the_front_end_and_the_workers(self):
+        """Fix round 2: `refused` is counted in the front end and in every worker. Here reading
+        the counter can be interrupted (as in a build without the GIL); an unguarded `+= 1` then
+        loses counts, the lock does not."""
+        class SlowRead(Server):
+            @property
+            def refused(self):
+                v = self._refused_v
+                time.sleep(0.0005)
+                return v
+
+            @refused.setter
+            def refused(self, v):
+                self._refused_v = v
+        srv = SlowRead(h.free_port(), TOKEN, poll_interval=0.05)
+        srv.route("POST", "/api/x", lambda r: (200, {}), CHANGE)
+        srv.start()
+        origin = "http://127.0.0.1:%d" % srv.port
+        try:
+            def client(i):
+                for j in range(25):
+                    if (i + j) % 2:                              # refused by the front end
+                        h.request(srv.port, "GET", "/api/x", host="evil.example")
+                    else:                                        # refused by a worker
+                        h.request(srv.port, "POST", "/api/x", {"Content-Type": "application/json",
+                                                               "Origin": origin, server.TOKEN_HEADER: "wrong"}, {})
+            ts = [threading.Thread(target=client, args=(i,)) for i in range(8)]
+            for t in ts:
+                t.start()
+            for t in ts:
+                t.join(60)
+            self.assertTrue(h.wait_until(lambda: srv.refused >= 200, 3))
+            self.assertEqual(srv.refused, 200)
+        finally:
+            srv.stop()
 
 
 class FilesAndToken(ServerCase):

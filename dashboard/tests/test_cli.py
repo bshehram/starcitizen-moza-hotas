@@ -10,6 +10,7 @@ process with a made-up name; every process it starts is ended in tearDown."""
 import http.server
 import json
 import os
+import socket
 import socketserver
 import sys
 import threading
@@ -20,6 +21,7 @@ import scdash_testlib as lib  # noqa: F401
 import test_service_helpers as h
 from scdash import service, winutil
 from test_load import junk_block
+from test_service import FIRST, UNSAFE, strings
 
 FAST = {"process_check_seconds": 2.0, "poll_seconds": 0.25, "state_save_seconds": 2.0}   # the lowest allowed
 
@@ -245,12 +247,56 @@ class Trust(CliCase):
                 self.wfile.write(body)
         self.foreign(Health)
         paths = service.Paths(self.inst.data)
-        for pid, started, want in ((os.getpid(), "2026-11-27T21:00:00.000Z", False),
-                                   (os.getpid() + 1, run["started"], False),
-                                   (os.getpid(), run["started"], True)):
-            answer.clear()
-            answer.update(program="scdash", pid=pid, started=started)
-            self.assertEqual(service.instance_info(paths, self.inst.port)["healthy"], want, (pid, started))
+        lock = paths.lock()
+        self.assertTrue(lock.acquire())                      # stands for the live instance's own lock
+        try:
+            for pid, started, want in ((os.getpid(), "2026-11-27T21:00:00.000Z", False),
+                                       (os.getpid() + 1, run["started"], False),
+                                       (os.getpid(), run["started"], True)):
+                answer.clear()
+                answer.update(program="scdash", pid=pid, started=started)
+                self.assertEqual(service.instance_info(paths, self.inst.port)["healthy"], want, (pid, started))
+        finally:
+            lock.release()
+        # Review round 2: and with nobody holding the lock, the same answer is not ours.
+        self.assertFalse(service.instance_info(paths, self.inst.port)["healthy"])
+
+    def test_a_stale_run_json_cannot_be_impersonated(self):
+        """With no instance holding this folder's lock, a program on run.json's port that repeats
+        the health answer is not ours: status says not running, and stop sends it no token."""
+        run = {"program": "scdash", "pid": 4, "port": self.inst.port, "started": "2026-11-27T20:00:00.000Z",
+               "token": "the-dead-instance-token", "created": 1.0}
+        service.write_json(self.inst.data / "run.json", run)
+        seen = []
+
+        class Mimic(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _ok(self, obj):
+                body = json.dumps(obj).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self):
+                seen.append(("GET", self.path, self.headers.get("X-SCDash-Token")))
+                self._ok({"program": "scdash", "pid": run["pid"], "started": run["started"]})
+
+            def do_POST(self):
+                seen.append(("POST", self.path, self.headers.get("X-SCDash-Token")))
+                self._ok({"ok": True})
+        self.foreign(Mimic)
+        st = json.loads(self.cli("status", "--data", self.inst.data, "--json").stdout)
+        self.assertFalse(st["running"])
+        self.assertEqual(st["port_user"], "foreign")
+        self.assertIn("Not running", self.cli("status", "--data", self.inst.data).stdout)
+        r = self.cli("stop", "--data", self.inst.data, "--wait", "2")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("stale run.json", r.stdout)
+        self.assertEqual([x for x in seen if x[0] != "GET"], [], "no shutdown asked of it")
+        self.assertEqual([x for x in seen if x[2]], [], "and no token sent to it")
 
     @unittest.skipUnless(winutil.IS_WINDOWS, "suspends a process through ntdll")
     def test_a_hung_instance_is_reported_as_ours_and_left_alone(self):
@@ -315,6 +361,68 @@ class KillAndRestart(CliCase):
         self.assertTrue(h.wait_until(lambda: (h.status(port) or {}).get("log", {}).get("status") == "idle", 15))
         self.assertEqual(len(list(sessions.glob("*.json"))), 1)
         self.assertEqual(h.status(port)["summaries_written"], 0)
+
+
+class StatusText(CliCase):
+    def test_status_prints_no_control_text_from_the_log(self):
+        """The session id is the log's first line: escapes in it (a window title, a cleared
+        screen, a C1 CSI, a bidi override) reach neither the console nor --json."""
+        first = FIRST.replace(b"Build(13220821) ", b"Build(13220821) \x1b]0;OWNED\x07\x1b[2J\xc2\x9b31m\xe2\x80\xaeRED ")
+        self.inst.write_log(first + h.log_bytes().split(b"\n", 1)[1])
+        self.assertEqual(self.start().returncode, 0)
+        text = self.cli("status", "--data", self.inst.data).stdout
+        self.assertIn("OWNED", text)
+        self.assertIsNone(UNSAFE.search(text.replace("\n", "")), repr(text))
+        raw = self.cli("status", "--data", self.inst.data, "--json").stdout
+        self.assertIsNone(UNSAFE.search(raw.replace("\n", "")))
+        st = json.loads(raw)
+        self.assertIn("OWNED", st["status"]["session"]["id"])
+        self.assertEqual([x for x in strings(st) if UNSAFE.search(x)], [])
+
+
+class HeadFlood(CliCase):
+    def test_huge_request_heads_cost_little_and_leave_no_memory_behind(self):
+        """Review round 2: two local clients without the token sending the largest heads the
+        standard library takes (100 lines of 64 KB, 6.5 MB) cost 8.5 s of CPU in 10 s, and 9 MB
+        that stayed. Now a head is cut off at 16 KB."""
+        self.inst.write_log(h.log_bytes())
+        self.assertEqual(self.start().returncode, 0)
+        port = self.inst.port
+        time.sleep(1.0)
+        before = h.status(port)
+        line = b"X-A: " + b"a" * 65000 + b"\r\n"
+        data = b"GET / HTTP/1.0\r\nHost: 127.0.0.1:%d\r\n" % port + line * 99 + b"\r\n"
+        stop = threading.Event()
+
+        def one():
+            while not stop.is_set():
+                try:
+                    with socket.create_connection(("127.0.0.1", port), timeout=5) as s:
+                        s.sendall(data)
+                        while s.recv(65536):
+                            pass
+                except OSError:
+                    pass
+        ts = [threading.Thread(target=one) for _ in range(2)]
+        for t in ts:
+            t.start()
+        time.sleep(4.0)
+        stop.set()
+        for t in ts:
+            t.join(15)
+        time.sleep(1.0)
+        after = h.status(port)
+        cpu = after["cpu_s"] - before["cpu_s"]
+        heads = (after["requests"] + after["refused"]) - (before["requests"] + before["refused"])
+        grow = (after["memory"]["private_ws"] or after["memory"]["working_set"]) - \
+            (before["memory"]["private_ws"] or before["memory"]["working_set"])
+        sys.stderr.write("\n[4 s of 6.5 MB heads from 2 clients: %d heads, CPU +%.2f s (%.2f ms each), private "
+                         "working set %+.1f MB]\n" % (heads, cpu, 1000 * cpu / max(1, heads), grow / 1e6))
+        self.assertGreater(heads, 0)
+        # Per head, since the cost of a connection flood follows the rate the client keeps up:
+        # it was about 16 ms for a 6.5 MB head (8.5 s for 519 of them).
+        self.assertLess(cpu / heads, 0.002, "CPU per head")
+        self.assertLess(grow, 3e6, "memory grew by %.1f MB" % (grow / 1e6))
 
 
 class Flood(CliCase):

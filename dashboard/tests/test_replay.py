@@ -4,6 +4,7 @@ its own, never touching the live instance or dashboard/data/.
 A live instance here is a test instance (its own temporary folder and port), so the real one is
 never involved either."""
 import json
+import os
 import re
 import subprocess
 import sys
@@ -14,6 +15,7 @@ from pathlib import Path
 import scdash_testlib as lib
 import test_service_helpers as h
 from scdash import config, service
+from test_service import make_junction
 
 LIVE_FILES = ("run.json", "state.json", "service.log", "service.log.1", "unmapped.json", "stopped.json",
               "config.json", "sessions", "replay")
@@ -152,6 +154,18 @@ class Replay(unittest.TestCase):
         r = h.cli("replay", h.RUN_A, "--port", h.free_port(), "--data", config.DATA_DIR / "sub")
         self.assertNotEqual(r.returncode, 0)
         self.assertEqual(live_data_snapshot(), before)
+
+    def test_refuses_to_write_through_a_junction(self):
+        data = self.inst.dir / "replay-data"
+        data.mkdir()
+        outside = self.inst.dir / "outside"
+        outside.mkdir()
+        if not make_junction(data / "replay", outside):
+            self.skipTest("no junction could be made here")
+        r = h.cli("replay", h.RUN_A, "--port", h.free_port(), "--data", data, "--speed", "5000", "--exit-at-end")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("junction", r.stdout + r.stderr)
+        self.assertEqual(os.listdir(outside), [], "nothing written through it")
 
     def test_not_a_session_log(self):
         with lib.TempDir() as d:

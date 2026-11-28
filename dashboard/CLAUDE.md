@@ -109,7 +109,7 @@ follower reads it.
   has seen replaced by "another player" in every text (contract titles included). The user's own
   handle is replaced by "you" the same way. `private=True`
   keeps them and adds `me` (handle, player id), for memory only. `build_summary` scrubs the same
-  way. Either way, and in everything `timeline` prints or dumps, no text carries a C0 or C1
+  way. Either way, and in everything `timeline` and `status` print or dump, no text carries a C0 or C1
   control character or a bidi control (U+202A-202E, U+2066-2069, U+200E/200F/061C):
   `words.clean_text` takes them out where text leaves the state, so nothing in the log can steer a
   console or reorder the page's words.
@@ -150,21 +150,40 @@ Every event is a frozen dataclass with `session` (the backup name the game gives
    matters: a program bound to 0.0.0.0 does not stop an exclusive bind to 127.0.0.1 [seen].
 4. Below-normal priority, stale temporary files of a dead instance swept, a new token,
    `run.json` (pid, port, start time, token, and the process's own creation time), the server.
-5. The `user` block of `state.json` loaded before anything is saved. No game: read the last log
-   once, write its summary if it has none. Game running: read from the top (a restart arrives at
-   the same state).
+5. The `user` block of `state.json` is read before anything is saved over it. A `state.json`
+   that cannot be opened (held without sharing, or a folder in its place) is never saved over
+   until it has been read: one warning, and a new try before each save. No game: read the last
+   log once, write its summary if it has none. Game running: read from the top (a restart
+   arrives at the same state). **Nothing in this step ends the service:** a read or write that
+   fails is logged (`error in the first read`) and redone by `tick()`: the last log's read on
+   the next turn, a summary (kept in a bounded queue) and the state save after
+   `state_save_seconds`.
 6. The loop: game running, poll the log every second (16 MB per turn while catching up); always,
    look for the process every 10 s. Process gone: read the rest, `finish()`, write the summary
    (a crash is only visible this way). A summary's file name is its start time and build, and an
    existing file is never rewritten, so no summary is written twice, across restarts too.
 7. Shutdown: last state saved, `run.json` removed (only if it is ours), mutex released.
 
-Exit codes: 0 done, 1 another instance holds the lock, 2 the port is taken, 3 a setup failure.
+Exit codes: 0 done, 1 another instance holds the lock, 2 the port is taken, 3 a setup failure,
+4 the web server's front-end thread has ended.
+
+- A failed save of `state.json` or of a summary is not a setup failure: those are retried.
+- `run.json` is different, because without it no command can find the instance, read its
+  token or stop it. Its write is retried every 2 s, and after 20 s the service logs why and
+  exits with 3. Until then `status` and `stop` see a held lock and nothing to talk to.
+- The main loop looks at the front-end thread every turn, and at least every 10 s. When it
+  is gone the service shuts down in the usual way and exits with 4, so the next start or the
+  scheduled relaunch brings up one that works.
+
 `start` launches the background process through `service.launch_background()` (pythonw,
 detached, out of the caller's job); in stage 4 `start` goes through the scheduled task there.
 
-**run.json is trusted only as far as the live process confirms it.** Healthy means the health
-answer carries run.json's pid *and* start time. When the lock is held but nothing answers,
+**run.json is trusted only as far as the live process confirms it.** Healthy means the named
+mutex is held *and* the health answer carries run.json's pid and start time. The mutex is the
+truth: with nobody holding it, whatever answers on the port is not ours, even a program that
+repeats run.json's answer. `status` reports it as another program, and no command sends it a
+token (`stop` removes the stale run.json). A run.json without `created` matches no process.
+When the lock is held but nothing answers,
 `status` checks run.json's process: a live python(w).exe created at the recorded time (to the
 millisecond, both read from one snapshot of the process table) is "ours, not answering" (hung,
 suspended or busy), and `stop` and `start` refuse to act on it. No handle is ever opened to another
@@ -184,13 +203,20 @@ only on change), `unmapped.json` (codes with no name, merged across sessions, at
 `sessions/<start>_<build>.json` (newest 500 kept; an undated `session-<hash>` name counts by its
 file time), `service.log` (1 MB, one rotated copy), `config.json` (the user's, read only).
 
+**Nothing is written through a link.** No write, sweep or prune goes through a junction or
+symbolic link below the data folder: `service.link_on_the_way()` checks each part of a path with
+`lstat`, following nothing. Such a write is skipped and logged once, and the service runs on.
+`service.log` itself is checked (it is appended in place), and `replay` refuses a linked
+`replay/` folder or file. The start-up sweep takes only names `atomic_write` makes: an ASCII pid
+of 1 to 10 digits, 8 lower-case hex digits, an ASCII file name. A hard link is not covered: it is
+not a reparse point.
+
 **The request guard** (`server.py`): every request needs exactly one `Host` of
 `127.0.0.1:<port>` or `localhost:<port>` and an origin-form target, reads included; a
-`Sec-Fetch-Site` other than `same-origin` or `none` is refused on every route; and the request's
-head (with a changing request's body) must arrive within 5 s in all, however slowly it trickles
-(a watcher thread, idle while nothing is pending, cuts the connection). `CHANGE` routes also need
-`X-SCDash-Token`, an `Origin` of this server, `Content-Type: application/json`, a `Content-Length`
-of ASCII digits (at most 64 KB) and a JSON object. `PRIVATE` routes and streams need the token
+`Sec-Fetch-Site` other than `same-origin` or `none` is refused on every route. `CHANGE` routes
+also need `X-SCDash-Token`, an `Origin` of this server, exactly one `Content-Type:
+application/json`, a `Content-Length` of ASCII digits (at most 64 KB) and a JSON object (one
+nested too deep is a 400). `PRIVATE` routes and streams need the token
 header and a `Sec-Fetch-Site: same-origin` that must be present; the token is never accepted in a
 URL. Every `route()` and `stream()` call names its guard (no default), and `route()` refuses a
 non-GET route without the token, so a later stage cannot register an unguarded endpoint by
@@ -198,9 +224,26 @@ mistake. The token reaches the page only inside the served HTML (`<meta name="sc
 `/api/health` carries the program's name, pid and start time and nothing else. The page has a
 strict Content-Security-Policy (no inline script or style).
 
+**A connection takes a worker only with a complete head** (`_FrontEnd` in `server.py`, since
+the fix round of 2026-11-27). One thread with `selectors` reads every new connection's head
+without blocking:
+
+- the first byte within 1 s and the whole head within 5 s;
+- at most 16 KB and 40 header lines, refused with 431 the moment it goes over, before the rest
+  is read;
+- `Host` checked there (403);
+- only then one of the 16 worker slots, or a 503 when all are busy;
+- at most 64 connections waiting for their head, the oldest dropped beyond that.
+
+The worker still runs the whole guard itself, and a changing request's body must arrive within
+what is left of the 5 s (a watcher thread cuts it). A failed front-end turn is logged at
+WARNING: the first in full, then at most one line a minute with a count. The `requests` and
+`refused` counters are bumped under a lock.
+
 Endpoints: `GET /` (`/app.js`, `/style.css`), `GET /api/health`, `GET /api/status`,
 `GET /api/state` (the last payload), `GET /api/stream`, `POST /api/shutdown`. At most 16 requests
-at once, 5 s to send one.
+at once (once their head is in), 64 connections waiting for a head, 5 s to send one. The
+shutdown reason is logged through `repr()`, cut at 80 characters.
 
 **What the page gets** (one JSON line per event-stream message, `event: state`): `service` (mode,
 pid, game running and since, log found, replay info, terminal on), `clock` (`rate`, `real`,
@@ -266,6 +309,21 @@ process (a renamed copy of `PING.EXE`). Scripts were scratch files.
 | Game "running": the afternoon log of 2026-11-26 written at its real pace (766 KB, 47 events, 30 state sends in the window), one page, 10 min | 0.69 s = **0.115%** of one core; **21.6 MB** private working set, 33.2 MB working set | 0.2%; 30 MB |
 | Replay of that session in 2 min (about 43x) | **0.46%** of one core over the replay; 24.4 MB private working set at peak | none set |
 | 100 MB of junk appended twice to a followed log | first flood 21.3 -> 24.3 MB (a one-time step: the 1 MB read pieces), second 24.3 -> 24.3 MB; peak working set 37.9 MB; about 1 s CPU and under 1 s each | must not grow |
+
+**After the fix round of 2026-11-27 (evening), by the builder and again by the reviewer
+[seen]:**
+
+| What | Before | After |
+| --- | --- | --- |
+| Idle, one page connected, 5 min | 0.067% of one core, 22.2 MB | 0.060%, 23.2 MB (the gap is noise: every version landed on 21.5, 22.2 or 23.1 MB across runs) |
+| Connections sending 6.5 MB request heads for 10 s | 2 connections: 8.2 s of CPU, and a 10 MB step that stayed | 16 connections: 1.3 s of CPU, memory flat |
+| A foreign page's preconnect flood (64 waiting, plus the stream) | the real page and a separate client got 3 of 16 answers | 16 of 16, and the stream stayed up |
+| 300 idle connections | threads 3 to 19 and back | no thread added; at most 64 wait, each dropped after a second |
+| 3,000 dropped or refused connections | - | threads 3 to 3, handles 175 to 175 |
+
+One limit left as it is: under a local flood of about 290 connections a second, a client that
+waits 200 ms before sending its head was pushed out of the waiting list 14 times in 41. Clients
+that send at once, as browsers and the command line do, always got through.
 
 Most of the idle cost is the process check (about 5 ms every 10 s, see below); the rest is the
 server's half-second poll and one wake-up a second per connected page. Not yet measured: the same

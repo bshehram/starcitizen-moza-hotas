@@ -56,8 +56,25 @@ payload. Left for the second half: wiring it into `service.py` (the plan's reloa
 the page's message, the user's quick timers and hand-picked view, four changing endpoints) and
 then the views in `web/`.
 
-**That review also found new faults. The fix round for them is built and with the reviewer**
-(the whole suite passes on a clean copy of it, 368 tests; staged, not committed):
+**That review also found new faults. They are fixed, in two rounds, and the reviewer confirmed
+every fix by running it** (2026-11-27, about 8:30 PM; the whole suite passes on a clean export
+of the commit, 372 tests). §8 and [`CLAUDE.md`](CLAUDE.md) describe the server as it is now: a
+front end that reads every request's head before the request takes a worker, limits on the
+head, no write through a link, and an instance that exits when nothing could talk to it. The
+second round fixed two faults the first had introduced (an unwritable `run.json` left an
+instance no command could stop; nothing noticed a dead front-end thread). **Two small faults
+are left for the next change to `service.py`** (the stage 3 wiring), both about the service's
+own log:
+
+- A save that fails every time logs a full traceback every 10 s, about 1 MB an hour, which
+  pushes the launch-check lines out of the 1 MB log within the hour. The repeat counter never
+  matches because each traceback names a new temporary file: compare by exception type and
+  source line.
+- The front end's one-warning-a-minute limit can hold back a different fault's traceback until
+  the next fault or shutdown: log in full any fault that differs from the last one logged, and
+  flush the pending count on a timer.
+
+What the review found, for the record:
 
 - One failed save at start-up ends the service, which a scheduled relaunch would turn into a
   crash loop.
@@ -940,7 +957,10 @@ user's own settings. The project also asks the user before anything that needs a
   mutex has to cover a manual `start` as well. `data/run.json` records the process id, port,
   start time and a random token. A health endpoint returns the program's name, process id and
   start time, which the commands compare with `run.json`, so a foreign program on the port is
-  never mistaken for the service. It does not return the token (§8).
+  never mistaken for the service. It does not return the token (§8). And when nobody holds the
+  mutex, nothing on the port is taken for the service, whatever it answers: a program that
+  copied the health answer was once reported as a running instance, and `stop` sent it the old
+  token **[seen in review, 2026-11-27; fixed]**.
 
 | Command | What it does | When repeated |
 | --- | --- | --- |
@@ -1089,12 +1109,33 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
 - **Every** request, reads included, must carry a `Host` header of `127.0.0.1:<port>` or
   `localhost:<port>`; anything else is refused. Without that check on reads, a web page that
   points its own domain name at 127.0.0.1 could read the state and the event stream, which hold
-  the user's handle and location.
+  the user's handle and location. It is checked as soon as the request's head is in, before
+  the request takes one of the server's 16 worker slots.
+- **A connection takes a worker only with a complete head.** One thread reads every new
+  connection's head: the first byte within 1 s, all of it within 5 s, at most 16 KB and 40
+  header lines, refused the moment it goes over; at most 64 wait, the oldest dropped. Review
+  **[seen 2026-11-27]**: before this, a foreign page's preconnect hints held all 16 slots (the
+  real page failed 13 of 16 requests), and two local clients sending 6.5 MB heads cost 8.2 s of
+  CPU in 10 s and 10 MB that stayed. After: 16 of 16 under the same flood, 1.3 s of CPU for
+  sixteen such clients, memory flat. One limit stays: a local flood of about 290 connections a
+  second can push out a client that waits 200 ms before sending its head; clients that send at
+  once, as browsers and the command line do, always got through.
+- **Nothing is written through a link.** No write, sweep or prune goes through a junction or
+  symbolic link below `data/` (each part of the path is checked with `lstat`); it is skipped
+  and logged once. A junction planted as `data/sessions` had made the service write and sweep
+  outside it **[seen in review, 2026-11-27]**.
+- **What it prints and logs is data.** `status` cleans every text from the log the way
+  `timeline` does, and the shutdown reason is logged through `repr()`, 80 characters at most.
+- **An instance nothing can talk to does not stay up.** If `run.json` cannot be written within
+  20 s the service exits (code 3), and if the web server's own thread ends it exits (code 4).
+  Either way the next start, or the scheduled relaunch, brings up one that works. A failed
+  save of the state or of a summary is only retried.
 - Requests that change anything (timers, forced view, shutdown) also need the token in a custom
   header and a JSON body. The page finds the token in the HTML the service serves to it; no
   endpoint hands it out. Together with the `Host` check, this stops another web page in the
   user's browser from reading or driving the dashboard.
-- Bounded everything: line length, feed length, session records kept, its own log size.
+- Bounded everything: line length, feed length, session records kept, its own log size, request
+  heads (16 KB, 40 lines), connections waiting for a head (64), requests served at once (16).
 - It runs at below-normal priority, so it yields to the game.
 - It only ever closes a browser window it opened itself, identified by process id and start time.
 
@@ -1206,6 +1247,11 @@ game process, a headless page connected):**
 | 100 MB of junk lines appended to the followed log | read in 0.8 s; memory 21.3 to 24.3 MB once, then flat | no growth |
 | 300 idle connections at once | threads 3 to 19 and back to 3; memory 24.0 to 24.9 and back | bounded |
 | The one-second loop under 33,000 requests in 20 s | 1.01 s between updates on average, 1.03 at worst | keeps its rhythm |
+
+After the fix round of 2026-11-27 (evening): idle is unchanged within noise (0.060% of one core,
+21.5 to 23.2 MB); 300 idle connections add no thread; sixteen connections sending oversized
+request heads cost 1.3 s of CPU in 10 s with memory flat. [`CLAUDE.md`](CLAUDE.md) has the
+table.
 
 Still to measure: the same with the game running, and the Edge app window on the side monitor.
 

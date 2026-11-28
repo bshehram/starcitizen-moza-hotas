@@ -12,10 +12,18 @@ The guard runs before anything else, for every request:
   other than `same-origin` or `none` (a typed address), or an `Origin` other than this server's,
   is refused on every route. Either header sent twice is refused too. The token header must
   appear exactly once.
-- **Deadline.** The request head (and a changing request's body) must arrive within
-  `REQUEST_TIMEOUT` seconds in all, however slowly it trickles in; the connection is cut after.
+- **The head first, then a worker.** One front-end thread reads every new connection's request
+  head without blocking, and only a complete head takes one of the `MAX_CONNECTIONS` worker
+  slots. Its first byte must come within `FIRST_BYTE_TIMEOUT` (1 s) and all of it within
+  `REQUEST_TIMEOUT` (5 s), however slowly it trickles in; it may hold at most `MAX_HEAD` bytes
+  (16 KB) and `MAX_HEADER_LINES` (40) header lines, refused (431) the moment it goes over, before
+  the rest is read; and its `Host` is checked there already. At most `MAX_WAITING` connections
+  wait for their head; over that the oldest is dropped. So connections that send nothing (a
+  foreign page's preconnect hints) or huge heads cost a little of one thread and no worker.
+- **Deadline.** A changing request's body must arrive within what is left of the same 5 s; a
+  watcher thread cuts the connection after.
 - **Changing requests** (`CHANGE`) also need the token in the `X-SCDash-Token` header, an `Origin`
-  of this server, and a JSON object as the body (`Content-Type: application/json`, a
+  of this server, and a JSON object as the body (exactly one `Content-Type: application/json`, a
   `Content-Length` of ASCII digits, at most 64 KB). The page gets the token inside the HTML this
   server serves; no endpoint hands it out, and it never travels in a URL.
 - **Private reads** (`PRIVATE`, for stage 4b's terminal output) need the token header and a
@@ -38,15 +46,18 @@ a custom header on writes, no address reuse on Windows, and peeking at a page's 
 """
 import hmac
 import html
+import http.client
 import http.server
+import io
 import json
 import os
 import re
 import select
+import selectors
 import socket
-import socketserver
 import threading
 import time
+import traceback
 from urllib.parse import parse_qs, urlsplit
 
 from . import config
@@ -74,6 +85,9 @@ PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 's
 METHODS = ("GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
 FETCH_SITES = ("same-origin", "none")        # the only Sec-Fetch-Site values any route accepts
 LENGTH_RE = re.compile(r"[0-9]{1,9}")        # ASCII digits only: str.isdigit() takes "²" too
+HEAD_END = re.compile(rb"\n\r?\n")           # the empty line that ends a request head
+ACCEPT_BATCH = 16                            # connections taken per turn, before the waiting ones are read
+FAULT_REPORT_SECONDS = 60.0                  # a front-end fault that repeats: one log line this often at most
 
 
 class Guard:
@@ -207,7 +221,8 @@ class Hub:
                 if payload is not None:
                     w.write(b"id: %d\nevent: %s\ndata: %s\n\n" % (v, self.event.encode(), payload.encode("utf-8")))
                     w.flush()
-                    self.sent += 1
+                    with self._cond:                # one thread per page counts here
+                        self.sent += 1
                     last_v, last_send, last_write = v, now, now
                 elif now - last_write >= self.keepalive:
                     w.write(b": keepalive\n\n")
@@ -235,10 +250,11 @@ def _peer_closed(sock):
 # ---------------------------------------------------------------------------- the deadline
 
 class _Deadlines:
-    """Cuts a connection whose request head (and body) has not fully arrived within its deadline.
+    """Cuts a connection whose request (a changing request's body, once a worker has it) has not
+    fully arrived within its deadline: 5 s after the connection came in, head included.
 
     The socket timeout only bounds each read, so a client sending a byte every few seconds could
-    hold a request slot forever. One thread watches the open requests; it sleeps until the
+    hold a worker slot forever. One thread watches the open requests; it sleeps until the
     earliest deadline and not at all while nothing is pending."""
 
     def __init__(self):
@@ -285,44 +301,278 @@ class _Deadlines:
                     pass
 
 
-# ---------------------------------------------------------------------------- the server
+# ---------------------------------------------------------------------------- the front end
 
-class _HTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
-    allow_reuse_address = False          # Windows lets a second process bind a port under SO_REUSEADDR
-    daemon_threads = True
-    block_on_close = False
-    request_queue_size = 16
+class _Waiting:
+    """A connection whose request head is still arriving."""
 
-    def __init__(self, addr, handler, app):
+    __slots__ = ("sock", "addr", "buf", "nl", "lines", "first_by", "head_by")
+
+    def __init__(self, sock, addr, now):
+        self.sock = sock
+        self.addr = addr
+        self.buf = bytearray()
+        self.nl = -1                              # where the request line ends, once it has
+        self.lines = 0                            # line breaks so far
+        self.first_by = now + config.FIRST_BYTE_TIMEOUT
+        self.head_by = now + config.REQUEST_TIMEOUT
+
+    @property
+    def due(self):
+        return self.head_by if self.buf else min(self.first_by, self.head_by)
+
+
+class _FrontEnd:
+    """The listening socket and every connection whose request head has not fully arrived.
+
+    One thread reads them all without blocking, so a connection that sends nothing, trickles, or
+    sends far too much takes no worker. A complete head within its limits and with a right Host
+    goes, with whatever followed it, to a thread of its own: at most MAX_CONNECTIONS at once, the
+    worker slots. Over that the request gets a 503 here."""
+
+    def __init__(self, app, sock, poll_interval):
         self.app = app
+        self.socket = sock                        # the listening socket
+        self.poll_interval = poll_interval        # how soon stop() is noticed; each wake-up costs a little
+        self._sel = selectors.DefaultSelector()
+        self._waiting = {}                        # socket -> _Waiting, oldest first
         self._slots = threading.BoundedSemaphore(config.MAX_CONNECTIONS)
-        super().__init__(addr, handler)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, name="scdash-http", daemon=True)
+        self._faults = 0                          # failed turns not yet reported
+        self._fault_reported = None               # when the last report went to the log
+        self._last_fault = ""
 
-    def server_bind(self):
-        exclusive_address(self.socket)
-        self.socket.bind(self.server_address)
-        self.server_address = self.socket.getsockname()
-        self.server_name, self.server_port = self.server_address[:2]
+    def start(self):
+        self._sel.register(self.socket, selectors.EVENT_READ, None)
+        self._thread.start()
 
-    def process_request(self, request, client_address):
-        if not self._slots.acquire(blocking=False):
-            self.shutdown_request(request)        # over the cap: close it at once
-            return
+    def stop(self):
+        self._stop.set()
+        self._thread.join(5)
+
+    def alive(self):
+        return self._thread.is_alive()
+
+    def _run(self):
         try:
-            super().process_request(request, client_address)
+            while not self._stop.is_set():
+                try:
+                    self._turn()
+                except Exception:                 # noqa: BLE001 - one connection must not stop the server
+                    self._fault()
+                    self._stop.wait(0.05)
+        finally:
+            if self._faults:
+                self._fault_summary(time.monotonic())
+            for w in list(self._waiting.values()):
+                self._drop(w)
+            self._sel.close()
+            self.socket.close()
+
+    def _fault(self):
+        """A failed turn, logged at WARNING so that it shows in the file log: the first in full,
+        then at most one line every FAULT_REPORT_SECONDS with how many more came, so a fault that
+        repeats every turn is seen and cannot fill the log."""
+        now = time.monotonic()
+        self._last_fault = traceback.format_exc().rstrip()
+        if self._fault_reported is None:
+            self._fault_reported = now
+            self.app.log_warning("web server front end failed (carrying on):\n%s" % self._last_fault)
+            return
+        self._faults += 1
+        if now - self._fault_reported >= FAULT_REPORT_SECONDS:
+            self._fault_summary(now)
+
+    def _fault_summary(self, now):
+        self.app.log_warning("web server front end failed %d more time(s) in the last %.0f s; the last: %r"
+                             % (self._faults, now - self._fault_reported, (self._last_fault.splitlines() or [""])[-1][:200]))
+        self._faults, self._fault_reported = 0, now
+
+    def _turn(self):
+        timeout = self.poll_interval
+        if self._waiting:
+            soonest = min(w.due for w in self._waiting.values())
+            timeout = max(0.0, min(timeout, soonest - time.monotonic()))
+        accept = False
+        for key, _ in self._sel.select(timeout):
+            if key.data is None:
+                accept = True
+            else:
+                self._read(key.data)
+        if accept:
+            self._accept()
+        now = time.monotonic()
+        for w in [w for w in self._waiting.values() if w.due <= now]:
+            self._drop(w)                          # silent for a second, or no whole head in 5 s
+
+    def _accept(self):
+        for _ in range(ACCEPT_BATCH):
+            try:
+                sock, addr = self.socket.accept()
+            except (BlockingIOError, InterruptedError):
+                return
+            except (ConnectionResetError, ConnectionAbortedError):
+                continue                           # gone before it was taken
+            sock.setblocking(False)
+            if len(self._waiting) >= config.MAX_WAITING:
+                self._drop(next(iter(self._waiting.values())))      # the oldest
+            w = _Waiting(sock, addr, time.monotonic())
+            self._waiting[sock] = w
+            self._sel.register(sock, selectors.EVENT_READ, w)
+            self._read(w)                          # a client's head is often there already
+
+    def _read(self, w):
+        try:
+            chunk = w.sock.recv(min(config.MAX_HEAD - len(w.buf), 8192))
+        except (BlockingIOError, InterruptedError):
+            return
+        except OSError:
+            self._drop(w)
+            return
+        if not chunk:
+            self._drop(w)                          # closed before its head was in
+            return
+        old = len(w.buf)
+        w.buf += chunk
+        w.lines += chunk.count(b"\n")
+        if w.nl < 0:
+            w.nl = w.buf.find(b"\n", old)
+        m = HEAD_END.search(w.buf, max(w.nl, old - 2)) if w.nl >= 0 else None
+        if m is None:
+            if len(w.buf) >= config.MAX_HEAD or w.lines > config.MAX_HEADER_LINES + 1:
+                self._refuse(w, 431, "request head too large")
+            return
+        if w.buf.count(b"\n", 0, m.end()) > config.MAX_HEADER_LINES + 2:    # the request line, the empty one
+            self._refuse(w, 431, "request head too large")
+            return
+        self._hand_on(w, bytes(w.buf[:m.end()]))
+
+    def _hand_on(self, w, head):
+        line, _, rest = head.partition(b"\n")
+        words = line.split()
+        method = words[0] if words else b""
+        try:
+            hosts = http.client.parse_headers(io.BytesIO(rest)).get_all("Host") or []
+        except Exception:                          # noqa: BLE001 - not a head the worker could read either
+            hosts = []
+        if not self.app.host_ok(hosts):
+            self._refuse(w, 403, "wrong host", method)
+            return
+        if not self._slots.acquire(blocking=False):
+            self._refuse(w, 503, "too many requests at once", method)
+            return
+        self._unwait(w)
+        try:
+            w.sock.setblocking(True)
+            threading.Thread(target=self._work, args=(w.sock, w.addr, bytes(w.buf), w.head_by),
+                             name="scdash-request", daemon=True).start()
         except Exception:
             self._slots.release()
+            _close(w.sock)
             raise
 
-    def process_request_thread(self, request, client_address):
+    def _work(self, sock, addr, data, deadline):
         try:
-            super().process_request_thread(request, client_address)
+            Handler(sock, addr, self, data, deadline)
+        except Exception:                          # noqa: BLE001
+            self.app.log_debug("request error from %s" % (addr,), exc=True)
         finally:
+            _close(sock)
             self._slots.release()
 
-    def handle_error(self, request, client_address):
-        self.app.log_debug("request error from %s" % (client_address,), exc=True)
+    def _refuse(self, w, status, reason, method=b""):
+        """Answer here and close, without a worker (the same JSON error a worker would send)."""
+        self.app.count("refused")
+        body = json.dumps({"error": reason}, separators=(",", ":")).encode("utf-8")
+        head = ["HTTP/1.0 %d %s" % (status, http.HTTPStatus(status).phrase), "Server: " + PROGRAM,
+                "Content-Type: application/json; charset=utf-8", "Content-Length: %d" % len(body),
+                "Connection: close"] + ["%s: %s" % kv for kv in COMMON_HEADERS]
+        data = ("\r\n".join(head) + "\r\n\r\n").encode("latin-1") + (b"" if method == b"HEAD" else body)
+        try:
+            w.sock.send(data)                      # a few hundred bytes: a fresh socket's buffer takes them
+        except OSError:
+            pass
+        _drain(w.sock)
+        self._unwait(w)
+        _close(w.sock)
 
+    def _unwait(self, w):
+        self._waiting.pop(w.sock, None)
+        try:
+            self._sel.unregister(w.sock)
+        except (KeyError, ValueError, OSError):
+            pass
+
+    def _drop(self, w):
+        self._unwait(w)
+        try:
+            w.sock.close()
+        except OSError:
+            pass
+
+
+def _drain(sock, limit=64 * 1024):
+    """Read and drop what the client has already sent (up to `limit`): closing a socket with
+    unread bytes resets the connection, and the client could lose the answer."""
+    got = 0
+    while got < limit:
+        try:
+            b = sock.recv(min(65536, limit - got))
+        except OSError:                            # BlockingIOError: nothing more there now
+            return
+        if not b:
+            return
+        got += len(b)
+
+
+def _close(sock):
+    try:
+        sock.shutdown(socket.SHUT_WR)
+    except OSError:
+        pass
+    try:
+        sock.close()
+    except OSError:
+        pass
+
+
+class _Prefixed(io.RawIOBase):
+    """What the front end already read from the socket, then the socket itself: the worker reads
+    the request as if straight from the socket."""
+
+    def __init__(self, sock, data):
+        self._sock = sock
+        self._data = memoryview(data)
+
+    def readable(self):
+        return True
+
+    def readinto(self, b):
+        if self._data:
+            n = min(len(b), len(self._data))
+            b[:n] = self._data[:n]
+            self._data = self._data[n:]
+            return n
+        return self._sock.recv_into(b)
+
+
+class _SocketWriter(io.BufferedIOBase):
+    """Writes straight to the socket (what socketserver gives a handler with no write buffer)."""
+
+    def __init__(self, sock):
+        self._sock = sock
+
+    def writable(self):
+        return True
+
+    def write(self, b):
+        self._sock.sendall(b)
+        with memoryview(b) as view:
+            return view.nbytes
+
+
+# ---------------------------------------------------------------------------- the handler
 
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = PROGRAM
@@ -331,9 +581,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.0"         # PLAN §5: HTTP/1.1 would need an exact length on everything
     expired = False
 
+    def __init__(self, sock, client_address, front, data, deadline):
+        self._front_data = data           # the head and whatever came with it, already read
+        self._deadline = deadline         # 5 s after the connection came in
+        super().__init__(sock, client_address, front)
+
     def setup(self):
-        super().setup()
-        self.server.app.deadlines.watch(self, config.REQUEST_TIMEOUT)
+        self.connection = self.request
+        self.connection.settimeout(self.timeout)
+        self.rfile = io.BufferedReader(_Prefixed(self.connection, self._front_data))
+        self.wfile = _SocketWriter(self.connection)
+        self.server.app.deadlines.watch(self, max(0.0, self._deadline - time.monotonic()))
 
     def finish(self):
         self.server.app.deadlines.done(self)
@@ -391,7 +649,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if self.expired:
                 self.close_connection = True
                 return
-            app.requests += 1
+            app.count("requests")
             if isinstance(fn, Hub):
                 fn.serve(self)
                 self.close_connection = True
@@ -404,7 +662,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             else:
                 self._reply(status, result)
         except Refused as r:
-            app.refused += 1
+            app.count("refused")
             if not self.expired:
                 self._reply(r.status, {"error": r.reason})
         except Exception:                            # noqa: BLE001 - one request must not stop the server
@@ -433,9 +691,9 @@ class Server:
         self.hubs = []
         self.requests = 0
         self.refused = 0
+        self._count_lock = threading.Lock()   # the counters are bumped from the front end and the workers
         self.deadlines = None
-        self._httpd = None
-        self._thread = None
+        self._httpd = None                # the front end; `.socket` is the listening socket
         self._allowed_hosts = set()
         for path in FILES:
             self.route("GET", path, self._file, READ)
@@ -467,30 +725,41 @@ class Server:
 
     def start(self):
         self.deadlines = _Deadlines()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self._httpd = _HTTPServer((self.host, self.port), Handler, self)
+            # No SO_REUSEADDR: on Windows it lets a second process bind the same port (PLAN §6).
+            exclusive_address(sock)
+            sock.bind((self.host, self.port))
+            sock.listen(16)
+            sock.setblocking(False)
         except OSError:
+            sock.close()
             self.deadlines.close()
             raise
-        self.port = self._httpd.server_port
+        self.port = sock.getsockname()[1]
         self._allowed_hosts = {"127.0.0.1:%d" % self.port, "localhost:%d" % self.port}
-        self._thread = threading.Thread(target=self._httpd.serve_forever, kwargs={"poll_interval": self.poll_interval},
-                                        name="scdash-http", daemon=True)
-        self._thread.start()
+        self._httpd = _FrontEnd(self, sock, self.poll_interval)
+        self._httpd.start()
         return self
 
     def stop(self):
         for hub in self.hubs:
             hub.close()
         if self._httpd is not None:
-            self._httpd.shutdown()
-            self._httpd.server_close()
+            self._httpd.stop()                    # its thread closes the listening socket on the way out
             self._httpd = None
-        if self._thread is not None:
-            self._thread.join(5)
-            self._thread = None
         if self.deadlines is not None:
             self.deadlines.close()
+
+    def alive(self):
+        """Is the front-end thread still serving? False once it has ended, whatever ended it."""
+        return self._httpd is not None and self._httpd.alive()
+
+    def count(self, name):
+        """Add one to `requests` or `refused`, under a lock: the front end and the workers both
+        count, and an unguarded `+= 1` from two threads can lose one."""
+        with self._count_lock:
+            setattr(self, name, getattr(self, name) + 1)
 
     @property
     def origins(self):
@@ -498,10 +767,13 @@ class Server:
 
     # The guard ------------------------------------------------------------------------------
 
+    def host_ok(self, hosts):
+        """Exactly one Host header, and it is this server (the front end asks before a worker does)."""
+        return len(hosts) == 1 and hosts[0].strip().lower() in self._allowed_hosts
+
     def check_basics(self, h):
         """What every request needs, whatever its route."""
-        hosts = h.headers.get_all("Host") or []
-        if len(hosts) != 1 or hosts[0].strip().lower() not in self._allowed_hosts:
+        if not self.host_ok(h.headers.get_all("Host") or []):
             raise Refused(403, "wrong host")
         if not h.path.startswith("/"):
             raise Refused(400, "bad target")
@@ -529,8 +801,8 @@ class Server:
                 raise Refused(403, "not same-origin")
         body = None
         if guard.json_body:
-            ctype = (h.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-            if ctype != "application/json":
+            ctypes = h.headers.get_all("Content-Type") or []         # doubled: refused, like every other header
+            if len(ctypes) != 1 or ctypes[0].split(";")[0].strip().lower() != "application/json":
                 raise Refused(415, "JSON body required")
             lengths = h.headers.get_all("Content-Length") or []
             if len(lengths) != 1 or not LENGTH_RE.fullmatch(lengths[0].strip()):
@@ -543,7 +815,7 @@ class Server:
                 raise Refused(400, "body cut short")
             try:
                 body = json.loads(raw.decode("utf-8"))
-            except (UnicodeDecodeError, ValueError):
+            except (UnicodeDecodeError, ValueError, RecursionError):     # nested too deep: the client's mistake
                 raise Refused(400, "body is not JSON") from None
             if not isinstance(body, dict):
                 raise Refused(400, "body must be a JSON object")
@@ -578,3 +850,7 @@ class Server:
     def log_debug(self, msg, exc=False):
         if self.logger is not None:
             self.logger.debug(msg, exc_info=exc)
+
+    def log_warning(self, msg):
+        if self.logger is not None:
+            self.logger.warning(msg)

@@ -14,10 +14,14 @@ Life cycle (`run()`):
 3. Something already answering on the port (a program bound to all interfaces would not stop our
    bind to 127.0.0.1) or a failed bind: the port is taken. Its health answer says whether it is
    another dashboard or a foreign program; either way, exit 2.
-4. Below-normal priority, a new token, `run.json` written, the server started.
+4. Below-normal priority, a new token, the server started, `run.json` written. An instance no
+   command can find (run.json still unwritten after RUN_JSON_GIVE_UP_SECONDS of tries) stops
+   with exit 3 rather than stay up where nothing can talk to it or stop it.
 5. With no game running, read the last log once (the page shows the last session) and write its
    summary if it has none yet. With a game running, read the current log from the top: a restart
-   arrives at the same state as watching live (PLAN §7).
+   arrives at the same state as watching live (PLAN §7). A read or a write that fails here does
+   not end the service: it is logged and tried again on a later turn, as in the loop (a
+   scheduled relaunch every five minutes would otherwise make it a crash loop).
 6. The loop. Game running: poll the log once a second. Always: look for the game's process every
    10 seconds. When it appears, follow the log; when it goes, read the rest, end the session
    (a crash leaves no quit line, so only the process going away says it is over) and write its
@@ -26,9 +30,13 @@ Life cycle (`run()`):
 7. Shutdown (the endpoint, Ctrl+C): last state saved, `run.json` removed, lock released.
 
 Every error inside the loop is caught, logged (repeats counted, not repeated) and passed over.
+Two things end it instead, each with an error in the log: run.json that cannot be written (exit
+3, above), and the web server's front-end thread gone (exit 4): with no server nothing can reach
+the instance, and the next start, or the scheduled relaunch, brings up one that works.
 
 The clock is read here and only here, and handed to what needs it (`clock_facts`); the state
-never reads it (PLAN §7). Every file is written to a temporary file and renamed into place.
+never reads it (PLAN §7). Every file is written to a temporary file and renamed into place, and
+never through a junction or a symbolic link below the data folder (`link_on_the_way`).
 """
 import hashlib
 import http.client
@@ -40,6 +48,7 @@ import re
 import secrets
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import threading
@@ -53,9 +62,9 @@ from .pipeline import LogReader
 from .records import parse_ts
 from .server import CHANGE, PROGRAM, READ, TOKEN_HEADER, Hub, Server
 from .state import clock_facts
-from .words import iso
+from .words import clean_all, iso
 
-EXIT_OK, EXIT_RUNNING, EXIT_PORT, EXIT_SETUP = 0, 1, 2, 3
+EXIT_OK, EXIT_RUNNING, EXIT_PORT, EXIT_SETUP, EXIT_SERVER = 0, 1, 2, 3, 4
 
 SCRIPT = config.DASHBOARD_DIR / "scdash.py"
 TS_RE = re.compile(rb"^<(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3})Z>")
@@ -108,7 +117,7 @@ def atomic_write(path, data):
                 os.replace(tmp, path)
                 return
             except PermissionError:
-                if attempt == 39:
+                if attempt == 39 or os.path.isdir(path):     # a folder in its place never goes away by waiting
                     raise
                 time.sleep(0.05)
     finally:
@@ -132,7 +141,36 @@ def read_json(path):
         return None
 
 
-TEMP_RE = re.compile(r"^\.scdash-tmp-(?P<pid>\d+)-[0-9a-f]{8}-(?P<name>.+)\.tmp$")
+def link_on_the_way(root, path, include_self=False):
+    """The first junction or symbolic link (any reparse point) below `root` on the way to `path`,
+    or None. `root` itself is not looked at (Paths resolves it); `path` itself only with
+    `include_self`, for a file opened in place (atomic_write replaces its target, which never
+    writes through it). Each part is looked at with lstat, which never follows it, so nothing but
+    that name is opened. A path outside `root` is returned as it is: refused."""
+    path = Path(path)
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError:
+        return path
+    if not include_self:
+        parts = parts[:-1]
+    p = Path(root)
+    for part in parts:
+        p = p / part
+        try:
+            st = os.lstat(p)
+        except FileNotFoundError:
+            return None                           # nothing below exists yet: mkdir makes plain folders
+        except OSError:
+            return p                              # cannot tell: refused
+        if stat.S_ISLNK(st.st_mode) or getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+            return p
+    return None
+
+
+# Only the names atomic_write makes: an ASCII pid (Windows' are at most 10 digits), 8 hex digits,
+# and the plain ASCII name of one of our files.
+TEMP_RE = re.compile(r"\.scdash-tmp-(?P<pid>[1-9][0-9]{0,9})-[0-9a-f]{8}-(?P<name>[0-9A-Za-z._-]{1,100})\.tmp")
 
 
 def sweep_temp_files(folder):
@@ -146,7 +184,7 @@ def sweep_temp_files(folder):
         return 0
     removed, plist = 0, None
     for name in names:
-        m = TEMP_RE.match(name)
+        m = TEMP_RE.fullmatch(name)
         if not m:
             continue
         pid = int(m.group("pid"))
@@ -421,6 +459,16 @@ class Service:
         self._error_repeats = 0
         self._unmapped = {}
         self._finalized = None           # the session id whose end was handled
+        self._user_loaded = False        # state.json's user block read (or there is none)
+        self._user_warned = False
+        self._last_read_due = False      # no game at start: the last log is still to be read once
+        self._pending = []               # session summaries not yet written: (summary, why)
+        self._next_summary_try = 0.0
+        self._run_due = False            # run.json still to be written
+        self._next_run_try = 0.0
+        self._run_give_up = None         # when an instance nothing can find stops trying
+        self._links_logged = set()       # junctions and links already reported
+        self._exit_code = EXIT_OK        # what run() returns once the loop ends
 
     # ------------------------------------------------------------------ logging
 
@@ -430,6 +478,10 @@ class Service:
         lg.propagate = False
         try:
             self.paths.data.mkdir(parents=True, exist_ok=True)
+            if link_on_the_way(self.paths.data, self.paths.log, include_self=True) is not None:
+                # Appending opens the file in place, so a link there would be written through.
+                self.notes.append("%s is a junction or a link: nothing is logged to it" % self.paths.log.name)
+                raise OSError("service.log is a link")
             fh = logging.handlers.RotatingFileHandler(
                 str(self.paths.log), maxBytes=int(self.settings["log_max_bytes"]),
                 backupCount=int(self.settings["log_backups"]), encoding="utf-8")
@@ -494,7 +546,9 @@ class Service:
         try:
             if winutil.below_normal_priority():
                 lg.info("running at below-normal priority")
-            swept = sweep_temp_files(self.paths.data) + sweep_temp_files(self.paths.sessions)
+            swept = sweep_temp_files(self.paths.data)
+            if not self._linked(self.paths.sessions, include_self=True):
+                swept += sweep_temp_files(self.paths.sessions)
             if swept:
                 lg.info("removed %d temporary file(s) a stopped instance left half-written", swept)
             if port_answering(self.port):
@@ -512,15 +566,11 @@ class Service:
                 kind, why = probe_health(self.port)
                 return self._port_taken(kind, why, e)
             self.port = self.server.port
-            write_json(self.paths.run, {
-                "program": PROGRAM, "version": __version__, "pid": os.getpid(), "port": self.port,
-                "started": self.started_iso, "token": self.token, "mode": self.mode,
-                "data_dir": str(self.paths.data), "log": str(self.log_path) if self.log_path else None,
-                "python": sys.executable, "created": winutil.process_created()})
+            self._write_run()
             lg.info("listening on http://127.0.0.1:%d/", self.port)
             self._install_signals()
             self._loop()
-            return EXIT_OK
+            return self._exit_code
         finally:
             if self.feeder is not None:
                 self.feeder.stop()
@@ -544,6 +594,55 @@ class Service:
         self.log.error("not starting: %s. Set \"port\" in %s to another number.", text, self.paths.config.name)
         self.refusal = ("port", kind, text)
         return EXIT_PORT
+
+    def _write_run(self):
+        """run.json: how the commands find this instance and its token. Until it is written,
+        `status` and `stop` see a held lock and nothing they can talk to, and nothing can stop the
+        instance. So a write that fails is tried again every RUN_JSON_RETRY_SECONDS (a file held
+        for a moment), and after RUN_JSON_GIVE_UP_SECONDS the instance stops with exit 3; the next
+        start, or the scheduled relaunch, tries again."""
+        now = self.mono()
+        if self._run_give_up is None:
+            self._run_give_up = now + config.RUN_JSON_GIVE_UP_SECONDS
+        self._run_due = True
+        self._next_run_try = now + config.RUN_JSON_RETRY_SECONDS
+        try:
+            written = self._write(self.paths.run, {
+                "program": PROGRAM, "version": __version__, "pid": os.getpid(), "port": self.port,
+                "started": self.started_iso, "token": self.token, "mode": self.mode,
+                "data_dir": str(self.paths.data), "log": str(self.log_path) if self.log_path else None,
+                "python": sys.executable, "created": winutil.process_created()})
+        except Exception:                              # noqa: BLE001 - tried again from tick()
+            self._error("writing run.json")
+            written = False
+        if written:
+            self._run_due = False
+            return
+        if now >= self._run_give_up:
+            self.log.error("stopping: %s could not be written in %.0f s, so no command could find this instance, "
+                           "read its token or stop it (exit %d; the next start tries again)",
+                           self.paths.run.name, config.RUN_JSON_GIVE_UP_SECONDS, EXIT_SETUP)
+            self._exit_code = EXIT_SETUP
+            self._stop.set()
+
+    def _write(self, path, obj, indent=1):
+        """write_json for a file in the data folder, never through a junction or a link on the way
+        to it (PLAN §8): such a write is skipped (reported once). True when written; a failed
+        write raises."""
+        if self._linked(path):
+            return False
+        write_json(path, obj, indent)
+        return True
+
+    def _linked(self, path, include_self=False):
+        """Is there a junction or a link below the data folder on the way to `path`? Reported once."""
+        bad = link_on_the_way(self.paths.data, path, include_self)
+        if bad is None:
+            return False
+        if str(bad) not in self._links_logged:
+            self._links_logged.add(str(bad))
+            self.log.error("%s is a junction or a link: nothing is written or swept through it (PLAN §8)", bad)
+        return True
 
     def _remove_run(self):
         run = read_json(self.paths.run)
@@ -596,7 +695,9 @@ class Service:
 
     def _api_shutdown(self, req):
         why = req.json.get("reason") if isinstance(req.json.get("reason"), str) else "a request"
-        self.log.info("shutdown asked for (%s)", why[:80])
+        # repr() keeps the reason on this one line: raw, its line breaks could write lines of their
+        # own into the log, the launch check's included.
+        self.log.info("shutdown asked for (%s)", repr(why[:80]))
         self._stop.set()
         return 200, {"ok": True, "pid": os.getpid()}
 
@@ -604,11 +705,13 @@ class Service:
         return 200, self.status()
 
     def status(self):
+        """The instance's own figures. The session id is the log's first line, so every text goes
+        through `clean_all` (no control or bidi character reaches a console or a script)."""
         st = self.reader.state.session
         shown = (self._last_state or {}).get("session") or {}
         f = self.reader.follower
         t = os.times()
-        return {
+        return clean_all({
             "program": PROGRAM, "version": __version__, "pid": os.getpid(), "started": self.started_iso,
             "uptime_s": round(time.time() - self.started, 1), "mode": self.mode, "port": self.port,
             "data_dir": str(self.paths.data), "python": sys.executable,
@@ -626,14 +729,18 @@ class Service:
             "refused": self.server.refused if self.server else 0,
             "errors": self.errors, "summaries_written": self.summaries_written,
             "replay": self._replay_block(),
-        }
+        })
 
     # ------------------------------------------------------------------ the loop
 
     def _loop(self):
         try:
-            self.start_reading()
-            while not self._stop.is_set():
+            try:
+                self.start_reading()
+            except Exception:                          # noqa: BLE001 - what failed is tried again by tick()
+                self._error("the first read")
+                self._stop.wait(1.0)
+            while not self._stop.is_set() and not self._server_gone():
                 try:
                     busy = self.tick()
                 except Exception:                      # noqa: BLE001 - the loop carries on
@@ -646,6 +753,18 @@ class Service:
         except KeyboardInterrupt:
             self.log.info("Ctrl+C")
 
+    def _server_gone(self):
+        """Has the web server's front-end thread ended, though nothing stopped it? Then nothing
+        can reach this instance, and it must not stay up holding the lock: logged, exit 4, and the
+        next start (or the scheduled relaunch) brings up one that works."""
+        if self.server is None or self.server.alive():
+            return False
+        self.log.error("stopping: the web server's thread has ended, so nothing can reach this instance "
+                       "(exit %d; the next start brings up one that works)", EXIT_SERVER)
+        self._exit_code = EXIT_SERVER
+        self._stop.set()
+        return True
+
     def _next_wait(self):
         s = self.settings
         mono = self.mono()
@@ -654,12 +773,16 @@ class Service:
             wait = min(wait, max(0.05, self._last_save + s["state_save_seconds"] - mono))
         if self._backup_checks:
             wait = min(wait, max(0.05, self._backup_checks[0] - mono))
-        return min(wait, s["process_check_seconds"])
+        if self._run_due:
+            wait = min(wait, max(0.05, self._next_run_try - mono))
+        # The server is looked at every turn: at least every SERVER_CHECK_SECONDS.
+        return min(wait, s["process_check_seconds"], config.SERVER_CHECK_SECONDS)
 
     def start_reading(self):
         """The first look: is the game running? Then read the log once (no game) or from the top.
-        First of all, what the user entered on the page comes back from state.json: it is the only
-        record of it (PLAN §7), so nothing may be saved before it is loaded."""
+        First of all, what the user entered on the page comes back from state.json (`_load_user`).
+        A read or a write that fails here raises to the loop, which logs it; what is left (the
+        last log's read, a summary, the save) is done by a later `tick()`."""
         self._load_user()
         if self.feeder is not None and not self.feeder.is_alive() and not self.feeder.done:
             self.feeder.start()
@@ -670,18 +793,51 @@ class Service:
             self.log.info("the game is running: reading the current log from the top")
         else:
             self.log.info("no game running: reading the last log once")
-            self._read_to_end()
-            self._end_session("the game is not running")
+            self._last_read_due = True
         self._next_probe = self.mono() + self.settings["process_check_seconds"]
         self._dirty = True
+        if self._last_read_due:
+            self._read_last_log()
+        self._flush_summaries()
         self._after_read(self.clock.now())
 
+    def _read_last_log(self):
+        self._read_to_end()
+        self._end_session("the game is not running")
+        self._last_read_due = False
+
     def _load_user(self):
-        old = read_json(self.paths.state)
+        """What the user entered on the page, back from state.json. It is the only record of it
+        (PLAN §7), so the file is never saved over before it has been read: True once it has (or
+        there is none). A file that cannot be opened now (held by another program, or a folder in
+        its place) is tried again before each save."""
+        if self._user_loaded:
+            return True
+        try:
+            with open(self.paths.state, "rb") as f:
+                raw = f.read()
+        except FileNotFoundError:
+            self._user_loaded = True
+            return True
+        except OSError as e:
+            if not self._user_warned:
+                self._user_warned = True
+                self.log.warning("%s cannot be read now (%s): nothing is saved over it until it can be",
+                                 self.paths.state.name, e.__class__.__name__)
+            return False
+        try:
+            old = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError, RecursionError):
+            old = None
+            self.log.warning("%s is not JSON: nothing the user entered is in it", self.paths.state.name)
+        self._user_loaded = True
+        if self._user_warned:
+            self.log.info("%s can be read again", self.paths.state.name)
         if isinstance(old, dict) and isinstance(old.get("user"), dict):
             self.user_data = old["user"]
             if self.user_data:
                 self.log.info("what the user entered on the page is back from %s", self.paths.state.name)
+        return True
 
     def tick(self):
         """One turn of the loop. Returns True while catching up on a large log (no pause)."""
@@ -694,9 +850,15 @@ class Service:
                 self._game_appeared(now)
             elif not running and self.game_running:
                 self._game_gone()
+        if self._run_due and mono >= self._next_run_try:
+            self._write_run()
         busy = False
-        if self.game_running:
+        if self._last_read_due and not self.game_running:
+            self._read_last_log()                      # the first read failed: again
+        elif self.game_running:
             busy = self._read(config.READ_BUDGET)
+        if self._pending and mono >= self._next_summary_try:
+            self._flush_summaries()
         if self._backup_checks and mono >= self._backup_checks[0]:
             self._backup_checks.pop(0)
             self._log_backup("a while after the game started")
@@ -717,6 +879,7 @@ class Service:
         self.game_running = True
         self.game_since = now
         self._finalized = None
+        self._last_read_due = False        # following the log now; a session that ends in it is summed up then
         self.log.info("the game process appeared")
         self._log_facts("the game started")
         mono = self.mono()
@@ -749,7 +912,7 @@ class Service:
             self._log_facts("new session")
             self._finalized = None
         for sm in self.reader.take_finished():
-            self.write_summary(sm, "a new session began in the same file")
+            self._queue_summary(sm, "a new session began in the same file")
         if self.reader.take_lines() or status == "read":
             self._dirty = True
         read_now = f.offset - (before_offset if f.sessions == before_sessions else 0)
@@ -762,7 +925,7 @@ class Service:
                 break
         self.reader.finish()
         for sm in self.reader.take_finished():
-            self.write_summary(sm, "a new session began in the same file")
+            self._queue_summary(sm, "a new session began in the same file")
         self.reader.take_lines()
         self._dirty = True
 
@@ -771,7 +934,26 @@ class Service:
         if sid is None or sid == self._finalized:
             return
         self._finalized = sid
-        self.write_summary(self.reader.summary(complete=True), why)
+        self._queue_summary(self.reader.summary(complete=True), why)
+
+    def _queue_summary(self, sm, why):
+        """A finished session's summary, taken now and written by `_flush_summaries()`."""
+        self._pending.append((sm, why))
+        del self._pending[:-20]                        # bounded, should writes fail for a long time
+
+    def _flush_summaries(self):
+        """Write the waiting summaries, oldest first. A write that fails is logged and the summary
+        kept, to be tried again after a pause: a failed write must neither lose a session nor stop
+        the rest of the turn."""
+        while self._pending:
+            sm, why = self._pending[0]
+            try:
+                self.write_summary(sm, why)
+            except Exception:                          # noqa: BLE001
+                self._error("writing a session summary")
+                self._next_summary_try = self.mono() + self.settings["state_save_seconds"]
+                return
+            self._pending.pop(0)
 
     def _session_reset(self, reader):
         f = reader.follower
@@ -840,10 +1022,12 @@ class Service:
     def _save_state(self):
         if self._last_state is None or not self._unsaved:
             return
-        write_json(self.paths.state, {"schema": 1, "saved": iso(time.time()), "mode": self.mode,
-                                      "user": self.user_data, "state": self._last_state}, indent=None)
-        self._unsaved = False
-        self._last_save = self.mono()
+        self._last_save = self.mono()                  # a save that fails is tried after the same pause
+        if not self._load_user():
+            return                                     # never over a file whose user block was not read
+        if self._write(self.paths.state, {"schema": 1, "saved": iso(time.time()), "mode": self.mode,
+                                          "user": self.user_data, "state": self._last_state}, indent=None):
+            self._unsaved = False
 
     def _note_unmapped(self, state):
         codes = state.get("unmapped") or []
@@ -863,8 +1047,8 @@ class Service:
         if len(self._unmapped) > config.MAX_UNMAPPED:
             keep = sorted(self._unmapped.items(), key=lambda kv: kv[1].get("first_seen") or "")[-config.MAX_UNMAPPED:]
             self._unmapped = dict(keep)
-        write_json(self.paths.unmapped, {"schema": 1, "about": "location codes the names table does not know yet",
-                                         "locations": self._unmapped})
+        self._write(self.paths.unmapped, {"schema": 1, "about": "location codes the names table does not know yet",
+                                          "locations": self._unmapped})
 
     # ------------------------------------------------------------------ session summaries
 
@@ -873,9 +1057,9 @@ class Service:
         if not sm or not sm.get("session") or (sm.get("ended") or {}).get("how") == "running":
             return False
         path = self.paths.sessions / summary_name(sm)
-        if path.exists():
+        if self._linked(path) or path.exists():
             return False
-        write_json(path, sm)
+        self._write(path, sm)
         self.summaries_written += 1
         self.log.info("session summary written: %s (%s; %s)", path.name, sm["ended"]["how"], why)
         self._prune_sessions()
@@ -886,9 +1070,11 @@ class Service:
         `session-<hash>` name (a log without a first line) sorts by its file's time."""
         keep = max(1, int(self.settings["sessions_keep"]))
         d = self.paths.sessions
+        if self._linked(d, include_self=True):
+            return
 
         def when(name):
-            if re.match(r"^\d{4}-\d\d-\d\dT", name):
+            if re.match(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T", name):
                 return name[:20]
             try:
                 return iso(os.stat(d / name).st_mtime).replace(":", "-")[:19] + "Z"
@@ -1046,28 +1232,36 @@ def instance_info(paths, port=None):
     lock_held = paths.lock().held_elsewhere()
     p = run["port"] if run else (port or config.PORT)
     kind, health = probe_health(p)
-    healthy = bool(kind == "scdash" and run and health["pid"] == run["pid"] and health["started"] == run["started"])
+    note = health if kind == "foreign" else None
+    matches = bool(kind == "scdash" and run and health["pid"] == run["pid"] and health["started"] == run["started"])
+    if matches and not lock_held:
+        # The mutex is the truth: nobody holds this folder's lock, so no instance of it is alive and
+        # whatever answers is not ours, though it repeats run.json's pid and start. No command
+        # talks to it as ours, and none sends it run.json's token.
+        kind, health, matches = "foreign", None, False
+        note = "it repeats this dashboard's health answer, but no instance for this data folder is running"
+    healthy = bool(lock_held and matches)
     # Ours but not answering (hung, suspended, busy): the lock is held and run.json's process is
-    # alive, a Python process created at the time run.json recorded. Without that time (an older
-    # run.json, or off Windows) a live Python process with that id has to do.
+    # alive, a Python process created at the time run.json recorded. Without that time there is
+    # no match: a live Python process with that id could be anyone's.
     alive = bool(run and lock_held and not healthy and run_process_alive(run))
     return {"run": run, "lock_held": lock_held, "port": p, "port_user": kind,
             "health": health if kind == "scdash" else None,
-            "port_note": health if kind == "foreign" else None, "healthy": healthy,
-            "hung": alive}
+            "port_note": note, "healthy": healthy, "hung": alive}
 
 
 def run_process_alive(run):
-    """Is run.json's process still the one that wrote it? Its name must be python(w).exe and, when
-    run.json recorded it, its creation time must match to the millisecond; both come from one
-    snapshot of the process table, which opens no process. Read-only: nothing is signalled or ended
-    here, or anywhere in scdash."""
+    """Is run.json's process still the one that wrote it? Its name must be python(w).exe and its
+    creation time must match the one run.json recorded, to the millisecond; both come from one
+    snapshot of the process table, which opens no process. A run.json without that time (an
+    older one, or off Windows) matches nothing. Read-only: nothing is signalled or ended here, or
+    anywhere in scdash."""
+    recorded = run.get("created")
+    if isinstance(recorded, bool) or not isinstance(recorded, (int, float)):
+        return False
     entry = next((e for e in winutil.process_table() if e[0] == run["pid"]), None)
     if entry is None or entry[1].lower() not in winutil.PYTHON_NAMES:
         return False
-    recorded = run.get("created")
-    if not isinstance(recorded, (int, float)):
-        return True
     return entry[2] is not None and abs(entry[2] - recorded) < 0.001
 
 

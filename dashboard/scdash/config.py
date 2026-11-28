@@ -91,8 +91,15 @@ BOUNDS = {
 MAX_BODY = 64 * 1024                 # largest request body the server reads
 MAX_CONNECTIONS = 16                 # requests being served at once, event streams included
 REQUEST_TIMEOUT = 5.0                # seconds a request's head (and body) may take to arrive, in all
+FIRST_BYTE_TIMEOUT = 1.0             # seconds a new connection has to send its first byte
+MAX_HEAD = 16 * 1024                 # a request head (request line and headers), in all
+MAX_HEADER_LINES = 40                # header lines in one request head
+MAX_WAITING = 64                     # connections whose head is still arriving; over it the oldest goes
 READ_BUDGET = 16 << 20               # bytes read per loop turn while catching up on a big log
 MAX_UNMAPPED = 2000                  # codes kept in data/unmapped.json
+RUN_JSON_RETRY_SECONDS = 2.0         # between tries at an unwritable run.json
+RUN_JSON_GIVE_UP_SECONDS = 20.0      # then the instance stops (exit 3): nothing could find or stop it
+SERVER_CHECK_SECONDS = 10.0          # the main loop looks at the server's thread at least this often
 
 
 def load_settings(data_dir, overrides=None):
