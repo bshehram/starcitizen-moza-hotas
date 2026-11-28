@@ -1,6 +1,6 @@
 {
- "_doc": "Which stick and throttle controls each activity view shows, chosen by hand; build_reference.py fills in the wording from the card tables in tools/regen_cards.py (lists AB6, MHG_L, MHG_R on js1; MTQ_L, MTQ_R on js2), so the strip cannot drift from the printed cards. A control is named `<device> <card label>`, as the card prints it. `where` is the physical control, in words from CLAUDE.md section 3. `variant` picks which card wording applies (mining -> 'Mine:', salvage -> 'Salv:', missile -> 'Msl:'); without it the mode's own variant is used, else the primary function. `status` is what CLAUDE.md says about the binding: flown (confirmed in a ship), unverified (bound and loaded, not yet confirmed in a ship), trial (the docs call it a trial). No status means the docs raise no doubt. tests/test_reference.py fails when a label here no longer exists on the cards.",
- "source": "CLAUDE.md sections 4 to 6 and the card tables in tools/regen_cards.py, read 2026-11-27",
+ "_doc": "Which stick and throttle controls each activity view shows, chosen by hand; build_reference.py fills in the wording from the card tables in tools/regen_cards.py (lists AB6, MHG_L, MHG_R on js1; MTQ_L, MTQ_R on js2), so the strip cannot drift from the printed cards. A control is named `<device> <card label>`, as the card prints it. `where` is the physical control, in words from CLAUDE.md section 3. `variant` picks which card wording applies (mining -> 'Mine:', salvage -> 'Salv:', missile -> 'Msl:'); without it the mode's own variant is used, else the primary function. `press` (tap or hold) names one job of a key that does two, when the two have different statuses; the strip then lists the key twice. `status` is what CLAUDE.md says about the binding: flown (confirmed in a ship), unverified (bound and loaded, not yet confirmed in a ship), trial (the docs call it a trial). No status means the docs raise no doubt. tests/test_rig.py fails when a status here differs from the rig reference's own (STATUS in tools/regen_cards.py). tests/test_reference.py fails when a label here no longer exists on the cards.",
+ "source": "CLAUDE.md sections 4 to 6 and the card tables in tools/regen_cards.py, read 2026-11-28",
  "modes": {
   "combat": {
    "title": "Combat, guns mode",
@@ -13,7 +13,7 @@
     {"where": "Left hat down", "controls": ["js1 9"]},
     {"where": "Left hat right / left", "controls": ["js1 8", "js1 10"]},
     {"where": "Left hat press", "controls": ["js1 11"]},
-    {"where": "COM hat right", "controls": ["js2 58"]},
+    {"where": "COM hat right", "controls": ["js2 58"], "status": "unverified", "note": "On the COM hat since 2026-11-23; not yet reported from a flight (CLAUDE.md section 6, item 20)."},
     {"where": "COM hat press (tap / hold)", "controls": ["js2 57"], "status": "unverified", "note": "Moved here 2026-11-26 and accepted by the game on load; not yet reported from a flight (CLAUDE.md section 6, items 21 and 23)."},
     {"where": "Left wing 1 / 2 / 3", "controls": ["js1 49", "js1 50", "js1 51"], "status": "flown", "note": "The power panel worked on the first load of 2026-11-26 (CLAUDE.md section 6, item 23)."},
     {"where": "Right wing 4 (hold)", "controls": ["js1 56"], "status": "flown", "note": "Part of the power panel (CLAUDE.md section 6, item 23)."}
@@ -27,8 +27,9 @@
     {"where": "Trigger", "controls": ["js1 1"]},
     {"where": "FLAPS lever", "controls": ["js2 Slider"], "status": "flown", "note": "Confirmed in the Golem: rest is the laser's 20 % floor, FULL is 100 % (CLAUDE.md section 3.3)."},
     {"where": "Rocker up / down", "controls": ["js1 22", "js1 23"]},
-    {"where": "Rocker press", "controls": ["js1 24"], "status": "unverified", "note": "Moved here 2026-11-21; not yet tried in a ship (CLAUDE.md section 6, item 18)."},
-    {"where": "Right hat up / right / down", "controls": ["js1 12", "js1 13", "js1 14"], "status": "unverified", "note": "The mining bank moved to the right hat 2026-11-26; module activation still to be tested in the Golem (CLAUDE.md section 6, item 22). The Golem's laser has 2 module slots, so slot 3 does nothing there."},
+    {"where": "Rocker press", "controls": ["js1 24"], "status": "flown", "note": "Moved here 2026-11-21. It switched the laser mode on all three ARC-L4 runs of 2026-11-27 in the Golem, by the user's report of 2026-11-28 (CLAUDE.md section 6, item 18)."},
+    {"where": "Right hat up / right", "controls": ["js1 12", "js1 13"], "status": "flown", "note": "Module slots 1 and 2 work in the Golem: the user used them on all three ARC-L4 runs of 2026-11-27 (their report of 2026-11-28; CLAUDE.md section 4, Mining, and section 6, item 22)."},
+    {"where": "Right hat down", "controls": ["js1 14"], "status": "unverified", "note": "Module slot 3, not tried in a ship. The Golem's laser has 2 module slots, so slot 3 does nothing there (CLAUDE.md section 4, Mining)."},
     {"where": "Keypad A1 (hold)", "controls": ["js2 1"], "status": "unverified", "note": "Never tried in a ship (CLAUDE.md section 4, Mining)."},
     {"where": "Lower hat left", "controls": ["js1 20"]}
    ]
@@ -56,7 +57,8 @@
    "variant": null,
    "items": [
     {"where": "ALT key (tap / hold)", "controls": ["js2 8"], "note": "Tap requests landing; a hold of about 0.25 s requests a cargo-loading slot (CLAUDE.md section 4)."},
-    {"where": "AP key (tap / hold)", "controls": ["js2 10"], "status": "unverified", "note": "Docking added 2026-11 for the Liberator; Autoland on the hold was restored 2026-11-26 and not yet reported from a flight (CLAUDE.md section 6, items 12 and 23)."},
+    {"where": "AP key (hold)", "controls": ["js2 10"], "press": "hold", "status": "flown", "note": "Autoland: confirmed in flight by the user on 2026-11-28, after the Golem runs of 2026-11-27 (CLAUDE.md section 4 and section 6, item 23)."},
+    {"where": "AP key (tap)", "controls": ["js2 10"], "press": "tap", "status": "unverified", "note": "Docking, added 2026-11 for the Liberator's docking collar (CLAUDE.md section 6, item 12): never tried, by the user's report of 2026-11-28."},
     {"where": "Gear lever up / down", "controls": ["js2 29", "js2 30"]},
     {"where": "Toggle A up / down", "controls": ["js2 25", "js2 26"], "note": "On the Liberator, opening the garage doors vents that space (CLAUDE.md section 11)."},
     {"where": "Right Module switch forward / rest", "controls": ["js2 50", "js2 49"]},

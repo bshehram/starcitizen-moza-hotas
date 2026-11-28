@@ -12,10 +12,12 @@ editing or relying on these files.
   [`../tools/CLAUDE.md`](../tools/CLAUDE.md).
 - **Button numbers are baked into the art.** Never hand-place or relabel a number anywhere; the
   card generator only recolors and crops these images. The numbers you see are MOZA's own.
-- **Crop rectangles** that carve each sub-view out of these PNGs live in `../tools/regen_cards.py`
-  (the `VIEWS` list near the top, since 2026-11-27; the cards and the dashboard's rig reference
-  both use them). Only re-verify them if MOZA ships new device art with a different
-  layout — then update the crops and rebuild the cards.
+- **Crop rectangles** that carve each sub-view out of these PNGs live in `../tools/regen_cards.py`:
+  `CARD_ART` holds the six the printed cards use, `VIEWS` the eight of the dashboard's rig reference
+  (the throttle panel cut into keypad, dials and levers), and `DISCS` / `FINGERPRINTS` where each
+  button's number disc sits and the names as they were read by eye. Only re-verify them if MOZA
+  ships new device art with a different layout — then update the crops, read the disc names again
+  (`--sheets`, see [`../tools/CLAUDE.md`](../tools/CLAUDE.md)) and rebuild the cards.
 
 ## Where the detail lives
 

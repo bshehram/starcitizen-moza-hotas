@@ -49,18 +49,39 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
   [`../diagrams/`](../diagrams/CLAUDE.md) plus binding tables embedded in the script. Key rules:
   - The cards are **not auto-derived from [`../MOZA.xml`](../MOZA.xml)**. When a binding changes,
     edit the matching row in this script *and* the XML, then re-run. See [`../CLAUDE.md` §8.3](../CLAUDE.md).
+    The script does read the XML for the dashboard files. It makes every file (rig and cards) in
+    memory, checks them, and writes **nothing** when the tables and the XML disagree: a bound input
+    with no row, a row whose input is bound nowhere, a row whose `Actions` / `VariantActions` are
+    not the actions bound on its input, a variant with no action in its mode, two jobs live in one
+    mode on one press. Files are written through a temporary file, retried while a reader (the
+    dashboard's service) holds the old one; a killed run's leftovers are swept at the next start.
   - Needs Pillow and a Chromium-family browser (Chrome, Edge or Chromium; `CARD_BROWSER`
     overrides the search). Look at both PNGs after a run for clipped text.
   - **The same run also writes the dashboard's rig reference** into `../dashboard/web/rig/`
-    (since 2026-11-27): `rig.json`, every card row placed in one of eight views, and six diagram
-    images in the page's colors (light line work on a transparent ground). The `VIEWS` list in
-    the script says which button numbers each view's drawing shows and holds its crop box;
-    `RIG_ART` holds the recolor settings. `python tools/regen_cards.py --dashboard-only` writes
-    just those files, without the browser.
-  - `dashboard/tests/test_rig.py` reads the tables with `ast` and **fails when a card row, a
-    status mark in `dashboard/reference/controls.hand.json` or a source diagram has changed and
-    the rig files were not regenerated**. So after any card edit, run the generator and commit
-    `dashboard/web/rig/` with the cards.
+    (since 2026-11-27, schema 2 since 2026-11-28): `rig.json` and eight view images
+    (`grip_front`, `grip_side`, `base`, `keypad`, `dials`, `levers`, `right_module`,
+    `left_module`) in the page's colors, MOZA's sample readings painted out. Inputs besides the
+    tables: `MOZA.xml` (actions and actionmaps per input), the catalog in `../reference/` (labels,
+    stock activation modes, stock joystick bindings), the art. The literals after the tables say
+    the rest: `CARD_ART` (the cards' six crops, unchanged), `VIEWS` (the screen's eight),
+    `MODES` / `LIVE_MODES` / `MAPS` (which operator modes each actionmap is live in, and which
+    modes each of the page's filters covers, with the whole sentences that say so and where they
+    sit), `STATUS` (the one hand-kept place for flown / unverified / trial, each quoting root
+    `CLAUDE.md`), `READINGS`, `DISCS` and `DISC_FINDER` (the number discs, found by code and named
+    from rough positions), `FINGERPRINTS` (the names as read by eye), `RIG_ART`.
+    `python tools/regen_cards.py --dashboard-only` writes just those files, without the browser.
+    `--sheets <folder>` writes contact sheets to read the disc names by eye, `--fingerprints` prints
+    the table to pin them (root `CLAUDE.md` §8.5 says when). The schema is in `../dashboard/STATE.md`.
+  - `dashboard/tests/test_rig.py` reads the tables with `ast` and **fails when any of those inputs
+    (or the rig code) changed and the rig files were not regenerated**; it also checks the card
+    tables against `MOZA.xml` (inputs and actions), the printed `cards/*.svg` against the tables,
+    every quoted sentence against root `CLAUDE.md` (once, in the place named), the strips' statuses
+    in `dashboard/reference/controls.hand.json` against `STATUS`, the PNGs themselves (decoded,
+    hashed, discs found again, names against `FINGERPRINTS`) and the pinned row ids; with Pillow it
+    compares every file byte for byte with a fresh in-memory build. Run it with
+    `python -m unittest discover -s dashboard/tests -p "test_rig.py"`. So after any card edit, run the
+    full generator and commit `dashboard/web/rig/` with the cards. A change to the tables also moves the inputs hash
+    of `dashboard/reference/controls.json`: rewrite it the way `dashboard/reference/build_reference.py` does (no test catches a stale hash there).
   - The rounding helpers (`rnd`, `r1`) round half-to-even on purpose, to reproduce the original
     geometry exactly. Read [`../CLAUDE.md` §8.4](../CLAUDE.md) before changing the render code.
 

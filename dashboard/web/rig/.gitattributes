@@ -1,0 +1,5 @@
+# tools/regen_cards.py writes these: rig.json with LF line endings, the PNGs as bytes. Keep git from
+# turning the JSON into CRLF on a Windows checkout (every fresh clone would then differ from a
+# regeneration) and from ever treating an image as text. dashboard/tests/test_rig.py checks the rules.
+*.json text eol=lf
+*.png binary

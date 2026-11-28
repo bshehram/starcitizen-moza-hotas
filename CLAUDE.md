@@ -342,7 +342,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | --- | --- | --- | --- |
 | `js2_button7` | MTQ keypad **"SPD"** (mid-middle) - **hold** | `v_toggle_qdrive_engagement` → *Engage Quantum Drive (Hold)* | Spools & engages the quantum drive for **in-system** travel (needs NAV mode + an aligned marker). Stock mode is `delayed_press` - **hold** ~0.25 s. Press again to drop out. (Physical "SPD"/speed label - loose quantum match.) |
 | `js2_button6` | MTQ keypad **"HDG"** (right-top) | `v_starmap` → *Map* | Opens the 3D star map (mobiGlas) to pick a quantum destination. (Physical "HDG"/heading label - loose nav match.) |
-| `js2_button10` | MTQ keypad **"AP"** - **tap** | `v_toggle_docking_request` → *Docking (Initiate)* | Starts / cancels docking at a docking port, and undocks (the label changes with state). **Added 2026-11 for the Liberator**'s docking collar; the Wiki API also lists docking collars on the Perseus, Ironclad Assault and Corsair (fleet since 2026-11-23, §11). Shares the key with *Autoland* purely by stock activation modes (`tap` here, `delayed_press` there). Does nothing on ships that can't dock. Replaces the 4.8-era `v_invoke_docking` / `v_toggle_docking_mode`, which no longer exist. |
+| `js2_button10` | MTQ keypad **"AP"** - **tap** | `v_toggle_docking_request` → *Docking (Initiate)* | Starts / cancels docking at a docking port, and undocks (the label changes with state). **Added 2026-11 for the Liberator**'s docking collar; the Wiki API also lists docking collars on the Perseus, Ironclad Assault and Corsair (fleet since 2026-11-23, §11). Shares the key with *Autoland* purely by stock activation modes (`tap` here, `delayed_press` there). Does nothing on ships that can't dock. Replaces the 4.8-era `v_invoke_docking` / `v_toggle_docking_mode`, which no longer exist. **Not yet tried in a ship.** On 2026-11-28 the user confirmed the hold on this key (*Autoland*) and reported nothing about the tap. |
 
 ### Mode switching & LAMP - `seat_general`
 
@@ -409,7 +409,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js1_button2` | MHG top-left face button | `v_weapon_toggle_launch_missile` → *Launch Missiles (Tap)* | Arms/launches the selected missile. **Hold** to build a stronger lock before release. |
+| `js1_button2` | MHG top-left face button | `v_weapon_toggle_launch_missile` → *Launch Missiles (Tap)* | Launches the selected missile (stock mode `press`). The game also has *Launch Missiles (Hold)* (`v_weapon_launch_missile`, stock mode `delayed_press`), which this profile does not bind. Whether holding this button does anything more than a tap is not checked in a ship (§6 item 28). |
 | `js1_button22` | MHG upper rocker ↑ | `v_weapon_cycle_missile_fwd` → *Cycle Next Missile Type* | Next missile type (in missile mode). Shares the button with *Weapon Preset Next*. |
 | `js1_button23` | MHG upper rocker ↓ | `v_weapon_cycle_missile_back` → *Cycle Previous Missile Type* | Previous missile type. Shares the button with *Weapon Preset Prev*. |
 
@@ -574,7 +574,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - `gamedata.py check` passes: 131 OK, 0 unknown, 0 wrong-map, no ghost on js1 25–29 or js2 57–61.
     - Strafing now depends on the mini-stick being in **Button Mapping** mode (§1.1).
     - Clicking the stick in while strafing toggles decoupled mode.
-    - **Not yet flown, and not yet loaded in-game** (run `validate_actionmaps.py` after the next load).
+    - **Loaded and validated in-game on 2026-11-26** (`validate_actionmaps.py` after each load of that day, §10.3). **Not reported from a flight since.**
     - *Update 2026-11-26 (item 21):* the stick press 29 is now full reverse, and the decoupled toggle went back to the MTQ "COM" hat press (tap; hold = pin).
 
 21. **✅ Full reverse on the MHG stick press; decoupled back on the MTQ "COM" hat press (2026-11-26). The two-rebind reverse described here failed on load - see item 23.** The user asked for three things:
@@ -688,6 +688,15 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Not proven:** two more copies existed at the same time under a folder whose name starts with a dot (`.claude/worktrees/…/MOZA.xml`, the working copies of two builders) and the user saw no entries for them. So the game seems to skip dot-folders. That is an inference from one look at one menu.
     - **Fixes:** the folder-layout note at the top of this document no longer says the game ignores subfolders. `gamedata.py check` reports any other control-profile `.xml` under the mappings folder as `STRAY-PROFILE` and exits non-zero (it skips dot-folders, on the inference above). `SCBOT.md` carries the rule for sessions: no profile copy with an `.xml` name anywhere under this folder.
 
+28. **Open - whether holding the missile-launch button does anything (2026-11-28; wording only, no binding changed).**
+    - **The conflict:** the MHG top-left face button (`js1_button2`) is `v_weapon_toggle_launch_missile`. From the first commit (June 22, 2026) until now, §4, the `MOZA.xml` comment, `reference/MOZA_BINDINGS.html` and the dashboard's rig data said that holding it builds a stronger lock before release.
+    - **Where each wording came from:**
+      - "Hold to build a stronger lock" was the first session's own wording: its §4 row named the action *Launch Missiles* and added the hold. The starbinder catalog committed with it already labeled this action *Launch Missiles (Tap)* and listed a separate *Launch Missiles (Hold)*, with no activation modes and no description.
+      - **[game]** The 4.10 catalog, read from the game's own files: `v_weapon_toggle_launch_missile` is *Launch Missiles (Tap)*, stock mode `press`. The separate *Launch Missiles (Hold)* is `v_weapon_launch_missile`, stock mode `delayed_press`, and this profile does not bind it.
+    - **Found by** the independent review of the dashboard's rig data, which compared each row's wording with the label of the action bound to it (2026-11-28).
+    - **Change:** §4, the `MOZA.xml` comment, the binding sheet and the rig data now give the game's label and claim nothing about a hold. The printed card always said only "Launch missiles".
+    - **Not checked in a ship, and only the user can settle it:** in Missile operator mode (knob detent 2) with a target locked, hold the button and see whether anything differs from a tap. If the hold matters, the unbound *Launch Missiles (Hold)* may be the action to bind.
+
 ---
 
 ## 7. Refreshing the keybind database
@@ -765,12 +774,12 @@ It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `M
 ### 8.2 How a card is built (split diagrams + table, composited in SVG)
 
 1. **Diagram layer - comes straight from the manufacturer PNG, never edited by hand.** `diagrams/MOZA_AB6.png` / `MOZA_MHG.png` / `MOZA_MTQ.png` already show every button numbered with a leader line. The script does **not** move, add, or relabel a single number - they're the manufacturer's own numbers riding along inside the image. Three helpers process them:
-   - **`get_sub_diagram`** crops a **sub-rectangle** out of a source PNG so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop boxes (`x0, y0, x1, y1` in source pixels) are in the script's `VIEWS` list, which the dashboard's rig reference shares (§8.5); re-verify only if MOZA ships new device art.
+   - **`get_sub_diagram`** crops a **sub-rectangle** out of a source PNG so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop boxes (`x0, y0, x1, y1` in source pixels) are in the script's `CARD_ART` list (the dashboard's rig reference has its own eight in `VIEWS`, §8.5); re-verify only if MOZA ships new device art.
    - It then recolors the crop to white-background line work. Recolor math = **grayscale → invert → levels stretch** (Pillow `point`): `out = -k·luma + k·(1−black)`, `k = 1/(white−black)`, tuned `black=0.45`, `white=0.85` (navy bg → white, faint line-art → crisp dark).
    - **`add_diagram_stack`** lays the sub-views into the left ~60% as a column of **bands**: each band gets a height share (`HFrac`, equal by default) and holds one or more images placed **side by side**, each owning a cell = `Frac` of the zone width, fit/centered (optional caption under it). Resize a view by changing its `Frac` - e.g. the AB6 base's `Frac` is kept below the grips' so it reads smaller.
 2. **Table layer - the part you edit.** Five Python lists - `AB6`, `MHG_L`/`MHG_R`, `MTQ_L`/`MTQ_R` - hold one dict per row. `add_row` / `new_card` draw each as a dark number badge + function text with alternating row shading, and `render_png` rasterizes via headless Chrome. The combined card's right column is `MHG_R + AB6`.
 
-> **Source of truth is `MOZA.xml`, not these lists.** The lists are a hand-maintained *view* of the bindings. Nothing cross-checks them against the XML, so when you change a binding you must edit both (see §8.3).
+> **Source of truth is `MOZA.xml`, not these lists.** The lists are a hand-maintained *view* of the bindings, so when you change a binding you must edit both (see §8.3). Since 2026-11-28 two things check them against the XML: the rig generator writes nothing (neither `dashboard/web/rig/` nor the cards) when a bound input has no row, a row's input is bound nowhere, a row's `Actions` are not the actions bound on its input, a variant has no action in its mode, or one press would fire two jobs in one mode; and `dashboard/tests/test_rig.py` fails on the same, and when `cards/*.svg` no longer say what the tables say (§8.5). Neither can tell whether the wording describes its action well, only that it is about that action.
 
 ### 8.3 Updating after you change a binding
 
@@ -785,8 +794,17 @@ It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `M
 | `'Variants'` | *(optional)* the operator-mode alternates for that **same physical button**, built with `V('<tag>', '<text>', color)`. Keep `<text>` short (see note below). | `[V('Mine:', 'module 1', C_MINE), V('Salv:', 'focus all', C_SALV)]` |
 | `'Unbound': True` | *(optional)* renders the row grayed (rest positions, reserved levers, absent axes). | rocker center `22`, levers `57-62` |
 | `'Header'` | A row that is actually a section header inside a column (no badge). | `{'Header': 'AXES'}` |
+| `'Screen'` | The primary function in whole words, for the dashboard (never printed). No status word in it. | `'Cycle sub-targets forward'` |
+| `'Where'` | Where the control is, in words, for the dashboard. Every row has one. | `'Right hat up'` |
+| `'Group'` | The physical control the row belongs to, as §3 names it; a hat's five rows share one. | `'right hat'` |
+| `'ScreenVariants'` | *(with Variants)* the screen wording of each variant, keyed by mode. | `{'mining': 'Activate mining module, slot 1'}` |
+| `'Actions'` | The `MOZA.xml` actions the primary wording describes (`[]` when unbound). The run stops when the profile binds others on the row's input. | `['v_view_dynamic_zoom_rel_in']` |
+| `'VariantActions'` | *(with Variants)* the same per card variant, keyed by mode. | `{'mining': ['v_mining_use_consumable1']}` |
+| `'Inputs'` | *(axis rows only)* the profile inputs the row is. | `['js2_roty']` |
+| `'Jobs'` | *(only where a tap and a hold do different things)* one entry per press, naming its `MOZA.xml` actions. | the AP key: dock / autoland |
 
-3. Re-run the rebuild command (§8.1).
+3. If the docs say something new about whether the binding works (flown, not yet tried, a trial), change its entry in `STATUS` in the same script, quoting the whole sentences of this file it rests on with the place each sits (`{'In': '§6 item 24', 'Text': '...'}`); and `dashboard/reference/controls.hand.json` if the activity strips show that control (the test makes the two agree). A sentence a status or `MAPS` quotes must stay unique in this file.
+4. Re-run the rebuild command (§8.1; the full one, so the cards follow), then `python -m unittest discover -s dashboard/tests -p "test_rig.py"`, and commit `dashboard/web/rig/` with the cards.
 
 The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal `C_SALV`, **`Msl:`/notes** = gray `C_NOTE`. These encode the [operator-mode reuse](#5-operator-mode-reuse-mining--salvage) - one physical control doing a different job per mode.
 
@@ -797,7 +815,7 @@ The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal 
 ### 8.4 Layout knobs & gotchas (for whoever maintains the script)
 
 - **Per-card layout** lives in each `new_card({...})` call: `F` (global font scale - the narrow 40% table forces **1.18 / 1.15**), `CanvasW`/`CanvasH` (held at the 1.294 page ratio, rendered 2×), `Stack` (`X`, `W`, `Gap`, and `Rows` - the diagram bands, each `{'Imgs': [{'D', 'Frac', 'VA', 'Caption'}]}`), and `Cols` (the two table columns, each `{'X', 'W', 'Rows'}`). Want bigger diagrams? widen `Stack['W']` and shrink the columns / `F`.
-- **Rendering.** `render_png` runs the browser with an argument list (no shell quoting), passes the SVG as a `file://` URI (`Path.as_uri()` percent-encodes the spaces in `…\Program Files\…`), screenshots into a temp folder, then moves the PNG into `cards/`. An isolated temp `--user-data-dir` keeps the headless run from colliding with a Chrome that's already open. Chrome writes "NNN bytes written…" to stderr even on success, so stderr is discarded and success is judged by the PNG existing.
+- **Rendering.** `render_png` runs the browser with an argument list (no shell quoting), passes the SVG as a `file://` URI (`Path.as_uri()` percent-encodes the spaces in `…\Program Files\…`), renders from a copy of the SVG in a temp folder and screenshots there; the SVG and PNG reach `cards/` only after every card and the rig files are made, each through a temporary file (every generated file is written that way, so a reader never sees half of one, and a failed run writes nothing). An isolated temp `--user-data-dir` keeps the headless run from colliding with a Chrome that's already open. Chrome writes "NNN bytes written…" to stderr even on success, so stderr is discarded and success is judged by the PNG existing.
 - **Fonts.** The SVG asks for *Segoe UI*, then *Arial*. On a Mac it renders in Arial, which runs slightly wider - look at the PNG for clipped table text after regenerating there.
 - **Rounding.** `rnd` / `r1` round half-to-even, the rule the original PowerShell (.NET `Math.Round`) used, so the port reproduces its geometry exactly. Verified 2026-11-23: the SVG markup matched the PowerShell output byte for byte apart from the embedded images, and the PNGs differed by at most 2/255 per pixel.
 - SVGs are written UTF-8 **without BOM**.
@@ -806,21 +824,66 @@ The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal 
 
 Since 2026-11-27 `python tools/regen_cards.py` also writes `dashboard/web/rig/`: the data and
 diagram images for the dashboard's "Rig reference" section (the user asked for the cards inside
-the dashboard; [`dashboard/PLAN.md`](dashboard/PLAN.md) §4 item 18). It is the same content as the
-cards, so the screen cannot drift from the paper.
+the dashboard; [`dashboard/PLAN.md`](dashboard/PLAN.md) §4 item 18). Rebuilt on 2026-11-28 (schema 2)
+so the page can be built from fields alone. Every field is described in
+[`dashboard/STATE.md`](dashboard/STATE.md) ("The rig reference (rig.json)").
 
-- **`rig.json`:** every card row (96), placed in one of eight views: grip front, grip side, base,
-  the stick's axes, throttle panel, right module, left module, and the throttle's axes (the two
-  axes views have no image). The `VIEWS` list in the script says
-  which button numbers each view's drawing shows. A row carries its label, primary function,
-  hint, mode variants, the unbound flag, and a flown / unverified / trial mark where
-  `dashboard/reference/controls.hand.json` has one.
-- **Six PNGs:** the cards' own crops in the page's colors, light line work on a transparent
-  ground (`RIG_ART` holds the settings), at native size.
-- **`--dashboard-only`** writes just these files and needs no browser.
-- **`dashboard/tests/test_rig.py` fails until you regenerate** after a card row, a status mark
-  or a source diagram changes. So §8.3 gains a step: commit `dashboard/web/rig/` with the cards.
-- The page that shows them is not built yet (2026-11-27).
+- **Made from:** the card tables and the literals after them in the script; the art in `diagrams/`;
+  `MOZA.xml` (which actions sit on each input, in which actionmap); the action catalog in
+  `reference/` (labels, stock activation modes, the stock joystick bindings left in place); and the
+  script's own rig code. A hash of each is in `rig.json`'s `_meta`; its `generated` date moves only
+  when one of them does.
+- **Made in memory, then written.** The run makes every rig file and both cards, checks them all,
+  and only then writes, each file through a temporary file in its folder, retried for about two
+  seconds while a reader holds the old one. When a check fails, nothing is written. Temporary files a
+  killed run left behind are swept at the next start.
+- **`rig.json`:** 96 rows in card order, each with a stable id (`js1-12`), its buttons as numbers,
+  its inputs, the one view it is on, the screen wording (`Screen`, `Where`, `Group`, variants), the
+  card wording, its status, what it does in each operator mode, the `MOZA.xml` actions behind it,
+  and its marks on the drawing (each number disc, found by code, round or box; each axis word).
+- **The wording is tied to the actions.** Each card row names the actions its wording describes
+  (`Actions`, and `VariantActions` per card variant). The run stops when `MOZA.xml` binds other
+  actions on that input in that mode, so two actions swapped in the profile cannot pass under
+  unchanged wording.
+- **Operator modes** (combat = guns, missile, scan, mining, salvage, with their knob detents) come
+  from `MAPS`: for each actionmap of `MOZA.xml`, the modes where it is live, dead, or not known, with
+  the whole sentences of this file (or of `MOZA.xml`'s comments) it rests on, and a `Note` for every
+  unknown cell. Unknown today: `spaceship_hud`, `spaceship_docking`, `spaceship_radar` and
+  `spaceship_quantum` everywhere (engaging the quantum drive needs NAV master mode, and the data has
+  no master modes), the targeting maps in missile and scan mode (the docs conflict). Settle one and
+  change `MAPS`. The page's filters are in `LIVE_MODES`: Flight is combat, missile and scan.
+- **Statuses** come from `STATUS` alone. Each entry quotes the whole sentences of this file it rests
+  on and names where each sits (a section, a heading or a §6 item), with the date or build of a
+  confirmation where the docs give one (`When`). The test checks that every quote occurs exactly once
+  here, in the place named, and (coarsely) that one quote uses a word of its status. **It cannot check
+  that a sentence means what the status claims:** when you change a status or rewrite a sentence it
+  quotes, read the two together. A row with no status is one the docs record neither a flight report
+  nor a doubt about. `controls.hand.json`'s statuses for the activity strips must agree, and the test
+  says so.
+- **Eight PNGs**, named after their views: `grip_front`, `grip_side`, `base`, `keypad`, `dials`,
+  `levers` (the throttle panel cut in three), `right_module`, `left_module`. One light color in 16
+  opacity steps (`RIG_ART`), at native size, with MOZA's sample readings painted out (`READINGS`:
+  the numbers "65535", "0" and "32767", and the lit level bars dimmed; the axis words X and Y stay).
+  The printed cards keep the readings.
+- **Number discs:** `DISCS` names each disc by a rough position read off the art; the generator
+  finds the discs itself and refuses a view where a claimed number has no disc, two share one, or a
+  disc is unclaimed. `FINGERPRINTS` pins the names as they were read by eye (all 103, on contact
+  sheets, 2026-11-28): a hash of the art under each number's disc. When a name lands on another disc,
+  or the art or the disc finder changes, the run and the test fail until the names are read again:
+  `python tools/regen_cards.py --sheets <a folder outside the repo>` writes a contact sheet per view;
+  read every tile, fix `DISCS` where a name is wrong, then paste the output of
+  `python tools/regen_cards.py --fingerprints` into `FINGERPRINTS`.
+- **`--dashboard-only`** writes just these files and needs no browser. The output is byte-identical
+  from any working directory.
+- **`dashboard/tests/test_rig.py` fails until you regenerate** after a card row, a status, a mode,
+  the art, the rig code, `MOZA.xml` or the catalog changes. It also reads `cards/*.svg` and fails when
+  a card row was changed and only `--dashboard-only` was run. It checks the images themselves (each
+  PNG decoded with the standard library and hashed), the disc names (fingerprints, and the order of
+  the discs within each hat, rocker and encoder), and pins the list of row ids. With Pillow it builds
+  everything in memory and compares the committed files byte for byte. Run it with
+  `python -m unittest discover -s dashboard/tests -p "test_rig.py"`.
+- The page that shows them is being designed in `dashboard/data/design/rig/` (not built yet,
+  2026-11-28).
 
 ---
 

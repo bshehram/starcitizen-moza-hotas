@@ -343,7 +343,7 @@
 
   <actionmap name="spaceship_missiles">
     <action name="v_weapon_toggle_launch_missile">
-      <rebind input="js1_button2"/>  <!-- MHG top-left face button - launch missile (HOLD to build a stronger lock before release) -->
+      <rebind input="js1_button2"/>  <!-- MHG top-left face button - Launch Missiles (Tap), the game's label: launch the selected missile. The game's separate Launch Missiles (Hold) (v_weapon_launch_missile) is not bound; whether holding this button does more than a tap is not checked in a ship (CLAUDE.md section 6 item 28). -->
     </action>
     <action name="v_weapon_cycle_missile_fwd">
       <rebind input="js1_button22"/>  <!-- MHG upper rocker UP - next missile type (shares 22 with weapon-preset-next; active operator mode decides) -->
