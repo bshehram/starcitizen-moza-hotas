@@ -16,6 +16,34 @@ Every log of the user's from before that evening is gone (see "What the Windows 
 changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
 re-run.*
 
+### The third session, 2026-11-28 (in progress when this was written, about 11 AM)
+
+*Kept here so a session that ends without warning loses nothing. Fold it into the sections
+below as each piece lands, then delete it.*
+
+- **Running, nothing of theirs committed yet:**
+  - A reviewer (Opus 5.5) re-running stage 3's third fix round on a frozen copy of `b399f18`
+    ("Left to do" step 1).
+  - A reviewer (Opus 5.5) attacking the rig reference data on another frozen copy, including a
+    row-by-row check of the card tables against `MOZA.xml`, which nothing had done before.
+  - A builder (Opus 5.5) wiring stage 3 into the service ("Left to do" step 2), working in the
+    tree: `scdash/service.py`, `server.py`, `config.py`, `scdash.py`, their tests,
+    `dashboard/CLAUDE.md`, and a new last section of `STATE.md` for the page's endpoints. If
+    those files are modified and uncommitted, that is its unfinished work: run the suite and
+    read its diff before building on it.
+  - A designer (Fable 5.2) laying out the rig reference section and the Live / Rig reference
+    switcher as a mockup with captures, in `data/design/rig/` (git-ignored; `NOTES.md` there
+    says what it settled). The user has to see it in both orientations before it is built.
+- **Done this session:**
+  - Step 4's first half: the user's own `data/plan.json` exists (written from the game plan
+    page; `plan.normalize` skips nothing; the board builds from it), and the update routine in
+    the memory note `game-plan-artifact` has the `plan.json` step.
+  - The session brief was renamed `SCBOT.md` (it was `STARCITIZEN.md`), and it now says which
+    model a subagent runs on ("How the build is run" below).
+- **The live service is still stopped.** Start it only once the wiring is committed: started
+  now, it would import half-edited code and write to the real data folder.
+- The suite passed on `b399f18` that morning: 467 tests, 141 s.
+
 ### The short version
 
 - **On `main`, built and reviewed:** the reference tables, the log reader (stage 1), the
