@@ -22,7 +22,7 @@ they are gone.*
 | Stage 1: log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. The command `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 logs parse with no error and no unreadable line (377 MB in about a second, memory flat). Reviewed twice by an independent agent: privacy clean on 152 names and ids, byte-at-a-time feeding gives the same state. |
 | Log rotation proof (§8) | The follower polled `Game.log` across a real launch at 12:57 PM. | `f2b579d` | Same file id before and after, the backup appeared, the new session began at offset 0, 328 polls with no error. |
 | Stage 2: service, server, first page | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`, `web/`. The commands `run`, `start`, `stop`, `status [--json]`, `replay <log>`. The page shows the status strip, the joystick check and the event feed in the chosen look, landscape and portrait. | `c2d203d` | 316 tests in the whole suite. Reviewed twice: about 50 request variants and a hostile page in a real browser got nothing past the guard; hostile text from a log is shown as text; 21 MB and 0.09% of one core idle. The user ran `replay` and liked what they saw. |
-| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`: reads the layout from the game's program file, one fixed address, one fixed request, everything capped. | `56aca44`, `58e9c16` | 97 tests against a fake stream. Reviewed twice: 106,000 fuzzed inputs, nothing escaped; 0.2% of one core at 18 snapshots a second. **Not wired into the service, the state or the page, and never run against the real stream.** |
+| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`: reads the layout from the game's program file, one fixed address, one fixed request, everything capped. | `56aca44`, `58e9c16` | 97 tests against a fake stream. Reviewed twice: 106,000 fuzzed inputs, nothing escaped; 0.2% of one core at 18 snapshots a second. **Not wired into the service, the state or the page.** First run against the real stream on 2026-11-27 evening: an eight-minute recording, 7,209 messages, none undecodable (§3, "The first recording"). |
 | The look (§11) | Direction B, "Avionics", chosen by the user from three mockups. The chosen mockup is tracked in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | this commit | The user picked it from side-by-side captures of every screen in both orientations. |
 
 The plan itself was corrected throughout from what the build and the reviews found: §3 (what the
@@ -404,7 +404,8 @@ completes. Show nothing for these; a gap is better than a guess. The telemetry s
 covers speed and fuel and nothing else on this list.
 
 **The game's telemetry stream [ref, 2026-11-27: other tools' code and notes, and the names of
-settings read from the installed game's program file; it has never been switched on here].**
+settings read from the installed game's program file; switched on and first recorded here that
+evening, see "The first recording" below].**
 
 - **What it is.** Since about 4.10.2 the game holds a small local server,
   `sc.game.telemetry.v1.GameTelemetryService`, at `127.0.0.1:2942`: gRPC over plain HTTP/2, no
@@ -415,9 +416,13 @@ settings read from the installed game's program file; it has never been switched
 - **How it is switched on.** Two ways are reported for the user's build. An environment variable
   on the launcher, `GRPC_CLIENT_SERVER_ENABLED=true` (CommandGlass, Wingman AI and others), which
   touches no file. Or a line in `LIVE\user.cfg`, `grpc.client.server.enabled = true` (CSR's
-  notes, dated 2026-11-24 on build 13220821). Neither was tried here. On this PC `user.cfg` does
-  not exist, the variable is not set, and the logs show the service was never registered
-  **[seen 2026-11-27]**. The earlier note that a `user.cfg` line switches it on was half right:
+  notes, dated 2026-11-24 on build 13220821). **The variable works [seen 2026-11-27 evening]:**
+  with it set for the user and the launcher restarted, the log's start-up block lists
+  `[Env Var  ] GRPC_CLIENT_SERVER_ENABLED=true`, and eight seconds in come `<Register Service>
+  Service 'sc.game.telemetry.v1.GameTelemetryService' registered` and
+  `[sc.game.telemetry.v1.GameTelemetryService]: 127.0.0.1:2942 [Insecure]`. The `user.cfg` way
+  was not tried and no `user.cfg` exists. Before that day the logs showed the service was never
+  registered. The earlier note that a `user.cfg` line switches it on was half right:
   the other line in circulation, `server.game.telemetry.enabled`, belongs to the 5.0 test builds.
 - **What it would add** (build 4.10.201): the aUEC balance, hydrogen fuel, speed, health and the
   other vitals, taking and leaving a seat as events (the log only has leaving), landing gear and
@@ -448,6 +453,34 @@ settings read from the installed game's program file; it has never been switched
     other (§8) matters in this build already, not only in 5.0.
   - A connection that is refused takes about 2 seconds to fail on this PC, so each attempt while
     the stream is off costs that long **[seen]**.
+- **The first recording [seen 2026-11-27, 5:31 to 5:39 PM, the dashboard's own reader].** Eight
+  minutes with `telemetry.capture()` while the user walked to a ship at MIC-L2, sat down,
+  powered up and flew off. The file is in `data/telemetry/` (private: it holds the balance); a
+  field-by-field summary with the private values masked is beside the survey notes in
+  `data/handoff/`. Not yet compared with the cockpit by the user.
+  - **The reader works on the real stream.** 7,209 messages, none undecodable, 15.0 a second
+    (a message every 63 ms; the longest gap 1.0 s). A message is 96 bytes on foot and about 460
+    seated, not the 700 this plan assumed.
+  - **On foot only the actor part is sent:** vitals, `locomotion` (`ON_FOOT`, `SEATED`), the
+    balance in every message, the air outside. The vehicle and weapons parts began 190.8 s in
+    and stayed. `seat_name` appeared 14 s before them, and one `ACTOR_ENTER_SEAT` event came
+    with their first message (it arrived this once; other tools saw it miss).
+  - **A value that is zero or false is not sent at all.** Speed is absent at rest, `is_landed`
+    is present only while landed, each power flag appears when that system comes on (power
+    plants and coolers with the first message, weapons, life support and sensors 17 s later,
+    engines 2 s after those). So "absent" has to read as off or zero, not as unknown.
+  - **Seen changing as the cockpit would:** gear `DEPLOYED`, `RETRACTING`, `RETRACTED`;
+    hydrogen fuel as a fraction, 1 down to 0.996, absent until the engines were on; speed up
+    to 754 m/s; the speed limiter active for two and a half minutes; boost reserves and
+    output; ten warning lights with the values `OFF`, `NOMINAL`, `MINOR_ON`, `MAJOR_ON`;
+    countermeasures as decoy 48 and noise 5; two weapons with powered and ready flags.
+  - **Against the quirks below:** `vtol` did **not** always read deployed here: it went
+    through `DEPLOYED`, `RETRACTING`, `RETRACTED` and `DEPLOYING`, in a ship that has VTOL.
+    `quantum_fuel` never appeared, which fits "always 0". Altitude read 3.4e38 in space, as
+    reported. Coupled stayed on throughout (`enabled` and `active` both), so which of the two
+    means decoupled is still open: the user has to flip it once during a recording.
+  - Nothing in it gives a position, a location name, a shield or hull value, or a quantum
+    state, as the layout said.
 - **Quirks other tools recorded on the live build [ref: Starglance's `docs/FIELDS.md`, CSR's
   `docs/telemetry/NOTES.md`].** Check each against the cockpit before showing it.
   - Ship data arrives 5 to 6 seconds after sitting down, and only while seated.
