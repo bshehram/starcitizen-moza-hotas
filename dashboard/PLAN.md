@@ -1,179 +1,186 @@
 # Side-screen dashboard: implementation plan
 
-**Status: being built, stage by stage. The reference tables, stage 1, stage 2 and the telemetry
-reader are built, reviewed and in git. The views (stage 3) are next.** Written 2026-11-26,
-reviewed 2026-11-27 against the user's logs and this PC (corrections are marked **[seen
-2026-11-27]**), and built from that afternoon on. Start with the section below: it says what
-exists, what was in progress when the first build session stopped, and what is left, in order.
+**Status: being built, stage by stage. On `main`, built and reviewed: the reference tables, the
+log reader (stage 1), the service with its server and first page (stage 2), the telemetry
+reader, and the logic behind stage 3's page. Next: wire that logic into the service, then build
+the views and the rig reference section.** Written 2026-11-26, reviewed 2026-11-27 against the
+user's logs and this PC (corrections are marked **[seen 2026-11-27]**), and built in two
+sessions that day, the second after a Windows reinstall. Start with the section below: it says
+what exists, what is unfinished, and what is left, in order.
 
 ## Where the build stands
 
-*Written 2026-11-27 at the end of the first build session, just before the user reinstalled
-Windows, and kept up from the second session, which began that evening on the fresh install.
-This is what a new session reads first, so keep it current as stages land. Read "What the
-Windows reinstall changed" below before relying on anything that needs the user's old logs:
-they are gone.*
+*Rewritten at the end of the second build session, 2026-11-27, about 8:45 PM, when the user shut
+down for the night. This is what a new session reads first, so keep it current as stages land.
+Every log of the user's from before that evening is gone (see "What the Windows reinstall
+changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
+re-run.*
 
-### Built, reviewed and committed
+### The short version
+
+- **On `main`, built and reviewed:** the reference tables, the log reader (stage 1), the
+  service, its hardened server and the first page (stage 2), the telemetry reader, the survey of
+  what each activity leaves in the log, and the logic behind stage 3's page.
+- **Also on `main`, checked but not yet attacked by a second agent:** the rig reference's data
+  and diagram images, and the last small fix round of stage 3's first half.
+- **Next, in order:** have a reviewer re-run that fix round; wire stage 3 into the service;
+  build the views and the rig reference section on the page; then the user's own `plan.json`,
+  autostart and the window, the Claude terminal, a flown session, the telemetry wiring, and the
+  docs.
+- **Nothing is uncommitted.** The working tree was clean when the session ended. "Unfinished
+  work" below names what is on `main` but still owed a review or a small fix.
+
+### Built, reviewed and on `main`
 
 | Part | What exists | Commits | How it was checked |
 | --- | --- | --- | --- |
-| Reference tables (§10) | `reference/`: 3,415 location codes for 1,517 places, all 207 commodity ids, 39 ores with scan readings and quality figures, refinery methods and yields for 20 stations; the generator `build_reference.py`. | `c4e537c` | Every location code and commodity id in the November logs resolves; the generator's `--check` passes; figures match memory. |
-| Stage 1: log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. The command `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 logs parse with no error and no unreadable line (377 MB in about a second, memory flat). Reviewed twice by an independent agent: privacy clean on 152 names and ids, byte-at-a-time feeding gives the same state. |
-| Log rotation proof (§8) | The follower polled `Game.log` across a real launch at 12:57 PM. | `f2b579d` | Same file id before and after, the backup appeared, the new session began at offset 0, 328 polls with no error. |
-| Stage 2: service, server, first page | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`, `web/`. The commands `run`, `start`, `stop`, `status [--json]`, `replay <log>`. The page shows the status strip, the joystick check and the event feed in the chosen look, landscape and portrait. | `c2d203d` | 316 tests in the whole suite. Reviewed twice: about 50 request variants and a hostile page in a real browser got nothing past the guard; hostile text from a log is shown as text; 21 MB and 0.09% of one core idle. The user ran `replay` and liked what they saw. |
-| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`: reads the layout from the game's program file, one fixed address, one fixed request, everything capped. | `56aca44`, `58e9c16` | 97 tests against a fake stream. Reviewed twice: 106,000 fuzzed inputs, nothing escaped; 0.2% of one core at 18 snapshots a second. **Not wired into the service, the state or the page.** First run against the real stream on 2026-11-27 evening: an eight-minute recording, 7,209 messages, none undecodable (§3, "The first recording"). |
-| The look (§11) | Direction B, "Avionics", chosen by the user from three mockups. The chosen mockup is tracked in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | this commit | The user picked it from side-by-side captures of every screen in both orientations. |
+| Reference tables, first round (§10) | `reference/`: 3,415 location codes for 1,517 places, all 207 commodity ids, 39 ores with scan readings and quality figures, refinery yields for 20 stations; the generator `build_reference.py`. | `c4e537c` | Every location code and commodity id in the November logs resolved; `--check` passes; figures match memory. |
+| Reference tables, second round | Positions for 463 places, the controls per operator mode, ships, contract kinds, shops and the places with a refinery. Prices are built too, into the git-ignored `data/reference/`. The table further down has the counts and caveats. | `a391e66`, `0da1a24` | 41 reference tests, also on a clean export; `--check` passes. A generator run takes a minute and 520 MB, so not while the game runs. |
+| Stage 1: log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 old logs parsed with no error (377 MB in about a second, memory flat). Reviewed twice: privacy clean, byte-at-a-time feeding gives the same state. |
+| Stage 2: service, server, first page | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`, `web/`. `run`, `start`, `stop`, `status [--json]`, `replay <log>`. The page shows the status strip, the joystick check and the event feed in the chosen look, both orientations. | `c2d203d`, `40553f9`, `1ca537b` | Reviewed four times in all. The last review confirmed every fix by running it: 101 raw request variants and a hostile page in a real browser got nothing past the guard, a front end now reads each request's head before it takes a worker, nothing is written through a link, and an instance nothing could talk to exits. 372 tests on a clean export. About 22 MB and 0.06% of one core idle. |
+| The launch check with the service (§8) | The service followed two real launches on 2026-11-27. | `0af8188` | First launch on the fresh install: no `Game.log` at all, then a new session from offset 0. Second launch: the log emptied in place under the same file id, and the backup appeared at the old session's full size. No error. |
+| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`. | `56aca44`, `58e9c16` | 97 tests against a fake stream; reviewed twice. **Run against the real stream on 2026-11-27:** two recordings, 7,209 and 2,733 messages, none undecodable (§3, "The first recording"). Not wired into the service, the state or the page. |
+| The survey | [`SURVEY.md`](SURVEY.md): what salvage, hauling, combat and missions leave in the log, each item marked seen, game text or second-hand, with 16 checks for new sessions. | `bc4108f` | Rebuilt without the old logs, from this plan's record, the game's files and five other tools' parsers. |
+| The look (§11) | Direction B, "Avionics", in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | `7c23588` | The user picked it from captures of every screen in both orientations. |
+| Stage 3, first half: the logic behind the page | `scdash/refdata.py`, `law.py`, `plan.py`, `rules.py`, `alerts.py`, `views.py`, `board.py`, with changes to `events.py`, `state.py`, `names.py`, `words.py`, `summary.py` and `timeline.py`; `plan.example.json`; [`STATE.md`](STATE.md). One entry point, `board.build(state, plans, user, now, game_running)`. | `f094c6c` | 467 tests. Reviewed twice: sixteen fixes confirmed by running, the worst a log line that had stalled the reader for 157 s. Replayed on the user's three real sessions of 2026-11-27 with no plan loaded: Preflight at launch, Now in the game world, Mining on boarding the Golem, Travel on each jump, Mining on arrival at ARC-L4, Idle after the quit. **A third, smaller fix round is in the commit and has not been re-run by the reviewer** ("Unfinished work" below). Not called by the service yet. |
+| Rig reference data (§4 item 18) | `tools/regen_cards.py` also writes `web/rig/`: `rig.json` (93 card rows in 7 views) and six diagram images in the page's colors; `tests/test_rig.py`. Root [`../CLAUDE.md`](../CLAUDE.md) §8.5. | `34c482d` | The cards come out unchanged; the test fails until the files are regenerated after a card change; the generator reproduces its output byte for byte. Checked by the orchestrator, not yet attacked by a second agent. Not served or shown yet. |
 
-The plan itself was corrected throughout from what the build and the reviews found: §3 (what the
-log really holds), §4 (the joystick check, the activity views, the Mission view, the Claude
-terminal), §8 (the guards), §9 (measured figures), §11 (the two layouts and the look) and §15
-(every decision the user made).
+The plan itself was corrected throughout from what the build and the reviews found: §3, §4, §8,
+§9, §10, §11, §12 and §15.
 
-### In progress when the session stopped
+### Unfinished work
 
-**The stage 2 follow-up: confirmed by a reviewer on 2026-11-27 (evening). All five hold.** The
-second review of stage 2 asked for five small things, and the builder did all five before the
-first session stopped (`40553f9`). A fresh reviewer ran each one down in the second session:
-an audit hook around every command found no call that can open, signal or end a process; the
-tests end only what they started; a page reloads by itself onto a restarted service's token; the
-sweep removes only its own dead-writer files (a junction or hard link named like one loses the
-link, not its target); and 101 raw request variants, plus a foreign page in a real browser, got
-nothing past the guard.
+**Nothing is uncommitted.** The working tree was clean when the session ended, and the branch
+`wip-dashboard`, which held snapshots of unfinished files during the session, was deleted once
+everything on it was on `main`. Three things are on `main` but not finished in this plan's
+sense (built, checked by the orchestrator, then attacked by a second agent):
 
-**Stage 3, first half, is built and with its reviewer (2026-11-27, about 7 PM; not on `main`
-yet, a snapshot is on the branch `wip-dashboard`).** Everything behind the page that does not
-touch the service: the new notice kinds and readings from [`SURVEY.md`](SURVEY.md), the lookups
-into the reference tables (`refdata.py`), the plan loader (`plan.py`, with `plan.example.json`),
-alerts and timers (`alerts.py`), the view rules (`rules.py`), one ready-to-draw model per view
-(`views.py`), and one entry point, `board.build(state, plans, user, now, game_running)`, whose
-payload [`STATE.md`](STATE.md) describes for the page builder. 425 tests pass on the combined
-tree. Replayed on the user's real 5:20 PM session with no plan loaded, it picked Preflight at
-launch, Now in the game world, Mining on boarding the Golem, Travel on the jump, Mining again on
-arrival at ARC-L4, and Idle after the quit. Line shapes that no real log has shown yet are in
-`tests/samples/built_*.log`, kept apart from the real samples and marked unverified in the
-payload. Left for the second half: wiring it into `service.py` (the plan's reload, the board in
-the page's message, the user's quick timers and hand-picked view, four changing endpoints) and
-then the views in `web/`.
+1. **Stage 3's first half, the third fix round** (in `f094c6c`). The reviewer's second pass
+   found four faults in the fixes. The builder fixed and tested all four, and the whole suite
+   passes, but the reviewer has not re-run them:
+   - *Names.* Law and ship-channel notices are redacted where they are read, so the kept text
+     never holds the other party's name. A word from them is learned as a handle only if it can
+     be one (letters, digits, `_`, `-`, three or more) and is not a word of the game or on a
+     short stoplist (`scdash/law.py`). Before, a crime against "Hurston Security" made the
+     jurisdiction read "another player Dynamics" for the rest of the session.
+   - *Forgetting.* Past 1,000 names the oldest 500 are forgotten; they are replaced in every
+     text still held, with one pattern built from forgotten and kept names so a handle is
+     always replaced whole, and they stay hidden in output afterwards (kept as small hashes).
+   - *The plan's notice* now counts values it left out (a number out of range, a `current_run`
+     that is not a run id).
+   - Tests: `tests/test_review3.py` (`Round2Test`), `tests/test_hostile.py`.
+   - The real shapes of the game's law and comms notices, read from `global.ini`, are in the
+     docstrings of `law.py`. The built sample `built_law.log` uses "Assault", which is not one
+     of the game's 47 crime names: replace it with a real one when the sample is next touched.
+2. **The rig reference data** (`34c482d`). Not attacked by a second agent. For the page's
+   builder: at twice their size the button numbers reach the page's 18-pixel floor and are a
+   little soft; MOZA's tiny engraved labels (A1 to A4, the detent marks) cannot be read at any
+   size; the art still shows the readings of MOZA's own screenshot ("Dial 65535"), as the
+   printed cards do. `mtq_axes` is a view with rows and no image.
+3. **Two small faults in the service's own log,** found by the last stage 2 review, to fix with
+   the next change to `service.py`:
+   - A save that fails every time logs a full traceback every 10 s, about 1 MB an hour, which
+     pushes the launch-check lines out of the 1 MB log within the hour. The repeat counter
+     never matches because each traceback names a new temporary file: compare by exception
+     type and source line.
+   - The front end's one-warning-a-minute limit can hold back a different fault's traceback
+     until the next fault or shutdown: log in full any fault that differs from the last one
+     logged, and flush the pending count on a timer.
 
-**That review also found new faults. They are fixed, in two rounds, and the reviewer confirmed
-every fix by running it** (2026-11-27, about 8:30 PM; the whole suite passes on a clean export
-of the commit, 372 tests). §8 and [`CLAUDE.md`](CLAUDE.md) describe the server as it is now: a
-front end that reads every request's head before the request takes a worker, limits on the
-head, no write through a link, and an instance that exits when nothing could talk to it. The
-second round fixed two faults the first had introduced (an unwritable `run.json` left an
-instance no command could stop; nothing noticed a dead front-end thread). **Two small faults
-are left for the next change to `service.py`** (the stage 3 wiring), both about the service's
-own log:
-
-- A save that fails every time logs a full traceback every 10 s, about 1 MB an hour, which
-  pushes the launch-check lines out of the 1 MB log within the hour. The repeat counter never
-  matches because each traceback names a new temporary file: compare by exception type and
-  source line.
-- The front end's one-warning-a-minute limit can hold back a different fault's traceback until
-  the next fault or shutdown: log in full any fault that differs from the last one logged, and
-  flush the pending count on a timer.
-
-What the review found, for the record:
-
-- One failed save at start-up ends the service, which a scheduled relaunch would turn into a
-  crash loop.
-- A client with no token can cost a core and 10 MB with oversized request heads.
-- A foreign web page can hold all 16 connection slots with idle connections for as long as it
-  keeps at it; the service recovers afterwards.
-- A junction planted as `data/sessions` makes the service write outside `data/`.
-- `status` prints the session id from the log uncleaned, the shutdown reason reaches the
-  service's log raw, and a stale `run.json` can be impersonated by a program on the port.
-- **Not a fault to fix but a limit to state (§8): the token stops web pages, not programs on
-  this PC.** Any local client can fetch the page and read the token out of it. That is a design
-  decision for stage 4b, where the token guards a terminal.
-
-The five things the earlier follow-up did:
-
-- No handle is opened on any other process any more: the process list, names and start times
-  come from one `NtQuerySystemInformation` call (2.6 ms a look, down from 4.8 ms), with the
-  Toolhelp walk kept as a fallback for the list. A test scans `scdash` for `OpenProcess`.
-- The tests no longer end a process by its number: they stop what they started through their
-  own handle or the service's shutdown endpoint, and fail loudly otherwise.
-- The page learns which instance served it from its HTML, so a restart before the first stream
-  message still makes it reload and pick up the new token.
-- The service's temp files carry a prefix of their own, and the start-up sweep touches only
-  those.
-- A request with the token header twice is refused, and so is a foreign `Origin` on any route.
-
-**The second round of reference data: all seven tables done (2026-11-27 evening, `0da1a24`).**
-It was started for the Salvage, Combat, Cargo and Mission views, stopped early for the
-reinstall, and finished in the second session. Everything committed is read from the game's
-own files; 41 reference tests pass, also on a clean export of the commit, and the generator's
-`--check` passes. A full generator run takes about a minute and peaks at about 520 MB, so run
-it with the game closed.
-
-| Table | State | What the next agent needs to know |
-| --- | --- | --- |
-| Positions | **Done.** 463 places in `locations.json` carry `pos`, in meters in their system's own coordinates. All 8 route distances held in memory match to 0.1 Gm (New Babbage to ARC-L4 is 32.7). | - |
-| Controls per mode | **Done.** `controls.json`, 5 modes. The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as [`../CLAUDE.md`](../CLAUDE.md) has it; the wording is read from `tools/regen_cards.py` without running it, and a test fails when a card label it names is renamed. | - |
-| Ships | **Done.** `ships.json`: 1,099 vehicle classes keyed as the log prints them, with name, maker, crew, role and cargo in SCU. `ships.hand.json` holds the fleet's jobs: Golem mining, Salvation salvage, Golem OX cargo, M80 combat, every other ship none. | Cargo is counted in 1.25 m grid cells. Many ships carry their grid outside the default loadout, in a vehicle definition this build stores encrypted; there the cargo comes from the one cargo-grid record named for the class (`cargo_how` says which) **[verify]**. All 11 fleet ships resolve, and their cargo matches [`../CLAUDE.md`](../CLAUDE.md) §11.1 (the Golem OX is 64). 226 classes have several grids named for them and are left without a figure. |
-| Contract kinds | **Done.** `contracts.json`: 2,343 contracts from the game's contract generator records (101 generators), each with a kind, a view and, for combat, whether it is on foot or in a ship (from what the mission spawns: 623 in a ship, 211 on foot, 54 not settled); 603 exact titles, 100 title patterns, and fallback rules in `contracts.hand.json`. | **The lookup order is in the file's `_meta.lookup`, and the service must follow it:** the contract name (a trailing `_<n>` is a sub-contract index), then the generator when all its contracts agree, then the title, then the rules, then "mission" and `data/unmapped.json`. The marker names in the samples equal the records' internal names. SCMDB was a local cross-check only (its license text is contradictory, so none of its rows is committed): all but 9 of its 4.10.3 contracts resolve, and of the 337 new in the 5.0 test build the rules place all but 18, which land on "mission". The Bounty Hunters Guild's generators are in this build already, all combat. Unverified: that a legacy contract prints its generator's name in the marker line. |
-| Shops | **Done.** `shops.json`: 310 shop names from the game's object containers, with a kind (item shop, landing services, commodity terminal, rental, refinery, other). | 200 names belong to one place; **110 are shared across a chain** (`SCShop_Admin_lt_base_g` is at 29 places, the refinery desk at 16), so for those the place is the last inventory location in the log, as §3 warned. All nine names from the old logs are there. |
-| Refining | **Done.** `refineries.json` gained `places`: the 29 places with a refinery, by the star map's amenity and by a refinery shop being placed there. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast"; nothing was invented. Levski has the shop but not the amenity. |
-| Prices | **Done, and kept out of git.** `data/reference/prices.json`: 124 commodities, 2,597 dated rows from 135 terminals, each tied to a place and most to a shop. | Built from UEX's tables saved on 2026-11-27. UEX's API page welcomes use in any project, but nothing there or in its terms says the data may be republished, so the snapshot stays local and a missing file means "no prices". The generator goes online only with `--fetch`, never with `--check`; tests prove both. `refineries.json` has carried UEX yield rows in git since the first session, from the same source. **The user decided on 2026-11-27 that they stay** (§15). Prices stay local all the same: they change by the day, and a committed snapshot would be stale at once and grow the history with every refresh. |
-| The survey of what salvage, combat and hauling leave in the log | **Rebuilt without the logs on 2026-11-27: [`SURVEY.md`](SURVEY.md).** From this plan's own record, the game's files and five other tools' parsers, every item marked with how it is known. What it changes for stage 3: add notice kinds for a failed or withdrawn contract and objective, the crime and fine group, and pay; read hauling and courier stops out of the objective texts; keep a per-session tally of ships destroyed and lost; take a death from the body item, not the whole burst; and the kind of a contract comes from its contract name, with a trailing `_<n>` stripped, because twelve generators mix kinds. Two faults it found in the reader: the tutorial-tip rule would hide a long "Contract Failed" notice, and a failed contract would read "Contract fail". The first survey, below, was: **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
-
-`data/handoff/` is git-ignored. It survived the reinstall through the kit's backup of this
-folder. The logs it was surveying did not (see "What the Windows reinstall changed" below), so
-the survey is being rebuilt from what is left: what this plan already records as seen, the
-game's own files, and other open-source tools' parsers, each item marked with how it is known.
+The reviewers' and builders' scripts from this session are in `data/handoff/review/`
+(git-ignored): the request-guard attacks, the front-end attacks, the hostile-line and privacy
+probes. They take a path to the tree; read them before writing new ones.
 
 ### Left to do, in this order
 
-1. **Finish the two items above:** have the stage 2 follow-up confirmed by a reviewer, and
-   complete the reference tables (ships, prices, shops, contract kinds, refining) and the
-   survey. Stage 3 needs the survey, the ships and the contract kinds first. *Done on
-   2026-11-27 (evening): the reviewer confirmed the follow-up, the reference tables are
-   committed (`0da1a24`) and the survey is [`SURVEY.md`](SURVEY.md). What is left of this step
-   is the fix round the review asked for (above), then its confirmation by the reviewer.*
-2. **The launch check with the service itself** (stage 2's last check): with the game closed run
-   `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
-   read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
-   like). The follower alone already passed this (§8). ***Done on 2026-11-27:** the service
-   followed the first launch on the fresh install (no log at all, then a new one) and the
-   second launch at 6:13 PM, where the game emptied the log in place and the backup appeared at
-   the old session's full size (§8 has the lines).*
-3. **Stage 3, first the part behind the page** (§12 stage 3): events for what salvage, combat,
-   hauling and missions leave in the log (from the survey), `plan.json` and its loader with
-   `plan.example.json`, timers, alerts, the view rules, and a written description of the state
-   the page receives. Then review, then commit.
-4. **Stage 3, the views:** Now, Travel, Mining, Salvage, Combat (in a ship and on foot), Cargo,
-   Mission, Refinery, Selling, Preflight and Idle, built on stage 2's page from the tracked
-   mockup, each captured and looked at in both orientations (§11). **Plus the rig reference
-   section the user asked for on 2026-11-27 (§4 item 18):** the MOZA cards inside the page,
-   picked with the mouse, with its data and diagram files generated from the card tables. It
-   has no mockup yet, so its layout is designed in this step and shown to the user. The rough spots the designer
-   listed are in §11. Then review, then commit.
-5. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
+1. **Have a reviewer re-run stage 3's first half, third round** (item 1 above), and fix what it
+   finds.
+2. **Stage 3, second half: wire it into the service.** In `service.py`, `server.py`,
+   `config.py` and `scdash.py`:
+   - `PlanStore(data/plan.json).refresh()` each loop or every 10 s; a true return marks the
+     state dirty.
+   - `board.build(...)` whenever the state is dirty or `now` has reached the last payload's
+     `next_change_ms`; sent as `board` in the page's message; its `problems` logged.
+   - The user block of `state.json` holds `timers` and `view`, made by `board.pick`,
+     `add_quick_timer` and `remove_quick_timer`. `view` is deleted when the payload says
+     `pick_dropped`; a "reference" pick never is. If `state.json` only becomes readable late,
+     merge it with what is in memory instead of overwriting.
+   - Four changing endpoints behind the `CHANGE` guard: pick a view, go back to Live, add a
+     quick timer, remove one.
+   - `unmapped_contracts` merged into `data/unmapped.json` under their own key.
+   - The fixed file list gains `rig/rig.json` and the six images in `web/rig/`, and the page's
+     content policy has to allow images from the server itself.
+   - `replay` drives the board too: stage 3's "done when" (§12) is judged on replays.
+   - The two logging faults above.
+   - Then a reviewer, then commit.
+3. **Stage 3, the views** in `web/`: Now, Travel, Mining, Salvage, Combat (in a ship and on
+   foot), Cargo, Mission, Refinery, Selling, Preflight and Idle, built on stage 2's page from
+   the tracked mockup and from [`STATE.md`](STATE.md) alone. Each is captured and looked at in
+   both orientations (§11); the rough spots the designer listed are in §11.
+   - `app.js` takes its alerts from `board.alerts` only and drops its own preflight, downed and
+     stuck-hangar alerts, or they show twice.
+   - **Plus the rig reference section and the Live / Rig reference switcher** (§4 item 18).
+     It has no mockup, so its layout is designed here, for landscape and portrait and with the
+     terminal on and off, and **shown to the user in both orientations** before it is called
+     done.
+   - Then a reviewer, then commit.
+4. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
    `plan.json` step added to the update routine in the memory note `game-plan-artifact` (§16).
-6. **Stage 4: autostart and the window.** `install`, `uninstall`, `open`. The user said yes to
+5. **Stage 4: autostart and the window.** `install`, `uninstall`, `open`. The user said yes to
    Claude registering the logon task (§15). Needs the side monitor connected, which it was not
-   on 2026-11-27.
-7. **Stage 4b: the Claude terminal** (§4, §8, §12). Install Claude Code with the winget command
-   in §8 first. The guard it needs (a private stream with the token in a header) is already in
-   `server.py`, and `app.js` has the reader for it.
-8. **Stage 5: a flown session** with the dashboard running, and the user's verdict.
-9. **Stage 6, second half: wire the telemetry reader in** (its own entry point into the state,
-   the strip's ship readouts, the seat event), after a first recording of the real stream has
-   been checked against the builder's list of second-hand claims. The reader's `capture()`
-   writes to `data/telemetry/`.
-10. **Stage 7: docs and routines** (§16), including the complete "set up on a fresh Windows
-    install" section in `README.md`. A first version of that section exists.
+   on 2026-11-27 (one display).
+6. **Stage 4b: the Claude terminal** (§4, §8, §12). Claude Code is installed as its own
+   program since the reinstall (`claude` is on PATH). Put the token decision in §8 to the user
+   first. The guard it needs is in `server.py`, and `app.js` has the reader for it.
+7. **Stage 5: a flown session** with the dashboard running, and the user's verdict.
+8. **Stage 6, second half: wire the telemetry reader in** (its own entry point into the state,
+   the strip's ship readouts, the seat event). Two recordings of the real stream are in
+   `data/telemetry/`, and §3 ("The first recording") has what they showed, including that a
+   zero or false value is simply not sent. Still to compare with the cockpit by the user.
+9. **Stage 7: docs and routines** (§16), including the complete "set up on a fresh Windows
+   install" section in `README.md`, which still describes stage 2 only. Add Easy Anti-Cheat to
+   it as a thing the game may need after a reinstall.
+
+**The service is not running.** It was stopped when the session ended, and nothing starts it
+by itself until stage 4. Start it at the top of a session with
+`python dashboard/scdash.py start`; it then runs the code that is on disk.
+
+**As the user plays,** work through the 16 checks at the end of [`SURVEY.md`](SURVEY.md): each
+names the log line that would turn a built, unverified shape into a seen one.
 
 ### Only the user can do these
 
 - Connect the side monitor (stage 4), and try it in both orientations.
 - On the ground, check whether the game still takes stick and throttle input while another
   window has the keyboard (§11, §14). It matters for the Claude terminal.
-- Play one session after restarting the RSI Launcher with the telemetry variable set, and say
-  when they are in the game, so the real stream can be recorded.
+- Look at the rig reference section's layout in both orientations when it exists, and say what
+  to change (§4 item 18).
+- Decide how far to harden the token before the Claude terminal is built (§8 has three options).
 - Fly a session with the dashboard running (stage 5).
+- For the checks in [`SURVEY.md`](SURVEY.md): a hauling contract, a salvage contract, a bounty,
+  and a contract allowed to fail, each in any session, so the built line shapes can be replaced
+  by real ones.
+
+### The second round of reference data, table by table
+
+All seven are done. Everything committed is read from the game's own files.
+
+| Table | State | What the next agent needs to know |
+| --- | --- | --- |
+| Positions | 463 places in `locations.json` carry `pos`, in meters in their system's own coordinates. All 8 route distances held in memory match to 0.1 Gm (New Babbage to ARC-L4 is 32.7). | - |
+| Controls per mode | `controls.json`, 5 modes. The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as [`../CLAUDE.md`](../CLAUDE.md) has it; the wording is read from `tools/regen_cards.py` without running it, and a test fails when a card label it names is renamed. | - |
+| Ships | `ships.json`: 1,099 vehicle classes keyed as the log prints them, with name, maker, crew, role and cargo in SCU. `ships.hand.json` holds the fleet's jobs: Golem mining, Salvation salvage, Golem OX cargo, M80 combat, every other ship none. | Cargo is counted in 1.25 m grid cells. Many ships carry their grid outside the default loadout, in a vehicle definition this build stores encrypted; there the cargo comes from the one cargo-grid record named for the class (`cargo_how` says which) **[verify]**. All 11 fleet ships resolve, and their cargo matches [`../CLAUDE.md`](../CLAUDE.md) §11.1 (the Golem OX is 64). 226 classes have several grids named for them and are left without a figure. |
+| Contract kinds | `contracts.json`: 2,343 contracts from the game's contract generator records (101 generators), each with a kind, a view and, for combat, whether it is on foot or in a ship (623 in a ship, 211 on foot, 54 not settled); 603 exact titles, 100 title patterns, and fallback rules in `contracts.hand.json`. | **The lookup order is in the file's `_meta.lookup`, and readers must follow it** (`refdata.contract()` does): the contract name (a trailing `_<n>` is a sub-contract index), then the generator when all its contracts agree, then the title, then the rules, then "mission" and the unmapped list. SCMDB was a local cross-check only (its license text is contradictory, so none of its rows is committed): all but 9 of its 4.10.3 contracts resolve, and of the 337 new in the 5.0 test build the rules place all but 18. The Bounty Hunters Guild's generators are in this build already, all combat. Unverified: that a legacy contract prints its generator's name in the marker line. |
+| Shops | `shops.json`: 310 shop names from the game's object containers, with a kind. | 200 names belong to one place; **110 are shared across a chain** (`SCShop_Admin_lt_base_g` is at 29 places, the refinery desk at 16), so for those the place is the last inventory location in the log. |
+| Refining | `refineries.json` gained `places`: the 29 places with a refinery. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text; nothing was invented. Levski has the shop but not the amenity. |
+| Prices | `data/reference/prices.json`, git-ignored: 124 commodities, 2,597 dated rows from 135 terminals. | Built from UEX's tables saved on 2026-11-27. The generator goes online only with `--fetch`, never with `--check`; tests prove both. Prices stay local because they age by the day. `refineries.json` carries UEX yield rows in git, and the user decided on 2026-11-27 that they stay (§15). |
+
+`data/handoff/` (git-ignored; it survives a reinstall only through the kit's backup of this
+folder) holds the first, partial survey, the saved downloads, the design capture scripts, the
+telemetry recordings' summaries and scripts (`telemetry/`), and the orchestrator's two helpers:
+`privscan2.py` (searches the files git would publish for the user's handle, ids, addresses,
+profile paths and e-mail addresses, learned from the local logs) and `wip_snapshot.ps1` (pushes
+a snapshot of unfinished files to the branch `wip-dashboard` after that scan).
 
 ### What the Windows reinstall changed (2026-11-27)
 
@@ -196,7 +203,8 @@ Claude's memory. Checked that evening **[seen]**:
   - The only real log lines left are the sanitized samples in `tests/samples/`. A new marker
     can only be learned from a session the user plays from now on, from the game's own files,
     or second-hand from other tools' parsers.
-  - The survey over all the logs (below) cannot be finished as planned.
+  - The survey over all the logs could not be finished as planned; [`SURVEY.md`](SURVEY.md) was
+    rebuilt without them.
   - The orchestrator's privacy scan and `tests/test_privacy.py` learn the user's handle and
     ids from local logs, so they are blind to those until the first new session. Until then
     the scan knows only the Windows user and PC names.
@@ -227,19 +235,21 @@ Claude's memory. Checked that evening **[seen]**:
     after the log began. So the launcher variable does switch the stream on in build
     4.10.201.48085. A first recording with the reader's `capture()` was started at about
     5:33 PM, with the user in the game world.
-  - **The launch check with the service (step 2 below), first half.** The service had been
+  - **The launch check with the service, first half.** The service had been
     started at 5:09 PM with no `Game.log` on disk at all. It saw the game process at 5:20:04,
     found no log, and five seconds later began the new session at offset 0 from the first line
     the game wrote. Ten minutes in: 29 events, 21.8 MB, one second of CPU in all, no error.
     What a first launch cannot show is the rotation, because there was no older log to move
-    into `logbackups`. The second launch, with the service still running, settles that.
+    into `logbackups`. The second launch, at 6:13 PM with the service still running, settled
+    that (§8).
 - **Still true:** the repo must sit at this path
   (`...\StarCitizen\LIVE\user\client\0\controls\mappings`), or Claude's memory for the project
   does not reconnect. No logon task has ever been registered.
-- `dashboard/data/handoff/` (git-ignored) still holds what the first session kept: the partial
-  activity survey, the design capture scripts, the saved downloads, and the orchestrator's
-  privacy scan (`privscan.py`), which searches the files git would publish for the user's
-  handle, ids and addresses.
+- `dashboard/data/handoff/` (git-ignored) holds what both sessions kept outside git: see the
+  end of "The second round of reference data" above.
+- **Three sessions were played that evening** (5:20, 6:13 and 7:14 PM). Their logs are the
+  only real logs on this PC now: `Game.log` and two files in `logbackups`. The user's backup
+  kit saves the game logs from now on.
 
 ### How the build is run
 
@@ -258,7 +268,18 @@ subagents do the work, every one of them Opus 5.5 at the highest effort setting 
 - **Fixes go back to the builder, the reviewer confirms them by running, and only then is it
   committed:** one commit per stage or fix round, pushed at once.
 - **Agents work side by side only on files that do not overlap,** and a commit made while
-  another agent's unfinished files sit in the tree is first tested on a clean checkout.
+  another agent's unfinished files sit in the tree is first tested on a clean checkout
+  (`git checkout-index --prefix=<scratch>/ -a` exports exactly what is staged).
+- **A reviewer gets a frozen copy when a builder is editing the tree.** The same export, made
+  from the staged files. A fix made in such a copy is carried back file by file, after
+  checking that the tree's versions have not changed in the meantime.
+- **Unfinished work is snapshotted to a branch while agents run.** The user asked that
+  nothing be lost (2026-11-27). `data/handoff/wip_snapshot.ps1` builds a commit from the
+  working tree with a temporary index, leaving the tree and the real index alone, and pushes
+  it to `wip-dashboard` only after the privacy scan finds nothing. Delete the branch once
+  everything on it is on `main`.
+- **While the game runs:** `SCDASH_FLOOD_MB=5` for the suite, never the reference generator
+  (520 MB), and one headless browser at a time. The PC sits at about 96% of its memory then.
 - **The user's decisions are put to them as questions with a recommendation** and recorded in
   §15. A rule from the docs is not a fact until someone has seen it: the joystick-order check
   was built on one, raised a false alarm with the user in the pilot seat, and was corrected the
