@@ -418,7 +418,7 @@ laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
   session and under review), it is done by hand:
   - `python dashboard/data/handoff/session4/crew_meter.py` prints the context of the session
     and of every sub-agent, read from their transcripts (both models ran past 560k and 880k
-    tokens here, so the window is taken as 1M). Seen at 8:25 AM on 2026-11-28: three builders
+    tokens here, so the window is taken as 1M). Seen at about 8:15 AM on 2026-11-28: three builders
     at 66%, 70% and 88% after two or three rounds each. Check before resuming an agent, and
     give a fix round to a fresh builder when the old one is past about 60%.
   - `crew_meter.py save <agent id> <file>` writes an agent's final report to the notes folder
