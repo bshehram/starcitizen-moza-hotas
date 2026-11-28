@@ -426,13 +426,13 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | --- | --- | --- | --- |
 | `js1_button7` | MHG left hat ↑ | `v_weapon_countermeasure_decoy_launch` → *Decoy - Launch Burst (tap), Set and Launch Burst (hold)* | Flares - lure **seeker-guided** (IR/cross-section) missiles. Burst them as a missile closes. |
 | `js1_button9` | MHG left hat ↓ | `v_weapon_countermeasure_noise_launch` → *Noise - Deploy (Tap)* | Chaff - a sensor-interference cloud that breaks **radar/scan locks**. |
-| `js2_button56` | MTQ "WPN" hat ↑ | `v_shield_raise_level_forward` → *Shield raise level front* | Raise the **front** shield face. **Trial since 2026-11-26**, see the note below. |
+| `js2_button56` | MTQ "WPN" hat ↑ | `v_shield_raise_level_forward` → *Shield raise level front* | Raise the **front** shield face. **Works in the Corsair** (the user, 2026-11-28), see the note below. |
 | `js2_button55` | MTQ "WPN" hat ↓ | `v_shield_raise_level_back` → *Shield raise level back* | Raise the **rear** face. |
 | `js2_button54` | MTQ "WPN" hat ← | `v_shield_raise_level_left` → *Shield raise level left* | Raise the **left** face. |
 | `js2_button53` | MTQ "WPN" hat → | `v_shield_raise_level_right` → *Shield raise level right* | Raise the **right** face. |
 | `js2_button52` | MTQ "WPN" hat - **press** | `v_shield_reset_level` → *Shield reset levels* | Reset the faces to even. |
 
-> **Shield faces on the "WPN" hat (since 2026-11-26, trial).** `v_shield_raise_level_*` only does anything on ships with **Size 3 *Quadrant* shields** - in this fleet the Liberator, Perseus, Ironclad Assault and Corsair **[ref]**. On bubble-shield ships (M80, Hyūn, Golem, Salvation, Pisces) the hat is a no-op. The hat was freed when the power pips moved to the AB6 wings. History: shield faceting sat here once before and was removed because every fighter flown at the time had bubble shields, so it looked broken (§6 item 14). All stock mode `press`, no attributes. **Not yet tried in-ship** in 4.10: test it in the Corsair first, and check on the crewed ships whether the pilot seat owns the faces. Top / bottom faces (`v_shield_raise_level_up` / `_down`) are not bound - a quadrant shield has four faces.
+> **Shield faces on the "WPN" hat (since 2026-11-26).** `v_shield_raise_level_*` only does anything on ships with **Size 3 *Quadrant* shields** - in this fleet the Liberator, Perseus, Ironclad Assault and Corsair **[ref]**. On bubble-shield ships (M80, Hyūn, Golem, Salvation, Pisces) the hat is a no-op. The hat was freed when the power pips moved to the AB6 wings. History: shield faceting sat here once before and was removed because every fighter flown at the time had bubble shields, so it looked broken (§6 item 14). All stock mode `press`, no attributes. **Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.** They did not say which seat they flew it from; it is taken to be the pilot's. Still open: whether the pilot seat owns the faces on the crewed Liberator, Perseus and Ironclad Assault. Top / bottom faces (`v_shield_raise_level_up` / `_down`) are not bound - a quadrant shield has four faces.
 
 ### View & camera - `spaceship_view`
 
@@ -558,7 +558,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
 11. **✅ Fixed - stock joystick defaults were still live under the profile (§2.5).** The check exposed something the export-based validator structurally can't: game defaults on `js1` that the profile never overrode. Two overlapped single-purpose buttons and were cleared - *Landing System (Toggle)* on the sub-target hat (`js1_button12`) and *Interaction Mode* on trigger stage 2 (`js1_button6`). Eight more (the ground-vehicle driving set) were cleared so the rig is inert in ground vehicles such as the Ursa, which are driven on the Xbox controller. Full list, and the defaults deliberately kept, in §4 *Cleared game defaults*. **Not yet flight-tested.**
 12. **✅ Fleet tuning (§11):** added *Docking (Initiate)* on a tap of "AP" for the Liberator's docking collar, and brought back *Request Cargo Loading* as a hold on "ALT" for C2 / Golem OX hauling. No existing binding moved.
 13. **✅ Fixed - `MOZA_BINDINGS.html` had keypad 8/10 backwards** (it missed the June ATC↔Autoland swap). Corrected with the new tap/hold functions.
-14. **Open - shield faces on the S3-shield ships.** The Liberator carries Size 3 shields (confirmed in the game files). Since the 2026-11-23 rebuy, the Wiki API also lists S3 *Quadrant* shields on the **Perseus** (2x), **Ironclad Assault** (4x) and **Corsair** (1x) **[ref]**. So four ships in the fleet, not one, are where `v_shield_raise_level_*` could do anything (the C2, which also had them, left on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit if face management turns out to matter on any of the four. Check first whether the pilot seat controls the faces on the crewed ships. **Update 2026-11-26:** bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.
+14. **Partly settled - shield faces on the S3-shield ships: they work in the Corsair; the crewed ships are open.** The Liberator carries Size 3 shields (confirmed in the game files). Since the 2026-11-23 rebuy, the Wiki API also lists S3 *Quadrant* shields on the **Perseus** (2x), **Ironclad Assault** (4x) and **Corsair** (1x) **[ref]**. So four ships in the fleet, not one, are where `v_shield_raise_level_*` could do anything (the C2, which also had them, left on 2026-11-22). They stay unbound: there is no free hat in an always-active map, and the power-pip triangle already covers shield strength. Revisit if face management turns out to matter on any of the four. Check first whether the pilot seat controls the faces on the crewed ships. **Update 2026-11-26:** bound on the freed "WPN" hat as a trial (item 22). **Update 2026-11-28:** all five work in the Corsair, by the user's report: the four raises (js2 53 to 56) and the reset on the hat press (js2 52). The seat was not stated and is taken to be the pilot's. Still open: whether the pilot seat owns the faces on the crewed Liberator, Perseus and Ironclad Assault, and the top and bottom faces, which are not bound.
 15. **Open - Golem OX tractor beam.** The OX has a deployable tractor turret and, in the game files, a *salvage* controller, so its tractor may run through Salvage operator mode (trigger = *Toggle Fire Focused*). `tractor_beam_vehicle_increase/decrease_distance` (in `spaceship_salvage`) are unbound on the rig - mouse wheel / gamepad shoulders only. Check in-ship which mode drives it before binding; the MHG right hat ↑/↓ (12/14) is the natural spot if targeting is inactive in that mode. **Update 2026-11-26:** trial binding on the MHG lower hat ↑/↓ in Salvage mode (item 22); test it in the OX.
 
 16. **✅ Reverse throttle is now proportional (2026-11-20; superseded on the evening of 2026-11-26, when reverse went to the stick press alone and the axis was unbound - item 24).** Reverse used to be the rear-detent **button** `js2_button34`, so crossing the idle detent meant instant full reverse. MOZA Cockpit 1.5.48's *Throttle Detent Setup* has a **Reverse Thrust** mode that turns the travel behind the idle detent into its own axis (Z / RZ); `v_strafe_back` now sits on `js2_rotz`. The device steps and the calibration trap ("rev idle" goes just behind the detent, **not** at the rear stop) are in §1.1. Axis behavior was confirmed in MOZA Cockpit (0 at the detent, 65535 at the stop); a first flight the same day (Avenger Titan) had it working with no invert - the fallback is in the §4 row. This supersedes the old "reverse is binary by necessity" note: that was true of the software of the time, which had no way to give the rear travel its own axis.
@@ -620,10 +620,10 @@ This is normal and intended - only one of these action maps is "live" at a time.
       - jettison on `js2_button1` with `delayed_press`;
       - `v_autoland` with both `js2_button10` and `js1_ ` (wrong - it kept only the clear, item 23).
     - **Things to test in-ship:**
-      - shield faces (Corsair first);
       - the OX tractor in Salvage mode;
       - the salvage bank (Salvation / Hyūn).
     - **Tested since:** module activation on the right hat works in the Golem (slots 1 and 2). The user's report of 2026-11-28: they used it on all three ARC-L4 runs of 2026-11-27.
+    - **Also tested since:** the shield faces on the "WPN" hat, raises and reset, work in the Corsair (the user's report of 2026-11-28, item 14).
     - *Update 2026-11-28 (item 29):* the user swapped 49–51 with 53–55, so the assignment taps now sit on the left wing above the reset and the power toggles on the right wing above shields to max.
 
 23. **✅ Fixed - the first load of the 2026-11-26 rework lost two bindings and left nine old ones behind (2026-11-26).**
@@ -1070,7 +1070,8 @@ Columns: **VTOL** = the MTQ VTOL switch (`js2` 49 / 50) · **Trigger** = guns on
 **Missiles** = knob detent 2 + `js1` 2 / 4 / 22 / 23 · **Mining** = knob 4, FLAPS axis, right-hat modules ·
 **Salvage** = knob 5, SPEEDBRAKE axis, right-hat bank + A2/A3 fire · **Dock** = "AP" tap · **Cargo** = the cargo grid
 that "ALT" hold (*Request Cargo Loading*) serves · **S3 faces** = Size 3 *Quadrant* shields, the only
-kind `v_shield_raise_level_*` acts on (on the "WPN" hat since 2026-11-26, a trial - §6 items 14, 22).
+kind `v_shield_raise_level_*` acts on (on the "WPN" hat since 2026-11-26, working in the Corsair by the
+user's report of 2026-11-28 - §6 items 14, 22).
 
 | Ship | VTOL | Trigger | Missiles | Mining | Salvage | Dock | Cargo | S3 faces |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -1101,7 +1102,9 @@ Per-ship notes:
   garage, M80 on the top rear pad), and on 2026-11-21 that the C8R Pisces rides inside too - not an
   open question.
 - **Shield faces.** The Liberator, Perseus, Ironclad Assault and Corsair all carry S3 *Quadrant*
-  shields **[ref]**; their faces are on the MTQ "WPN" hat since 2026-11-26, untested (§6 items 14, 22).
+  shields **[ref]**; their faces are on the MTQ "WPN" hat since 2026-11-26. The raises and the reset
+  work in the Corsair (the user, 2026-11-28, from a seat taken to be the pilot's). Whether the pilot
+  seat owns the faces on the crewed Liberator, Perseus and Ironclad Assault is still open (§6 items 14, 22).
 - **M80 - guns.** Split the weapon groups in the MFD (S5 pair = group 1, S4 pair = group 2) so trigger
   stage 1 / stage 2 mean something - see the Weapons note in §4. CIG's DefenseCon 2956 Q&A says the S5
   pair deploys from the hull when powered on **[ref]**, so there is nothing to bind for that.

@@ -53,7 +53,7 @@ names the source.
 | `catalog` | string | The catalog file read, relative to the repo (`reference/SC_KEYBINDS_DATABASE_v4.10.md`). |
 | `status` | object | The meaning of each status, and `missing`: what a row or variant without `status` means. |
 | `hash` | object | 12 hex digits each. `tables`: the script's literals the files are made from (its `SOURCES`: the card tables, `CARDS`, `MODES`, `LIVE_MODES`, `MAPS`, `STATUS`, `CARD_ART`, `VIEWS`, `READINGS`, `DISCS`, `DISC_FINDER`, `RIG_ART`, `FINGERPRINTS`), as values. `code`: the script's rig code as Python parses it: `jnum` and every statement between the "dashboard rig reference" heading and `main`, written out by `canon()` (node types and fields; no positions, comments, blank lines or docstrings), so only a change to the code itself moves it. `diagrams`: each source PNG's bytes. `profile`: the bindings of `MOZA.xml`, as parsed. `catalog`: the catalog rows of the actionmaps used, as parsed. Line endings move none of them. |
-| `counts` | object | `rows` (96), `views` (8), `discs` (103: the numbered marks), `status` (rows' and variants' statuses counted together: flown 10, unverified 28, trial 7, none 75). |
+| `counts` | object | `rows` (96), `views` (8), `discs` (103: the numbered marks), `status` (rows' and variants' statuses counted together: flown 15, unverified 28, trial 2, none 75). |
 
 ## `modes[]`
 
@@ -87,7 +87,7 @@ targeting maps in missile and scan mode (the docs conflict).
 | `id` | string | `js1`, `js2`. |
 | `name` | string | Screen name: Stick, Throttle. |
 | `product` | string | "MOZA MHG grip on the AB6 base", "MOZA MTQ throttle panel". |
-| `title`, `sub`, `legend` | string | The printed card's heading, subheading and footer, as printed (the footer still holds the tag key and the word "trial"; the screen should use `views[].notes`). |
+| `title`, `sub`, `legend` | string | The printed card's heading, subheading and footer, as printed (the stick card's footer still holds the tag key; the screen should use `views[].notes`). |
 | `views` | list of string | The device's view ids, in page order. |
 
 ## `views[]`
@@ -191,13 +191,14 @@ scan 63 / 0 / 18 / 15; mining 62 / 7 / 24 / 3; salvage 63 / 15 / 15 / 3. Under t
 
 | Status | Rows | Variants | Meaning |
 | --- | --- | --- | --- |
-| `flown` | 7 | 3 | Confirmed in a ship: root `CLAUDE.md` says it worked in flight. |
+| `flown` | 12 | 3 | Confirmed in a ship: root `CLAUDE.md` says it worked in flight. |
 | `unverified` | 21 | 7 | Bound, not yet confirmed in a ship. Most are loaded in the game; a binding changed since the last load is unverified too, and its quote says so (the six AB6 wing buttons swapped on 2026-11-28). |
-| `trial` | 5 | 2 | The docs call the binding a trial. |
+| `trial` | 0 | 2 | The docs call the binding a trial. |
 | absent | 63 | 12 | The docs record neither a flight report nor a doubt about the binding. |
 
-js2 10 also carries per-job statuses (tap = Docking, unverified; hold = Autoland, flown). Six
+js2 10 also carries per-job statuses (tap = Docking, unverified; hold = Autoland, flown). Eleven
 rows carry `status_when`: js1 29 and the AB6 wing buttons 52 and 56 (2026-11-26), js2 RY (2026-11-27),
+the five WPN-hat shield-face buttons js2 52 to 56 (2026-11-28),
 js2 Slider and Dial ("June 2026, Alpha 4.8"); so do three variants (the Mining jobs of js1 12, 13
 and 24, 2026-11-27) and one job (the js2 10 hold, 2026-11-27). js1 3's confirmation has no date in
 the docs.

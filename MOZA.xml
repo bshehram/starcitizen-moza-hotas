@@ -363,7 +363,7 @@
     <action name="v_weapon_countermeasure_noise_launch">
       <rebind input="js1_button9"/>  <!-- MHG left hat DOWN - launch NOISE/chaff (break radar/scan locks) -->
     </action>
-    <!-- SHIELD FACES on the MTQ Right Module "WPN" hat (js2 52-56), freed when the power pips moved to the AB6 wings. Push toward the face that is taking fire; CENTER PRESS resets. Only acts on Size 3 QUADRANT shields: in the fleet the Liberator, Perseus, Ironclad Assault and Corsair. A no-op on bubble-shield ships. spaceship_defensive is always live, so this hat carries nothing else. NOT YET CHECKED IN-SHIP in 4.10 (CLAUDE.md section 6 item 14). Top / bottom faces are left unbound (a quadrant shield has four faces). Countermeasures (decoy/noise) stay on the MHG left hat. -->
+    <!-- SHIELD FACES on the MTQ Right Module "WPN" hat (js2 52-56), freed when the power pips moved to the AB6 wings. Push toward the face that is taking fire; CENTER PRESS resets. Only acts on Size 3 QUADRANT shields: in the fleet the Liberator, Perseus, Ironclad Assault and Corsair. A no-op on bubble-shield ships. spaceship_defensive is always live, so this hat carries nothing else. WORKS IN THE CORSAIR: all four raises and the reset, by the user's report of 2026-11-28 (seat not stated, taken to be the pilot's). Not checked: whether the pilot seat owns the faces on the crewed ships (CLAUDE.md section 6 item 14). Top / bottom faces are left unbound (a quadrant shield has four faces). Countermeasures (decoy/noise) stay on the MHG left hat. -->
     <action name="v_shield_raise_level_forward">
       <rebind input="js2_button56"/>  <!-- MTQ "WPN" hat UP - raise the FRONT shield face -->
     </action>

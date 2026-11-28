@@ -579,15 +579,15 @@ MTQ_R = [
      'Screen': 'VTOL on', 'Where': 'Right module switch forward (latches)', 'Group': 'right module switch', 'Actions': ['v_vtol_on']},
     {'Label': '51', 'Primary': 'Space brake', 'Hint': '3-pos switch back',
      'Screen': 'Space brake (hold)', 'Where': 'Right module switch back (springs back)', 'Group': 'right module switch', 'Actions': ['v_space_brake']},
-    {'Label': '56', 'Primary': 'Shield face: front (trial)', 'Hint': 'WPN hat up',
+    {'Label': '56', 'Primary': 'Shield face: front', 'Hint': 'WPN hat up',
      'Screen': 'Raise the front shield face', 'Where': 'WPN hat up', 'Group': 'WPN hat', 'Actions': ['v_shield_raise_level_forward']},
-    {'Label': '55', 'Primary': 'Shield face: rear (trial)', 'Hint': 'WPN hat down',
+    {'Label': '55', 'Primary': 'Shield face: rear', 'Hint': 'WPN hat down',
      'Screen': 'Raise the rear shield face', 'Where': 'WPN hat down', 'Group': 'WPN hat', 'Actions': ['v_shield_raise_level_back']},
-    {'Label': '54', 'Primary': 'Shield face: left (trial)', 'Hint': 'WPN hat left',
+    {'Label': '54', 'Primary': 'Shield face: left', 'Hint': 'WPN hat left',
      'Screen': 'Raise the left shield face', 'Where': 'WPN hat left', 'Group': 'WPN hat', 'Actions': ['v_shield_raise_level_left']},
-    {'Label': '53', 'Primary': 'Shield face: right (trial)', 'Hint': 'WPN hat right',
+    {'Label': '53', 'Primary': 'Shield face: right', 'Hint': 'WPN hat right',
      'Screen': 'Raise the right shield face', 'Where': 'WPN hat right', 'Group': 'WPN hat', 'Actions': ['v_shield_raise_level_right']},
-    {'Label': '52', 'Primary': 'Shield faces reset (trial)', 'Hint': 'WPN hat press',
+    {'Label': '52', 'Primary': 'Shield faces reset', 'Hint': 'WPN hat press',
      'Screen': 'Reset the shield faces to even', 'Where': 'WPN hat press', 'Group': 'WPN hat', 'Actions': ['v_shield_reset_level']},
     {'Label': '61', 'Primary': 'Cycle all contacts fwd', 'Hint': 'COM hat up',
      'Screen': 'Cycle all contacts forward', 'Where': 'COM hat up', 'Group': 'COM hat', 'Actions': ['v_target_cycle_all_fwd']},
@@ -652,7 +652,7 @@ CARDS = [
      'Sub': 'throttle 1-65 + axes  ·  buttons 44-48 are absent on the device',
      'Legend': ('Throttle forward = axis RY, idle detent = 0, forward detent = full; reverse = MHG stick press 29, held. '
                 'Nothing is output outside the two detents.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
-                'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial).'),
+                'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields.'),
      'Notes': [{'Text': 'Forward throttle is axis RY: zero at the idle detent, full at the forward detent. Nothing is output outside the two detents.',
                 'Views': ['levers']},
                {'Text': 'Reverse is the MHG stick press (29), held.', 'Views': ['levers']},
@@ -881,31 +881,31 @@ STATUS = [
         {'In': '§4 Flight & movement',
          'Text': 'Confirmed in flight by the user (2026-11-28: Autoland worked on the Golem runs of 2026-11-27).'},
         {'In': '§6 item 23', 'Text': 'Autoland on the "AP" hold works (the user, 2026-11-28, after the Golem runs of 2026-11-27).'}]},
-    {'Control': 'js2 52', 'Part': None, 'Status': 'trial', 'Quote': [
-        {'In': '§4 Countermeasures & shield faces', 'Text': 'Shield faces on the "WPN" hat (since 2026-11-26, trial).'},
-        {'In': '§4 Countermeasures & shield faces', 'Text': ('Not yet tried in-ship in 4.10: test it in the Corsair first, '
-                                                            'and check on the crewed ships whether the pilot seat owns the faces.')},
-        {'In': '§6 item 14', 'Text': 'Update 2026-11-26: bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.'}]},
-    {'Control': 'js2 53', 'Part': None, 'Status': 'trial', 'Quote': [
-        {'In': '§4 Countermeasures & shield faces', 'Text': 'Shield faces on the "WPN" hat (since 2026-11-26, trial).'},
-        {'In': '§4 Countermeasures & shield faces', 'Text': ('Not yet tried in-ship in 4.10: test it in the Corsair first, '
-                                                            'and check on the crewed ships whether the pilot seat owns the faces.')},
-        {'In': '§6 item 14', 'Text': 'Update 2026-11-26: bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.'}]},
-    {'Control': 'js2 54', 'Part': None, 'Status': 'trial', 'Quote': [
-        {'In': '§4 Countermeasures & shield faces', 'Text': 'Shield faces on the "WPN" hat (since 2026-11-26, trial).'},
-        {'In': '§4 Countermeasures & shield faces', 'Text': ('Not yet tried in-ship in 4.10: test it in the Corsair first, '
-                                                            'and check on the crewed ships whether the pilot seat owns the faces.')},
-        {'In': '§6 item 14', 'Text': 'Update 2026-11-26: bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.'}]},
-    {'Control': 'js2 55', 'Part': None, 'Status': 'trial', 'Quote': [
-        {'In': '§4 Countermeasures & shield faces', 'Text': 'Shield faces on the "WPN" hat (since 2026-11-26, trial).'},
-        {'In': '§4 Countermeasures & shield faces', 'Text': ('Not yet tried in-ship in 4.10: test it in the Corsair first, '
-                                                            'and check on the crewed ships whether the pilot seat owns the faces.')},
-        {'In': '§6 item 14', 'Text': 'Update 2026-11-26: bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.'}]},
-    {'Control': 'js2 56', 'Part': None, 'Status': 'trial', 'Quote': [
-        {'In': '§4 Countermeasures & shield faces', 'Text': 'Shield faces on the "WPN" hat (since 2026-11-26, trial).'},
-        {'In': '§4 Countermeasures & shield faces', 'Text': ('Not yet tried in-ship in 4.10: test it in the Corsair first, '
-                                                            'and check on the crewed ships whether the pilot seat owns the faces.')},
-        {'In': '§6 item 14', 'Text': 'Update 2026-11-26: bound on the freed "WPN" hat as a trial (item 22); still untested in-ship.'}]},
+    {'Control': 'js2 52', 'Part': None, 'Status': 'flown', 'When': '2026-11-28', 'Quote': [
+        {'In': '§4 Countermeasures & shield faces',
+         'Text': 'Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.'},
+        {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
+                                     'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
+    {'Control': 'js2 53', 'Part': None, 'Status': 'flown', 'When': '2026-11-28', 'Quote': [
+        {'In': '§4 Countermeasures & shield faces',
+         'Text': 'Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.'},
+        {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
+                                     'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
+    {'Control': 'js2 54', 'Part': None, 'Status': 'flown', 'When': '2026-11-28', 'Quote': [
+        {'In': '§4 Countermeasures & shield faces',
+         'Text': 'Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.'},
+        {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
+                                     'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
+    {'Control': 'js2 55', 'Part': None, 'Status': 'flown', 'When': '2026-11-28', 'Quote': [
+        {'In': '§4 Countermeasures & shield faces',
+         'Text': 'Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.'},
+        {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
+                                     'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
+    {'Control': 'js2 56', 'Part': None, 'Status': 'flown', 'When': '2026-11-28', 'Quote': [
+        {'In': '§4 Countermeasures & shield faces',
+         'Text': 'Confirmed in flight by the user (2026-11-28): the four raises and the reset all work in the Corsair.'},
+        {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
+                                     'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
     {'Control': 'js2 57', 'Part': None, 'Status': 'unverified', 'Quote': [
         {'In': '§6 item 23', 'Text': 'Autoland on the "AP" hold and the rest of the rework were not reported then.'}]},
     {'Control': 'js2 58', 'Part': None, 'Status': 'unverified', 'Quote': [
