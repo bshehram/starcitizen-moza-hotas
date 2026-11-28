@@ -1028,45 +1028,62 @@ can make it pull the available bindings from existing game files so its always u
 latest patch in the game, thats better than relying on third party websites databases or APIs".
 
 20. **The game's own actions in the rig reference, each marked bound or not bound.** The
-    implementer's brief, with the file's schema, the page's measurements, the tests and the two
-    build stages, is [`design/actions/ACTIONS.md`](design/actions/ACTIONS.md).
-    - **Read from the installed game's files, and from nothing else.** A new command,
+    implementer's brief, with the file's schema, the start-up step, the page's measurements, the
+    tests and the three build stages, is [`design/actions/ACTIONS.md`](design/actions/ACTIONS.md).
+    - **Read from the installed game's files, and from nothing else.** One builder,
       `python tools/gamedata.py actions`, reads the game's `defaultProfile.xml` and `global.ini`
-      out of `Data.p4k` (about a second, read-only), joins them with `MOZA.xml` and `rig.json`,
-      and writes `web/rig/actions.json`. The card generator runs it too, so a binding change
-      still takes one command. After a game patch it is one more line of the patch routine
-      ([`../CLAUDE.md`](../CLAUDE.md) §7), and the file marks what the patch added.
-    - **Grouped as the game's Keybindings menu groups them** ("Flight - Movement", "Vehicles -
-      Weapons"): the names come from the game's file **[game]**.
-    - **Only what the rig is for.** The pilot's seat is listed in full: 431 named actions in 24
-      actionmaps, of which 120 were bound, 309 not bound, one cleared and one left on the game's
-      own joystick default **[game and `MOZA.xml`, 2026-11-28]**. Turret seats and the advanced
-      camera follow. On foot, E.V.A., ground vehicles and menus are counted, and only the 38
-      actions there that touch the stick are listed (the cleared defaults and the live ones). An
-      actionmap a patch adds is listed in full until someone sorts it.
-    - **Inside Find, not a ninth tab.** Find gets a switch, Controls (the 96) and Actions. The
-      tab row has no room left at either width **[seen 2026-11-28, captures of the built
-      page]**, and one search box then covers both lists: typing "esp" on Controls finds no
+      out of `Data.p4k`, joins them with `MOZA.xml` and `rig.json`, and writes the list to
+      `data/rig/actions.json` (git-ignored; there is no tracked copy).
+    - **The service keeps it current by itself, as one step of its start-up** (the user's
+      decision, §15). At start it compares the size and time of five files (the game's build
+      file, the profile, the rig data, the builder, the list) with a small record of the last
+      check. Unchanged: the list is kept, and that is all a normal start costs. Anything
+      changed: it runs the builder as a child process, after the server is up and the log has
+      been read once, with a 30 second limit, so it cannot delay either. Nothing watches for
+      changes while the service runs.
+    - **What a rebuild costs.** Reading the two game files took 0.31 s; the process peaks at
+      58 MB when the archive's 454 MB directory is read in pieces, and at 524 MB with today's
+      loader, which is why the loader changes **[seen 2026-11-28, this PC, warm file cache; a
+      cold cache and a game loading at the same moment were not measured, and the stage
+      measures them]**. The service itself stays on the standard library; the child needs a zstd
+      decoder, which is the `zstandard` package on this PC's Python 3.12 and is built in from
+      3.14.
+    - **A failure keeps the last good list.** The child writes through a temporary file, and the
+      page says what failed in a fixed sentence (no game files, no zstd decoder, a time-out).
+    - **At start only has one consequence.** A patch installed while the PC stays on is picked
+      up when the service next starts, at the next logon. Until then the page shows that the
+      running game is a newer build than the list.
+    - **Everything the game names is in the list** (the user's decision, §15): 753 named actions
+      in 39 groups, 769 rows with the unnamed ones that touch the stick **[game and `MOZA.xml`,
+      2026-11-28, 11:19 AM]**. Grouped as the game's Keybindings menu groups them ("Flight -
+      Movement", "Vehicles - Weapons"); the names come from the game's file **[game]**.
+    - **Three parts, so it stays usable at that size.** In a ship: 431 actions in 21 groups, of
+      which 119 were bound, 308 not bound, 3 cleared and one left on the game's own joystick
+      default. Other seats and cameras: 58. On the gamepad, not the rig (on foot, E.V.A., ground
+      vehicles, menus): 280 in 15 groups, folded away at first and marked as played on the
+      gamepad, where the rig binds nothing by design ([`../CLAUDE.md`](../CLAUDE.md) §1). It is
+      a view of the whole game, not a plan to bind them.
+    - **Inside Find, not a ninth tab** (the user's decision, §15). Find gets a switch, Controls
+      (the 96) and Actions. One search box covers both lists: typing "esp" on Controls finds no
       control and shows the game's four matching actions.
     - **A row reads like a control's row turned around:** the action's name, then the control's
       number in the badge, or a dash in a dashed outline when nothing is bound. A rail of the
-      game's groups shows "bound / all" for each.
-    - **From an action to a control.** An opened action that is not bound shows the controls with
-      nothing bound and the controls that are idle in the operator modes its group is live in,
-      taken from `rig.json`. A click on one opens it on its diagram.
+      game's groups shows "bound / all" for each ship group.
+    - **From an action to a control.** An opened ship action that is not bound shows the
+      controls with nothing bound and the controls that are idle in the operator modes its group
+      is live in, taken from `rig.json`. A click on one opens it on its diagram. For a gamepad
+      group no room is looked for, and the page says so.
     - **It does not claim more than the tables know.** Where `rig.json` has an unknown cell the
       control is listed as "not known", never as free; where it has no entry for an actionmap the
       page says so and lists only the controls with nothing bound. For an always-live group such
       as Flight - Movement the truthful answer on 2026-11-28 is that no bound button is idle in
-      every mode, and the page says that.
-    - **It says when it is out of date.** The page compares the running game's version from the
-      log with the build the file was read from, and shows a notice and the command when they
-      differ. A binding in `MOZA.xml` that names an action the build no longer has is shown in
-      red.
-    - Mocked up on the real data of that morning, 19 screens in both orientations with the
+      every mode, and the page says that. A binding in `MOZA.xml` that names an action the build
+      no longer has is shown in red.
+    - Mocked up on the real data of that morning, 23 screens in both orientations with the
       terminal on and off, in the git-ignored `data/design/actions/`. **[seen 2026-11-28 by the
-      designer, ten of the 76 captures; not yet by the user, no real pointer, not on the side
-      monitor]**
+      designer, 13 of the 92 captures; the user saw the first round: "those images look ok"; no
+      real pointer, not on the side monitor; the start-up states (reading, not checked, could
+      not be read) are designed and not mocked up]**
 
 ### Later, each only if the user asks
 
@@ -2126,15 +2143,16 @@ Two questions on it are still to be put to the user, each with captures
 | --- | --- | --- |
 | The game's actions in the rig reference (§4 item 20) | **Show which actions are bound and which are not, from the game's own files:** "which bindings we do have bound and which ones exist that we have not bound (like ESP and Decoupled, etc) ... pull the available bindings from existing game files so its always updated with the latest patch in the game, thats better than relying on third party websites databases or APIs". | A community site, database or API as the source of the action list. |
 
-Three questions on it are still to be put to the user, with captures
-([`design/actions/ACTIONS.md`](design/actions/ACTIONS.md) §11). The design is built on the
-recommendations until they answer:
+**Decided by the user on 2026-11-28, at about 11:15 AM**, on its three questions
+([`design/actions/ACTIONS.md`](design/actions/ACTIONS.md) §11):
 
-| Question | Recommendation | The other way, and what it costs |
+| Decision | Their answer | What was turned down |
 | --- | --- | --- |
-| After a game patch, who refreshes the list? | **A session does, in the patch routine (one command), and the page says when it is out of date.** The routine has to run anyway, to check `MOZA.xml` against the new build. | The dashboard refreshes it by itself when it sees a new build: no session needed, at the price of a second, git-ignored copy of the file, a child process started by the service, and the zstd package as something the service needs. |
-| Which groups count as "for the rig"? | **The pilot's seat in full; turret seats and the advanced camera after it; the rest only where it touches the stick.** | Pilot seat only (shorter; the two live turret defaults move to the "not for the rig" list), or everything the game has (753 named actions, 264 of them on foot, in menus and in ground vehicles). |
-| Where does it live? | **Inside Find, as a second list.** | A ninth tab, "Actions": one click from any page instead of two, and the head has to be laid out again at both widths. |
+| After a game patch, who refreshes the list of actions? | **The service, by itself, when it starts:** "i want the service to refresh it by itself and not rely on a claude session running externally". And, a few minutes later: "it only needs to refresh itself when it first starts up, which is a small CPU penalty as it checks to make sure it has latest and correct bindings and all that, which is a good thing i think as part of its start up routine". So it is one step of the start-up and nothing watches while the service runs (§4 item 20). | A session refreshing it in the patch routine, with the page only saying when it is out of date (the recommendation). Also a refresh whenever the build changes while the service runs, which the designer drew first. |
+| Which groups are in the list? | **Everything:** "scope i think should be everything honestly". Every named action in every group; on foot, ground vehicles and menus are marked as played on the gamepad and folded away at first. | The pilot's seat in full and the rest only where it touches the stick (the recommendation). |
+| Where does it live? | **Inside Find:** "yes agree inside of Find is perfect". | A ninth tab, "Actions". |
+
+They also said of the first captures: "those images look ok".
 
 Still to be put to the user, with a recommendation, before the stage that needs it: how far to
 harden the token for the Claude terminal (§8, three options; stage 4b).
