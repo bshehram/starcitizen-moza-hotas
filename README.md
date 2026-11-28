@@ -32,7 +32,7 @@ This profile is tuned to one specific rig. To **use it as-is** you need:
 | 🪟 | **Windows** | Star Citizen is Windows-only, and the profile binds devices by their **DirectInput GUIDs**. No macOS/Linux. |
 | 🕹️ | **MOZA MHG grip + MOZA AB6 FFB base + MOZA MTQ Throttle Panel** | Every binding maps to these exact devices. On different hardware the device GUIDs won't match and the bindings land nowhere. |
 | 🚀 | **Star Citizen** (validated against **Alpha 4.10.3**, build `4.10.201.48085`) | Action names (`v_*`) are CIG's; a major patch can rename or remove some. |
-| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle detent mode set to **Reverse Thrust** with its Idle point calibrated just forward of the detent (so the forward throttle reads zero with the lever resting in the detent; the reverse axis behind the detent is not bound), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
+| ⚙️ | **MOZA Cockpit** configurator | A few device-side settings are assumed: the MTQ's throttle lever calibrated **between its two detents** with the throttle detent mode set to **Disabled** (so the forward throttle reads zero with the lever resting in the idle detent and full at the forward detent; nothing is bound outside them), the MTQ **Flaps and Speedbrake levers set to output their axis**, and the MHG's top **mini-stick in Button Mapping mode** with *Press stick to switch mode* off (so it emits buttons 25–29). The MHG and MTQ have no presets in current MOZA Cockpit, so re-check these after a MOZA update. |
 
 > **Don't have this exact rig?** You can still read the bindings as a starting point and rebind
 > to your own devices, but the GUIDs in [`MOZA.xml`](MOZA.xml) are MOZA-specific, so it won't
@@ -185,7 +185,9 @@ on a Mac.
   evening reverse moved to the stick press alone, held for full reverse, and the throttle's
   reverse axis was left unbound so the lever can rest in its idle detent. That last change was
   loaded the same evening, the game accepted every entry, and the press reversed as intended in
-  flight. The shield faces and the right-hat banks have not been reported on.
+  flight. On November 27 the throttle was recalibrated on the device so that the forward detent is
+  full power; the profile itself did not change. The shield faces and the right-hat banks have not
+  been reported on.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
