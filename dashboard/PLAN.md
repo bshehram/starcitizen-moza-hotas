@@ -44,6 +44,14 @@ under them as the pieces land.*
   belong to the wiring builder for now): each reports the exact text it wants, and the
   orchestrator puts it in after the merge. The rig data's schema arrives as
   `data/handoff/session4/rig-b/RIG_SCHEMA.md`, to go into `STATE.md`.
+- **The live service is running again, on the committed code** (started 6:13 AM, when the
+  user said they would play and use the page by alt-tabbing to it). The working tree's
+  `service.py` is half-finished, so it runs from an export of `main`'s head in the session's
+  scratch folder (`git checkout-index --prefix=<scratch>/live-head/ -a`, then `scdash.py start
+  --data <repo>/dashboard/data --live <LIVE>` from there). It is stage 2's page: the strip and
+  the feed. When the wiring is committed: `stop`, then `start` from the repo.
+- **The user's decision of this morning: nothing waits for the side monitor** (§15). It
+  arrives 2026-11-29. Stage 4 is built and tested on the main screen first.
 - **A trap in the tooling:** the Agent tool's own worktree isolation refuses this repo (it
   compares the path with a lower-case `c:` against git's upper-case `C:`), but it leaves the
   worktrees it made, and they are sound. Start the builder without isolation and give it the
@@ -224,8 +232,11 @@ probes. They take a path to the tree; read them before writing new ones.
 4. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
    `plan.json` step added to the update routine in the memory note `game-plan-artifact` (§16).
 5. **Stage 4: autostart and the window.** `install`, `uninstall`, `open`. The user said yes to
-   Claude registering the logon task (§15). Needs the side monitor connected, which it was not
-   on 2026-11-27 (one display).
+   Claude registering the logon task (§15). **It no longer waits for the side monitor** (the
+   user, 2026-11-28, §15). With one display, `open` puts the window on the main screen at the
+   side monitor's pixel size (1920x1080 or 1080x1920), and the user alt-tabs to it. The checks
+   that need a second screen (placement, full screen, focus while the game is in front on the
+   other screen) are repeated when it is connected.
 6. **Stage 4b: the Claude terminal** (§4, §8, §12). Claude Code is installed as its own
    program since the reinstall (`claude` is on PATH). Put the token decision in §8 to the user
    first. The guard it needs is in `server.py`, and `app.js` has the reader for it.
@@ -247,7 +258,9 @@ names the log line that would turn a built, unverified shape into a seen one.
 
 ### Only the user can do these
 
-- Connect the side monitor (stage 4), and try it in both orientations.
+- Connect the side monitor when it arrives (expected 2026-11-29), and try it in both
+  orientations. Nothing waits for it any more (§15): until then the dashboard is used on the
+  main screen.
 - On the ground, check whether the game still takes stick and throttle input while another
   window has the keyboard (§11, §14). It matters for the Claude terminal.
 - Look at the rig reference section's layout in both orientations when it exists, and say what
@@ -1717,8 +1730,10 @@ check that can actually fail.
    window on the side monitor, the window fills it in landscape and in portrait, the game keeps
    focus and stick input when it opens, a `stop` is
    still stopped ten minutes later, and the measured figures are inside the budgets in §9 or the
-   overrun is written down with its cause. The side monitor was not connected yet on 2026-11-27,
-   so this stage waits for it.
+   overrun is written down with its cause. The side monitor was not connected yet on 2026-11-27.
+   **Since 2026-11-28 the stage does not wait for it** (the user's decision, §15): it is built
+   and tested with the window on the main screen, at the side monitor's pixel size, and the
+   side-monitor items of this check are repeated once it is connected.
    **4b. The Claude terminal** (§4, §8). Built after the window works, because it lives in that
    window. `terminal.py`, the pseudo-console calls in `winutil.py`, the xterm.js files, the
    panel in both layouts, the settings.
@@ -1939,6 +1954,12 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | --- | --- | --- |
 | A rig reference inside the dashboard (§4 item 18) | **Yes:** a section picked with the mouse, in both orientations, showing the reference cards for the MOZA rig. How the diagrams and labels are rearranged for the screen is left to Claude ("ill let u sort that out"). | - |
 | UEX's refinery yields in the public repo (§10) | **They stay in git:** "leave the uex data in git its fine". Each row keeps its date and source. | Moving them to the git-ignored data folder beside the prices, because UEX's terms welcome use of its API but do not say the data may be republished (Claude's lean). |
+
+**Decided by the user on 2026-11-28, in the fourth build session:**
+
+| Decision | Their answer | What was turned down |
+| --- | --- | --- |
+| Whether the build waits for the side monitor | **No.** It arrives a day later than expected, and its size is known: 15.6 inches, 1920x1080. Build and test everything now on the main screen, where the user alt-tabs to the dashboard while in the game, then adjust and test again once it is connected ("we can keep working and finish things before montior arrives and adjust if needed after it arrives"). | Holding stage 4 (autostart and the window) until the monitor is connected, which is what this plan said. |
 
 Still to be put to the user, with a recommendation, before the stage that needs it: how far to
 harden the token for the Claude terminal (§8, three options; stage 4b).
