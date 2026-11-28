@@ -29,13 +29,19 @@ under them as the pieces are committed.*
 | --- | --- | --- |
 | 1. The wiring (stage 3 into the service) | **Built, checked by the orchestrator, with a reviewer.** The builder's report: every item done, 520 tests passing twice, 20 mutations caught, the content-policy proof passed, five real replays match. Orchestrator: privacy scan clean, the whole suite passed (520, 185 s, game running). One fix made by the orchestrator afterward: the server no longer warns at every start about the dot-file in `web/rig/` (with a test). Frozen copy: the session scratch folder, `review-wiring/tree`. | `data/handoff/session4/wiring/`, `review-wiring/` |
 | 2. The fix round for stage 3's first half | **Built, with a reviewer for the confirming run.** The builder's report: all eight findings fixed, 43 mutations caught, 488 tests in its copy. Applied to the main tree at 7:12 AM. Doc text it wants in `STATE.md` and `CLAUDE.md` is in its `DOC_TEXT.md`, to go in after the wiring is committed. | `data/handoff/session4/fix-3a/`, `review-3a-r4/` |
-| 3. Part B of the rig data | **Built, with a reviewer.** `rig.json` schema 2 (96 rows, per-row modes, statuses with their source sentence, groups, mark coordinates), eight cropped views with the sample readings painted out, a real test (40 mutations), the cards unchanged. Applied to the main tree at 7:07 AM. Its schema text for `STATE.md` is `RIG_SCHEMA.md`. | `data/handoff/session4/rig-b/`, `review-rig-b/` |
+| 3. Part B of the rig data | **Reviewed: the data holds up, a short fix round is with the builder, now working in the main tree.** The reviewer read all 109 marks against the art on contact sheets (all correct), checked every mode cell against `MOZA.xml` and every status in context, and found the outputs deterministic and the cards byte-identical. To fix: one screen wording that claims a hold the game's label contradicts (js1 2, missiles; it becomes root `CLAUDE.md` section 6 item 28), the quantum cells (unknown, not live in combat), a refused run that still rewrote the folder, no retry on a held file, and test gaps (wording against the bound action, the printed cards, mark names, hand edits). Report: `review-rig-b/REPORT.md`. Before the review: `rig.json` schema 2 (96 rows, per-row modes, statuses with their source sentence, groups, mark coordinates), eight cropped views with the sample readings painted out, a real test (40 mutations), the cards unchanged. Applied to the main tree at 7:07 AM. Its schema text for `STATE.md` is `RIG_SCHEMA.md`. | `data/handoff/session4/rig-b/`, `review-rig-b/` |
 | 4. The rig mockup | **Done at about 6:40 AM:** 56 captures in `data/design/rig/shots/`, `NOTES.md` rewritten from what was seen. The page draws its own numbers over the art's marks. **Put to the user, not yet answered:** the captures and five questions; the orchestrator's recommendations are being built as defaults. Not proven: no real pointer has touched it, and it has not been seen on the 15.6 inch panel. | `data/design/rig/NOTES.md` |
 | 5. The views (stage 3's page) | **Being built** by an Opus 5.5 builder in the main tree's `web/` since 7:10 AM, in two milestones: the live views first (it stops and reports), then the rig reference section from the mockup onto schema 2. | `data/handoff/session4/views/`, captures in `data/design/views/` |
 
 **The combined tree** (wiring, rig data and fix round together, the page at its committed
-version) is being run through the whole suite on a frozen copy. Result:
-`data/handoff/session4/orchestrator_suite_integrated.txt`.
+version) passed the whole suite on a frozen copy at 7:16 AM: 554 tests, 199 s, one expected
+skip, the game running (`data/handoff/session4/orchestrator_suite_integrated.txt`).
+
+**Queued from the rig review, not part of its fix round:** the `generator` and `inputs` hashes
+in the reference tables' `_meta` are taken over raw bytes, so `reference/build_reference.py
+--check` disagrees between a CRLF and an LF checkout of the same commit (seen with
+`controls.json`). Hash over line-ending-normalized bytes, then regenerate every table once
+(a full run: about a minute and 520 MB, offline).
 
 **Commit order, as the reviews pass:** the wiring first (its files include this folder's
 `CLAUDE.md`, `STATE.md` and `README.md`); then the fix round with its doc text; then the rig
