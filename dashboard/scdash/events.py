@@ -7,8 +7,10 @@ file is this project's own.
 
 Every pattern here was checked against the user's own logs [seen: the 69 logs of 2026-11 in
 LIVE\\logbackups plus Game.log, read 2026-11-27]; counts are physical lines unless they say
-notices. Markers PLAN §3 lists as absent from those logs (`Contract Failed:`, `granted control
-token`, `<Actor Death>`) are not built on.
+notices. Markers PLAN §3 lists as absent from those logs (`granted control token`, `<Actor
+Death>`) are not built on. Stage 3 adds the notices SURVEY.md recommends (a failed or withdrawn
+contract or objective, the law group, pay): their texts are in the game's files and other tools
+read them, but no log here has shown them yet, so each is marked unverified where it is defined.
 
 Every event carries its session (the log's first line) and the byte offset of its first line:
 together they are its identity (PLAN §7). `t` is the line's own UTC time in seconds since the
@@ -197,6 +199,7 @@ class VehicleDestroyed(Event):      # `<Vehicle Destroyed>`: any ship nearby, so
     level_to: int
     killer: str                     # a player's or NPC's name: live feed only, never a summary
     killer_id: str
+    driver_id: Optional[str] = None  # 0 when nobody sits in it [seen]; kept for stage 3's tally
 
 
 @_event("fatal_collision")
@@ -329,6 +332,7 @@ class Screenshot(Event):            # `ScreenShot: ScreenShots/<name>.jpg`
 class Notice(Event):                # any notice without a kind of its own
     text: str
     hint: bool                      # a tutorial tip ("Topic: a long sentence")
+    names: tuple = ()               # words that may be a player's name (a crime notice not read)
 
 
 @_event("contract_accepted")
@@ -355,6 +359,73 @@ class ObjectiveComplete(Event):
     text: str
     mission_id: Optional[str]
     objective_id: Optional[str]
+
+
+# Stage 3, from dashboard/SURVEY.md. None of these is in the project's record of the user's logs:
+# each text is in the game's global.ini [game] and read by other tools [ref], so every line shape
+# is unverified until a session logs it (SURVEY.md, "To check in the user's first real sessions").
+@_event("contract_failed")
+class ContractFailed(Event):        # "Contract Failed: <title>" (mobiGlas_ui_MissionEvent_Fail)
+    title: str
+    mission_id: Optional[str]
+
+
+@_event("contract_withdrawn")
+class ContractWithdrawn(Event):     # "Contract Withdrawn:  <title>" (..._MissionEvent_Deactivate)
+    title: str
+    mission_id: Optional[str]
+
+
+@_event("objective_failed")
+class ObjectiveFailed(Event):       # "Objective Failed: <text>": not the contract's end [ref]
+    text: str
+    mission_id: Optional[str]
+    objective_id: Optional[str]
+
+
+@_event("objective_withdrawn")
+class ObjectiveWithdrawn(Event):    # "Objective Withdrawn: <text>"
+    text: str
+    mission_id: Optional[str]
+    objective_id: Optional[str]
+
+
+@_event("reward")
+class Reward(Event):                # "Awarded 50250 aUEC" (text_UEC_reward_text): legacy contracts only [ref]
+    amount: float
+    mission_id: Optional[str]
+
+
+@_event("crimestat")
+class CrimeStat(Event):             # "CrimeStat Rating Increased" (text_hostility_Wanted)
+    up: bool
+
+
+@_event("crime")
+class CrimeCommitted(Event):        # "Crime Committed: Assault\nagainst <victim>" (hud_law_CrimeCommitted)
+    crime: str
+    victim: Optional[str]           # anyone, a player too: the state keeps no text with it (law.py)
+
+
+@_event("crime_against_you")
+class CrimeAgainstYou(Event):       # "[Party member ]<name> committed Assault against you" (hud_law_charge_player_crime)
+    attacker: str                   # another player's name: the state keeps no text with it
+    crime: str
+
+
+@_event("fined")
+class Fined(Event):                 # "Fined 1500 UEC" (hud_law_FinePaid)
+    amount: float
+
+
+@_event("impounded")
+class Impounded(Event):             # "Vehicle Impounded: <ship>" (hud_law_ImpoundingNotification)
+    vehicle: str
+
+
+@_event("monitored_down")
+class MonitoredDown(Event):         # "Monitored Space Down" / "Monitored Space Restored"
+    down: bool
 
 
 @_event("hangar_queue")
@@ -451,20 +522,26 @@ EVENT_TYPES = {cls.kind: cls for cls in [
     VehicleDestroyed, FatalCollision, Stowed, ThrownOut, ItemLost, MissionEnded, MissionMarker,
     ShopBuy, ShopSell, ShopResult, CommoditySell, CommodityBuy, RefinerySell, Rental, ShopOffer,
     FabricatorOpened, StorageCount, GadgetPlaced, Screenshot, Notice, ContractAccepted,
-    ContractComplete, ObjectiveNew, ObjectiveComplete, HangarQueue, HangarReady, RefineryDone,
+    ContractComplete, ObjectiveNew, ObjectiveComplete, ContractFailed, ContractWithdrawn,
+    ObjectiveFailed, ObjectiveWithdrawn, Reward, CrimeStat, CrimeCommitted, CrimeAgainstYou, Fined,
+    Impounded, MonitoredDown, HangarQueue, HangarReady, RefineryDone,
     BlueprintReceived, QuantumObstructed, Jurisdiction, Armistice, MonitoredSpace, ChannelJoined,
     ChannelLeft, Incapacitated, EmergencyServices, Injury, RegenSet, MedicalBed, Unreadable]}
 
 
 def event_from_dict(d):
-    """The inverse of Event.to_dict (for replays and tests)."""
+    """The inverse of Event.to_dict (for replays and tests). A field added later with a default
+    (VehicleDestroyed.driver_id) may be missing from an older dict."""
     cls = EVENT_TYPES[d["kind"]]
-    return cls(**{f.name: d[f.name] for f in fields(cls)})
+    return cls(**{f.name: tuple(d[f.name]) if isinstance(d[f.name], list) else d[f.name]
+                  for f in fields(cls) if f.name in d})
 
 
 # --------------------------------------------------------------------------- session identity
 
-SESSION_RE = re.compile(r'^"\s*(Build\((\d+)\)\s+(.*?))\s*"')
+# Bounded runs of space, on at most 200 characters (session_id slices): a 60 KB first line of
+# spaces made the unbounded form backtrack for minutes (stage 3 review).
+SESSION_RE = re.compile(r'^"\s{0,10}(Build\((\d{1,12})\)\s{1,10}([^"]{0,100}?))\s{0,10}"')
 
 
 def session_id(first_line):
@@ -475,7 +552,7 @@ def session_id(first_line):
         first_line = first_line.decode("utf-8", "replace")
     i = first_line.find("BackupNameAttachment=")
     if i >= 0:
-        m = SESSION_RE.match(first_line[i + len("BackupNameAttachment="):])
+        m = SESSION_RE.match(first_line[i + len("BackupNameAttachment="):][:200])
         if m:
             return m.group(1)
     return "log-" + hashlib.sha1(first_line.encode("utf-8", "replace")).hexdigest()[:12]
@@ -488,10 +565,11 @@ def session_id(first_line):
 NOTICE_RE = re.compile(r'^Added notification "(.*?)" \[(\d+)\]', re.S)
 NOTICE_OPEN_RE = re.compile(r'^Added notification "(.*)', re.S)
 # From CSR sc_livelog.py line 36 (NOTIF_MISSION_RE). Changed: upper-case hex accepted too.
-NOTICE_MISSION_RE = re.compile(r"MissionId: \[([0-9a-fA-F-]+)\], ObjectiveId: \[([^\]]*)\]")
+NOTICE_MISSION_RE = re.compile(r"MissionId: \[([0-9a-fA-F-]{1,40})\], ObjectiveId: \[([^\]]{0,200})\]")
 # From CSR sc_livelog.py lines 84-90 (`clean`): the markup a community language pack adds
-# (PLAN §3). Changed: the patterns joined into one.
-MARKUP_RE = re.compile(r"</?EM\d>|\[BP\]\*?|\[[^\]]*\bRep\]\*?")
+# (PLAN §3). Changed: the patterns joined into one, and the rank markup bounded (40 characters,
+# no "[" inside): unbounded, a notice of 60 KB of "[" took 43 s (stage 3 review).
+MARKUP_RE = re.compile(r"</?EM\d>|\[BP\]\*?|\[[^\]\[]{0,40}\bRep\]\*?")
 
 
 def notice_text(raw):
@@ -511,49 +589,76 @@ def real_mission(mid):
 
 # --------------------------------------------------------------------------- handlers
 
-VEHICLE_RE = re.compile(r"\| ([A-Za-z0-9_]+?)_(\d+)\[(\d+)\]\|")
-# From CSR sc_livelog.py line 51 (QT_SEL_RE). Changed: without its first word.
-QT_SELECT_RE = re.compile(r"selected point (\S+) as their destination")
-ROUTE_START_RE = re.compile(r"Projected Start Location is (.+?) for route to destination (\S+)")
-# From CSR sc_livelog.py line 52 (QT_ROUTE_RE), unchanged.
-ROUTE_FUEL_RE = re.compile(r"Successfully calculated route to (\S+) fuel estimate ([\d.]+)")
+# Every pattern below is bounded (stage 3 review: "no line may stall the reader"). A record's text
+# is cut to MAX_TEXT before any of them runs; on top of that, no lazy run, class repeat or
+# optional group may scan the whole text again from each of many starting points, so each one
+# costs about the length of the text, whatever it holds. A number is left unbounded where it
+# cannot backtrack (`\d+` then a fixed character), so an absurd one still reaches _num() and
+# makes its line unreadable instead of silently dropping it. A real line was never longer than
+# 1,181 bytes [seen: 69 logs of 2026-11].
+VEHICLE_RE = re.compile(r"\| ([A-Za-z0-9_]{1,120}?)_(\d{1,20})\[(\d{1,20})\]\|")
+# From CSR sc_livelog.py line 51 (QT_SEL_RE). Changed: without its first word, and bounded.
+QT_SELECT_RE = re.compile(r"selected point (\S{1,200}) as their destination")
+ROUTE_START_RE = re.compile(r"Projected Start Location is (.{1,200}?) for route to destination (\S{1,200})")
+# From CSR sc_livelog.py line 52 (QT_ROUTE_RE). Changed: bounded.
+ROUTE_FUEL_RE = re.compile(r"Successfully calculated route to (\S{1,200}) fuel estimate ([\d.]+)")
 # From CSR sc_livelog.py line 33 (LOGIN_RE). Changed: the login words in front.
-LOGIN_RE = re.compile(r"User Login Success - Handle\[([^\]]+)\]")
-CHARACTER_RE = re.compile(r"\bgeid (\d+)\b.*?\bstate (\w+)")
+LOGIN_RE = re.compile(r"User Login Success - Handle\[([^\]]{1,100})\]")
+CHARACTER_RE = re.compile(r"\bgeid (\d{1,20})\b.{0,300}?\bstate (\w{1,40})")
 FRONT_RE = re.compile(r'^Started - RequestFrontEndReason="([^"]*)"')
-SHARD_RE = re.compile(r"\bshard\[([^\]]*)\]")
+SHARD_RE = re.compile(r"\bshard\[([^\]]{0,200})\]")
 DISCONNECT_RE = re.compile(r'^cause=(\d+) reason="([^"]*)"')
 QUIT_RE = re.compile(r"cause=(\d+), reason=([^,]*)")
-JOYSTICK_RE = re.compile(r"^(\d+):\s*(.*?)\s*(\{[0-9A-Fa-f-]+\})?\s*$")
+JOYSTICK_RE = re.compile(r"^(\d+):\s*(.*)$", re.S)
+JOYSTICK_GUID_RE = re.compile(r"\{([0-9A-Fa-f-]{1,64})\}$")
 INV_LOC_RE = re.compile(r"Landing \[(\d+)\] -> \[(\d+)\]\. Location \[(\d+)\] -> \[(\d+)\]")
-# From CSR sc_livelog.py line 29 (PLACE_RE). Changed: the player part left out.
-LOC_INV_RE = re.compile(r"requested inventory for Location\[([^\]]+)\]")
+# From CSR sc_livelog.py line 29 (PLACE_RE). Changed: the player part left out, bounded.
+LOC_INV_RE = re.compile(r"requested inventory for Location\[([^\]]{1,200})\]")
 SPAWN_INFO_RE = re.compile(r"VehicleEntityId: \[(\d+)\](?:, LandingArea: (.*))?", re.S)
-SEAT_RE = re.compile(r"ClearDriver: .*?releasing control token for '([A-Za-z0-9_]+?)_(\d+)' \[(\d+)\]")
-# From CSR sc_livelog.py lines 20-23 (VKILL_RE). Changed: the tag left out, `[^']*` for the name.
+SEAT_RE = re.compile(r"ClearDriver: .{0,300}?releasing control token for '([A-Za-z0-9_]{1,120}?)_(\d{1,20})' \[(\d{1,20})\]")
+# From CSR sc_livelog.py lines 20-23 (VKILL_RE). Changed: the tag left out, `[^']` for the name,
+# the driver's id captured (stage 3), and bounded.
 DESTROYED_RE = re.compile(
-    r"Vehicle '[^']*' \[(\d+)\] class '([^']+)' \(owner player \[(\d+)\], driver \[\d+\]\) "
-    r"destroyed: reason \[(\w+)\] level \[(\d+)\] -> \[(\d+)\].*?killer '([^']*)' \[(\d+)\]")
-FATAL_RE = re.compile(r"for vehicle ([A-Za-z0-9_]+?)_(\d+) \[[^\]]*?Zone: ([^,\]]*), PlayerPilot: (\d)")
-STOW_RE = re.compile(r"\[STOWING ON UNREGISTER\] (.*?) \[\d+\] - Attempting to stow current vehicle \[(\d+)\]")
-THROWN_RE = re.compile(r"Actor '([^']*)' \[\d+\] ejected from zone '([A-Za-z0-9_]+?)_(\d+)' \[(\d+)\]")
-ITEM_LOST_RE = re.compile(r"Item '[^']*? - Class\(([^)]*)\).*?Port Name '([^']*)'")
-# From CSR sc_livelog.py line 35 (MISSION_RE). Changed: the reason captured too.
-END_MISSION_RE = re.compile(r"MissionId\[([^\]]+)\].*?CompletionType\[([^\]]+)\](?: Reason\[([^\]]*)\])?")
-MARKER_RE = re.compile(r"missionId \[([^\]]+)\], generator name \[([^\]]*)\], contract \[([^\]]*)\]")
-SHOP_RE = re.compile(r"shopName\[([^\]]*)\].*?client_price\[([\d.]+)\].*?itemName\[([^\]]*)\](?: quantity\[(\d+)\])?")
-SHOP_RESULT_RE = re.compile(r"(?:shopName\[([^\]]*)\].*?)?result\[([^\]]*)\](?: type\[([^\]]*)\])?")
-COMMODITY_SELL_RE = re.compile(r"shopName\[([^\]]*)\].*?amount\[([\d.]+)\] resourceGUID\[([^\]]*)\].*?quantity\[([^\]]*)\]")
-COMMODITY_BUY_RE = re.compile(r"shopName\[([^\]]*)\].*?\bprice\[([\d.]+)\].*?resourceGUID\[([^\]]*)\].*?quantity\[([^\]]*)\]")
-BOX_RE = re.compile(r"boxSize\[([\d.]+)\] \| unitAmount\[(\d+)\]")
-SHOP_NAME_RE = re.compile(r"shopName\[([^\]]*)\]")
-OFFER_RE = re.compile(r"shopName\[([^\]]*)\] commodityName\[([^\]]*)\]")
-STORAGE_RE = re.compile(r"InventoryDataRequest Successful for .*?Inventory\[\d+:Location:(\d+)\].*?Item Count:\[(\d+)\]")
-GADGET_RE = re.compile(r"placed '(Mining_Gadget_[A-Za-z0-9_]+?)_\d+' \[\d+\] (?:on entity '([A-Za-z0-9_]+?)_\d+'|loosely)")
-CELLS_RE = re.compile(r"^\s*(\d+) .*?name: (\S+)")
-TERRAIN_RE = re.compile(r"Planet (\S+) invalidated")
+    r"Vehicle '[^']{0,200}' \[(\d{1,20})\] class '([^']{1,200})' \(owner player \[(\d{1,20})\], driver \[(\d{1,20})\]\) "
+    r"destroyed: reason \[(\w{1,40})\] level \[(\d+)\] -> \[(\d+)\].{0,300}?killer '([^']{0,200})' \[(\d{1,20})\]")
+FATAL_RE = re.compile(r"for vehicle ([A-Za-z0-9_]{1,120}?)_(\d{1,20}) \[[^\]]{0,300}?Zone: ([^,\]]{0,200}), PlayerPilot: (\d)")
+STOW_RE = re.compile(r"\[STOWING ON UNREGISTER\] (.{0,300}?) \[\d{1,20}\] - Attempting to stow current vehicle \[(\d{1,20})\]")
+THROWN_RE = re.compile(r"Actor '([^']{0,200})' \[\d{1,20}\] ejected from zone '([A-Za-z0-9_]{1,120}?)_(\d{1,20})' \[(\d{1,20})\]")
+ITEM_LOST_RE = re.compile(r"Item '[^']{0,300}? - Class\(([^)]{0,200})\).{0,300}?Port Name '([^']{0,200})'")
+# From CSR sc_livelog.py line 35 (MISSION_RE). Changed: the reason captured too, and bounded.
+END_MISSION_RE = re.compile(r"MissionId\[([^\]]{1,100})\].{0,300}?CompletionType\[([^\]]{1,50})\](?: Reason\[([^\]]{0,200})\])?")
+MARKER_RE = re.compile(r"missionId \[([^\]]{1,100})\], generator name \[([^\]]*)\], contract \[([^\]]*)\]")
+# Shop and commodity lines: each field found on its own (one linear search each), not one
+# pattern with several lazy runs between them, which a line with many "shopName[" and no
+# "itemName[" made scan the text again from every one of them.
+FIELD_RES = {name: re.compile(r"\b%s\[([^\]]*)\]" % name) for name in
+             ("shopName", "client_price", "itemName", "quantity", "amount", "price", "resourceGUID",
+              "result", "type", "commodityName")}
+BOX_RE = re.compile(r"boxSize\[([\d.]{1,30})\] \| unitAmount\[(\d{1,10})\]")
+STORAGE_RE = re.compile(r"InventoryDataRequest Successful for .{0,300}?Inventory\[\d{1,20}:Location:(\d{1,20})\].{0,300}?Item Count:\[(\d+)\]")
+GADGET_RE = re.compile(r"placed '(Mining_Gadget_[A-Za-z0-9_]{1,120}?)_\d{1,20}' \[\d{1,20}\] (?:on entity '([A-Za-z0-9_]{1,120}?)_\d{1,20}'|loosely)")
+CELLS_RE = re.compile(r"^\s*(\d+) .{0,300}?name: (\S{1,200})")
+TERRAIN_RE = re.compile(r"Planet (\S{1,200}) invalidated")
 OWNER_RE = re.compile(r"^.*?'s\s+(\S.*)$", re.S)     # "<owner>'s XL Hangar": the owner is dropped
-TEAM_TAIL_RE = re.compile(r"\s*(?:\[Team_[^\]]*\](?:\[[^\]]*\])*)?\s*$")
+TEAM_GROUPS_RE = re.compile(r"(?:\[[^\[\]]*\])+")
+MAX_TEXT = 2048           # a record's text, before any pattern (the longest real line: 1,181 bytes)
+MAX_FIELD = 200           # a marker's generator and contract names: real ones are under 80
+
+
+def strip_team_tail(text):
+    """`text` without the team tags it ends with ("XL Hangar [Team_GameServices][ASOP]" -> "XL
+    Hangar"). Linear: one search from the last "[Team_" (a pattern anchored at the end with a
+    repeated group backtracked over every group from every start)."""
+    s = text.rstrip()
+    i = s.rfind("[Team_")
+    if i >= 0 and TEAM_GROUPS_RE.fullmatch(s, i):
+        return s[:i].rstrip()
+    return s
+
+
+def _field(name, text):
+    m = FIELD_RES[name].search(text)
+    return m.group(1) if m else None
 
 
 MAX_DIGITS = 30     # longer than any number in the user's logs [seen: the longest are 13-digit ids]
@@ -588,7 +693,7 @@ def _vehicle(text):
 
 def _h_session(rec, base):
     name = session_id("BackupNameAttachment=" + rec.text)
-    m = SESSION_RE.match(rec.text)
+    m = SESSION_RE.match(rec.text[:200])
     return SessionStart(name, base[1], base[2], name, m.group(2) if m else None,
                         m.group(3) if m else None)
 
@@ -598,10 +703,15 @@ def _h_version(rec, base):
 
 
 def _h_joystick(rec, base):
+    # The name and its {GUID} split by hand: the one-pattern form (a lazy name, optional spaces,
+    # an optional GUID, spaces, end) backtracked over every run of spaces (stage 3 review).
     m = JOYSTICK_RE.match(rec.text)
     if m:
-        guid = m.group(3).strip("{}") if m.group(3) else None
-        return Joystick(*base, _int(m.group(1)), m.group(2), guid)
+        rest = m.group(2).strip()
+        g = JOYSTICK_GUID_RE.search(rest)
+        guid = g.group(1) if g else None
+        name = rest[:g.start()].rstrip() if g else rest
+        return Joystick(*base, _int(m.group(1)), name, guid)
 
 
 def _h_login(rec, base):
@@ -707,7 +817,7 @@ def _h_spawn_info(rec, base):
         return None
     hangar = None
     if m.group(2):
-        area = TEAM_TAIL_RE.sub("", m.group(2))
+        area = strip_team_tail(m.group(2))
         owned = OWNER_RE.match(area)
         if owned:                           # "<handle>'s\nXL Hangar", or all on one line
             hangar = owned.group(1).strip() or None
@@ -727,8 +837,8 @@ def _h_seat(rec, base):
 def _h_destroyed(rec, base):
     m = DESTROYED_RE.search(rec.text)
     if m:
-        return VehicleDestroyed(*base, m.group(2), m.group(1), m.group(3), m.group(4),
-                                _int(m.group(5)), _int(m.group(6)), m.group(7), m.group(8))
+        return VehicleDestroyed(*base, m.group(2), m.group(1), m.group(3), m.group(5),
+                                _int(m.group(6)), _int(m.group(7)), m.group(8), m.group(9), m.group(4))
 
 
 def _h_fatal(rec, base):
@@ -765,54 +875,57 @@ def _h_end_mission(rec, base):
 def _h_marker(rec, base):
     m = MARKER_RE.search(rec.text)
     if m:
-        return MissionMarker(*base, *m.groups())
+        # Cut where they are parsed: no real generator or contract name is near this, and the
+        # contract lookup runs patterns over them (a 60 KB marker took 8.9 s, stage 3 review).
+        return MissionMarker(*base, m.group(1), m.group(2)[:MAX_FIELD], m.group(3)[:MAX_FIELD])
 
 
 def _shop(cls):
     def handler(rec, base):
-        m = SHOP_RE.search(rec.text)
-        if m:
-            qty = _int(m.group(4)) if m.group(4) else None
-            return cls(*base, m.group(1), m.group(3), _num(m.group(2)), qty)
+        shop, price, item = (_field(k, rec.text) for k in ("shopName", "client_price", "itemName"))
+        if shop is not None and price is not None and item is not None:
+            q = _field("quantity", rec.text)
+            qty = _int(q) if q and q.isdigit() else None
+            return cls(*base, shop, item, _num(price), qty)
     return handler
 
 
 def _h_shop_result(rec, base):
-    m = SHOP_RESULT_RE.search(rec.text)
-    if m:
-        return ShopResult(*base, m.group(1), m.group(2), m.group(3))
+    result = _field("result", rec.text)
+    if result is not None:
+        return ShopResult(*base, _field("shopName", rec.text), result, _field("type", rec.text))
 
 
 def _h_commodity_sell(rec, base):
-    m = COMMODITY_SELL_RE.search(rec.text)
-    if m:
+    shop, amount, rid, qty = (_field(k, rec.text) for k in ("shopName", "amount", "resourceGUID", "quantity"))
+    if None not in (shop, amount, rid, qty):
         b = BOX_RE.search(rec.text)
         box = "%s x %s" % (b.group(2), b.group(1)) if b else None
-        return CommoditySell(*base, m.group(1), m.group(3), _num(m.group(2)), m.group(4), box)
+        return CommoditySell(*base, shop, rid, _num(amount), qty, box)
 
 
 def _h_commodity_buy(rec, base):
-    m = COMMODITY_BUY_RE.search(rec.text)
-    if m:
-        return CommodityBuy(*base, m.group(1), m.group(3), _num(m.group(2)), m.group(4))
+    shop, price, rid, qty = (_field(k, rec.text) for k in ("shopName", "price", "resourceGUID", "quantity"))
+    if None not in (shop, price, rid, qty):
+        return CommodityBuy(*base, shop, rid, _num(price), qty)
 
 
 def _h_refinery_sell(rec, base):
-    m = SHOP_NAME_RE.search(rec.text)
-    if m and "SShopRefineryRequest" in rec.text:
-        return RefinerySell(*base, m.group(1))
+    shop = _field("shopName", rec.text)
+    if shop is not None and "SShopRefineryRequest" in rec.text:
+        return RefinerySell(*base, shop)
 
 
 def _h_rental(rec, base):
-    m = SHOP_RE.search(rec.text)
-    if m:
-        return Rental(*base, m.group(1), m.group(3), _num(m.group(2)))
+    shop, price, item = (_field(k, rec.text) for k in ("shopName", "client_price", "itemName"))
+    if shop is not None and price is not None and item is not None:
+        return Rental(*base, shop, item, _num(price))
 
 
 def _h_offer(rec, base):
-    m = OFFER_RE.search(rec.text)
-    if m:
-        return ShopOffer(*base, m.group(1), m.group(2))
+    shop, commodity = _field("shopName", rec.text), _field("commodityName", rec.text)
+    if shop is not None and commodity is not None:
+        return ShopOffer(*base, shop, commodity)
 
 
 def _h_reuse_channel(rec, base):
@@ -840,15 +953,39 @@ def _h_screenshot(rec, base):
 
 # Notices: the text decides the kind. Order matters only where two patterns could both match.
 # From CSR sc_livelog.py, with each pattern split per kind and anchored on the cleaned text:
-# the contract notices from line 17 (CONTRACT_NOTIF_RE; `Failed` left out, PLAN §3), the
+# the contract notices from line 17 (CONTRACT_NOTIF_RE; `Failed` left out there, and added in
+# stage 3 with this project's own patterns below, as the survey's other kinds are), the
 # objective notices from line 53 (OBJ_RE; only the two kinds in the user's logs), the
 # jurisdiction notice from line 18 (JURIS_RE), the armistice notices from lines 395-400, the
 # blueprint notice from line 28 (BLUEPRINT_RE), and the injury notice from line 19 (INJURY_RE).
+def _amount(text):
+    """'50,250' or '50250' -> 50250.0 (ValueError makes the line unreadable, as elsewhere)."""
+    return _num(text.replace(",", ""))
+
+
 NOTICE_KINDS = [
     (re.compile(r"^Contract Accepted:\s*(.+)$"), lambda b, m, mid, oid: ContractAccepted(*b, m.group(1), mid)),
     (re.compile(r"^Contract Complete:\s*(.+)$"), lambda b, m, mid, oid: ContractComplete(*b, m.group(1), mid)),
     (re.compile(r"^New Objective:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveNew(*b, m.group(1), mid, oid)),
     (re.compile(r"^Objective Complete:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveComplete(*b, m.group(1), mid, oid)),
+    # Stage 3 (SURVEY.md §0.6): each of these has to be matched here, before the catch-all, or a
+    # long one would be taken for a tutorial tip and dropped from the feed. Unverified shapes.
+    (re.compile(r"^Contract Failed:\s*(.+)$"), lambda b, m, mid, oid: ContractFailed(*b, m.group(1), mid)),
+    (re.compile(r"^Contract Withdrawn:\s*(.+)$"), lambda b, m, mid, oid: ContractWithdrawn(*b, m.group(1), mid)),
+    (re.compile(r"^Objective Failed:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveFailed(*b, m.group(1), mid, oid)),
+    (re.compile(r"^Objective Withdrawn:\s*(.+)$"), lambda b, m, mid, oid: ObjectiveWithdrawn(*b, m.group(1), mid, oid)),
+    (re.compile(r"^Awarded ([\d,]{1,20}) a?UEC\b"), lambda b, m, mid, oid: Reward(*b, _amount(m.group(1)), mid)),
+    (re.compile(r"^CrimeStat Rating (Increased|Decreased)"), lambda b, m, mid, oid: CrimeStat(*b, m.group(1) == "Increased")),
+    # notice_text() makes every run of white space one space, so these `\s+` cannot backtrack.
+    (re.compile(r"^Crime Committed:\s*(.+?)(?:\s+against\s+(.+))?$"),
+     lambda b, m, mid, oid: CrimeCommitted(*b, m.group(1), m.group(2))),
+    # Loose on purpose (stage 3 review): a trailing period or more words after "against you"
+    # must not let the notice fall through. The party form is hud_law_charge_player_crime_party.
+    (re.compile(r"^(?:Party member )?(\S+) committed (.+?) against you\b"),
+     lambda b, m, mid, oid: CrimeAgainstYou(*b, m.group(1), m.group(2))),
+    (re.compile(r"^Fined ([\d,]{1,20}) a?UEC\b"), lambda b, m, mid, oid: Fined(*b, _amount(m.group(1)))),
+    (re.compile(r"^Vehicle Impounded:?\s*(.*)$"), lambda b, m, mid, oid: Impounded(*b, m.group(1).strip())),
+    (re.compile(r"^Monitored Space (Down|Restored)"), lambda b, m, mid, oid: MonitoredDown(*b, m.group(1) == "Down")),
     (re.compile(r"^Joined hangar queue\.(?:\s*Your place: (\d+)\. Max\. estimated wait: ([\d.]+) s)?"),
      lambda b, m, mid, oid: HangarQueue(*b, _int(m.group(1)), _num(m.group(2)))),
     (re.compile(r"^Hangar Request Completed"), lambda b, m, mid, oid: HangarReady(*b)),
@@ -856,14 +993,16 @@ NOTICE_KINDS = [
      lambda b, m, mid, oid: RefineryDone(*b, _int(m.group(1) or "1"), m.group(2))),
     (re.compile(r"^Received Blueprint:\s*(.+)$"), lambda b, m, mid, oid: BlueprintReceived(*b, m.group(1))),
     (re.compile(r"^Quantum Travel: Your destination is obstructed"), lambda b, m, mid, oid: QuantumObstructed(*b)),
-    (re.compile(r"^Entered (.+?) Jurisdiction$"), lambda b, m, mid, oid: Jurisdiction(*b, m.group(1))),
+    (re.compile(r"^Entered (.{1,200}?) Jurisdiction$"), lambda b, m, mid, oid: Jurisdiction(*b, m.group(1))),
     (re.compile(r"^(Entering|Leaving) Armistice Zone"), lambda b, m, mid, oid: Armistice(*b, m.group(1) == "Entering")),
     (re.compile(r"^(Entered|Exited) Monitored Space"), lambda b, m, mid, oid: MonitoredSpace(*b, m.group(1) == "Entered")),
-    (re.compile(r"^You have joined channel '(.+) : ([^']+)'\.?$"), lambda b, m, mid, oid: ChannelJoined(*b, m.group(1), m.group(2))),
-    (re.compile(r"^You have left the channel '(.+) : ([^']+)'\.?$"), lambda b, m, mid, oid: ChannelLeft(*b, m.group(1), m.group(2))),
+    (re.compile(r"^You have joined channel '(.{1,200}) : ([^']{1,100})'\.?$"),
+     lambda b, m, mid, oid: ChannelJoined(*b, m.group(1), m.group(2))),
+    (re.compile(r"^You have left the channel '(.{1,200}) : ([^']{1,100})'\.?$"),
+     lambda b, m, mid, oid: ChannelLeft(*b, m.group(1), m.group(2))),
     (re.compile(r"^Incapacitated:"), lambda b, m, mid, oid: Incapacitated(*b)),
     (re.compile(r"^Standby, Local Emergency Services Are En Route"), lambda b, m, mid, oid: EmergencyServices(*b)),
-    (re.compile(r"^(Minor|Moderate|Severe|Critical) Injury Detected - (.+?) - Tier (\d)"),
+    (re.compile(r"^(Minor|Moderate|Severe|Critical) Injury Detected - (.{1,100}?) - Tier (\d)"),
      lambda b, m, mid, oid: Injury(*b, m.group(1), m.group(2), _int(m.group(3)))),
     (re.compile(r"^Regeneration - Location"), lambda b, m, mid, oid: RegenSet(*b)),
     (re.compile(r"^Medical Bed:"), lambda b, m, mid, oid: MedicalBed(*b)),
@@ -890,7 +1029,85 @@ def _h_notice(rec, base):
         if k:
             return make(base, k, mid, oid)
     head, sep, body = text.partition(": ")
-    return Notice(*base, text, bool(sep) and len(body) > 40)
+    hint = bool(sep) and len(body) > 40
+    for rx, words in NAMED_NOTICES:
+        k = rx.match(text)
+        if k:
+            # A known shape with someone's name in it (law.py): worded without it. The slot is
+            # passed on as a word to learn, which the state does only under law.learnable().
+            return Notice(*base, words, hint, tuple(g for g in k.groups() if g))
+    if LAW_LIKE_RE.search(text):
+        # It looks like a crime notice but has a shape none of the patterns above reads: it may
+        # name a player in a place we cannot tell, so its text is not shown at all (fail closed).
+        return Notice(*base, REDACTED, hint, loose_names(text))
+    if COMMS_LIKE_RE.search(text) and not COMMS_SAFE_RE.match(text):
+        # A ship channel whose name is too long for the pattern, a cut record, or another comms
+        # notice: the owner or the member is a player (stage 3 review, round 2).
+        return Notice(*base, REDACTED_COMMS, hint, comms_names(text))
+    return Notice(*base, text, hint)
+
+
+LAW_LIKE_RE = re.compile(r"\bcommitted\b|\bagainst you\b|^Crime Committed|^Victim:|'s Private Property|"
+                         r"^Party member\b", re.I)
+REDACTED = "A law notice the dashboard does not show (it may name a player)"
+REDACTED_COMMS = "A comms notice the dashboard does not show (it may name a player)"
+_PUNCT = ".,;:!?()[]{}\"'"
+
+# The known shapes that name someone in a fixed place [game, law.py]: each is shown worded
+# without the name. Bounded runs only (a notice is at most MAX_TEXT here).
+NAMED_NOTICES = [
+    (re.compile(r"^Victim:\s*(?:(\S{1,100})$)?"), "Victim: someone"),     # a name of one word is a candidate
+    (re.compile(r"^Trespassing on (\S{1,100})'s Private Property"), "Trespassing on another player's private property"),
+    (re.compile(r"^WARNING: (\S{1,100})'s Private Property"), "WARNING: someone's private property. Enter at own risk"),
+    (re.compile(r"^You have joined (\S{1,100})'s (?:party|group)"), "You have joined another player's party or group"),
+    (re.compile(r"^(\S{1,100}) has joined the (?:party|group)"), "Another player has joined the party or group"),
+    (re.compile(r"^(\S{1,100}) has left the (?:party|group)"), "Another player has left the party or group"),
+    (re.compile(r"^(\S{1,100}) has been kicked from the (?:party|group)"), "Another player has been kicked from the party or group"),
+    (re.compile(r"^(\S{1,100}) has declined invitation to "), "Another player has declined your invitation"),
+    (re.compile(r"^(\S{1,100}) has invited you to their "), "Another player has invited you"),
+    (re.compile(r"^The invitation you sent to (\S{1,100}) has timed out"), "The invitation you sent has timed out"),
+    (re.compile(r"^(\S{1,100}) is now .{0,60}\bleader\b"), "Another player is now the leader"),
+]
+
+# The other comms_* templates, and the ship channel when its pattern did not read it [game]: a
+# channel's owner or a member is a player.
+COMMS_LIKE_RE = re.compile(
+    r"^You have (?:joined|left|been kicked from) (?:the )?(?:channel|group|party)\b|"
+    r"^(?:Comms Channel \w{1,20}|Invited to Comms Channel|Hail Target):|"
+    r"^\S{1,100} (?:has (?:joined|left|invited|declined|been kicked)|invited to)\b")
+# The ones that name nobody (comms_local_player_left and _kicked with the party or group).
+COMMS_SAFE_RE = re.compile(r"^You have (?:left|been kicked from) the (?:group|party)\.?$")
+
+
+def loose_names(text):
+    """Words in a crime notice of a shape we do not read that could be a player's name: the
+    word just before " committed " and the word just after "against ". Only candidates: the
+    state learns one only under law.learnable() ("player", "your", "Drake" are not learned)."""
+    out = []
+    i = text.find(" committed ")
+    if i > 0:
+        before = text[:i].split()
+        if before:
+            out.append(before[-1].strip(_PUNCT))
+    j = text.find("against ")
+    if j >= 0:
+        after = text[j + len("against "):].split()
+        if after:
+            out.append(after[0].strip(_PUNCT))
+    return tuple(w for w in out if w)
+
+
+def comms_names(text):
+    """Candidates in a comms notice: the channel owner (after " : "), else the first word when
+    the notice starts with a member's name."""
+    i = text.rfind(" : ")
+    if i >= 0:
+        rest = text[i + 3:].split("'")[0].split()
+        return (rest[0].strip(_PUNCT),) if rest else ()
+    if text.startswith(("You have", "Comms Channel", "Invited to")):
+        return ()
+    first = text.split(maxsplit=1)
+    return (first[0].strip(_PUNCT),) if first else ()
 
 
 # The table (PLAN §9): key -> handler. Only lines whose key is here are ever decoded.
@@ -999,6 +1216,11 @@ class EventParser:
     def event(self, rec):
         if rec.key == UNREADABLE:
             return Unreadable(self.session, rec.offset, self._last_t, rec.text)
+        if len(rec.text) > MAX_TEXT:
+            # Cut before any pattern runs: every handler then costs at most a few thousand
+            # characters' work, and no text the state keeps can be longer (stage 3 review: one
+            # 60 KB notice in 8 pieces took 158 s, and long objectives held 69 MB).
+            rec.text = rec.text[:MAX_TEXT]
         try:
             ev = HANDLERS[rec.key](rec, (self.session, rec.offset, round(rec.t, 3)))
         except Exception as exc:                        # noqa: BLE001 - no line may stop us

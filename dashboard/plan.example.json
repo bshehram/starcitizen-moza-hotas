@@ -1,0 +1,118 @@
+{
+  "_about": "An invented plan showing every part of the shape the dashboard reads (dashboard/scdash/plan.py has it in full). The real one is data/plan.json, written by Claude, never committed. Times carry their offset. Codes are the ones the log prints, from either family (reference/locations.json). Keys starting with _ are comments and are ignored.",
+  "schema": 1,
+  "updated": "2026-11-26T17:30:00-08:00",
+  "preflight": [
+    "Switch on the AB6 base before you start the game",
+    "Load the MOZA profile in the Keybindings menu"
+  ],
+  "notes": ["Free text shown on the Now view"],
+  "refine_method": "Pyrometric Chromalysis",
+
+  "objectives": [
+    {
+      "id": "drive-ore",
+      "title": "High-quality ore for two quantum drives",
+      "status": "in_progress",
+      "next_step": "Run B: mine Agricium and Beryl at CRU-L5",
+      "materials": [
+        {"name": "Tungsten", "need_scu": 2.22, "held_scu": 2.66, "min_quality": 600},
+        {"name": "Beryl", "need_scu": 2.22, "held_scu": 0.84, "min_quality": 700},
+        {"name": "Agricium", "need_scu": 5.52, "held_scu": 1.90, "min_quality": 600}
+      ]
+    },
+    {"id": "repairs", "title": "RMC for repairs aboard the carrier", "status": "planned"},
+    {"id": "tungsten", "title": "Tungsten from ARC-L4", "status": "done"}
+  ],
+
+  "current_run": "run-b",
+  "runs": [
+    {
+      "id": "run-b",
+      "name": "Run B",
+      "kind": "mining",
+      "status": "in_progress",
+      "ship": "Drake Golem",
+      "note": "Agricium and Beryl at CRU-L5, in the Golem",
+      "targets": [
+        {"ore": "Agricium", "min_quality": 600},
+        {"ore": "Beryl", "min_quality": 700, "skip_below": 700}
+      ],
+      "legs": [
+        {"to": "CRU-L1 Ambitious Dream Station", "codes": ["LOC_RR_S2_L1", "RR_CRU_L1"], "gm": 30.2,
+         "view": "now", "do": "Park, take a delivery", "done": true},
+        {"to": "CRU-L5 field", "codes": ["LOC_RR_S2_L5"], "spot": "cru-l5-field", "gm": 40.8,
+         "view": "mining", "do": "Mine Agricium and Beryl"},
+        {"to": "CRU-L1 Ambitious Dream Station", "codes": ["LOC_RR_S2_L1", "RR_CRU_L1"], "gm": 18.3,
+         "view": "refinery", "do": "Refine the Beryl only", "refine": ["Beryl"], "leave": ["Agricium"]},
+        {"to": "MIC-L1 Shallow Frontier Station", "codes": ["LOC_RR_S4_L1", "RR_MIC_L1"], "gm": 26.4,
+         "view": "refinery", "do": "Refine the Agricium", "refine": ["Agricium"],
+         "arrive": ["Refine the Agricium with Pyrometric Chromalysis.", "Collect the Tungsten order if it is ready."]}
+      ]
+    },
+    {
+      "id": "rmc",
+      "name": "RMC for the carrier",
+      "kind": "salvage",
+      "status": "planned",
+      "ship": "RSI Salvation",
+      "salvage": {
+        "goal": {"name": "RMC", "for": "repairs", "need_scu": 12, "held_scu": 4.5},
+        "next": "Scrape the hull, then use the fracture field.",
+        "sell_at": "CRU-L1",
+        "keep": ["RMC"],
+        "sell": ["Construction Materials"]
+      },
+      "legs": [
+        {"to": "CRU-L4 Shallow Fields Station", "codes": ["LOC_RR_S2_L4"], "view": "salvage",
+         "do": "Find a derelict near the station"},
+        {"to": "CRU-L1 Ambitious Dream Station", "codes": ["LOC_RR_S2_L1"], "view": "selling",
+         "do": "Sell the construction materials"}
+      ]
+    },
+    {
+      "id": "medical",
+      "name": "Medical supplies to Orison",
+      "kind": "cargo",
+      "status": "planned",
+      "ship": "Drake Golem OX",
+      "trade": {"commodity": "Medical Supplies", "scu": 30, "buy_at": "Seraphim Station", "buy_price": 1830,
+                "sell_at": "Orison", "sell_price": 2140},
+      "legs": [
+        {"to": "Seraphim Station", "codes": ["rs_ext_cru-leo1", "RR_CRU_LEO"], "view": "cargo", "do": "Buy 30 SCU of Medical Supplies"},
+        {"to": "Orison", "codes": ["Orison_LOC", "Stanton2_Orison"], "view": "cargo", "do": "Sell them"}
+      ]
+    },
+    {
+      "id": "bounty",
+      "name": "A bounty near Yela",
+      "kind": "combat",
+      "status": "planned",
+      "ship": "Origin M80",
+      "combat": {"ship_note": "Trigger: S5 pair · stage 2: S4 pair", "note": "Medium risk, alone"},
+      "legs": [
+        {"to": "Yela", "codes": ["OOC_Stanton_2c_Yela"], "view": "combat", "do": "Find the target"}
+      ]
+    },
+    {
+      "id": "investigation",
+      "name": "Investigation near Cellin",
+      "kind": "mission",
+      "status": "planned",
+      "legs": [
+        {"to": "Cellin", "codes": ["OOC_Stanton_2a_Cellin"], "view": "mission", "do": "Find the wreck and its flight recorder"}
+      ]
+    }
+  ],
+
+  "timers": [
+    {"id": "t1", "kind": "refinery", "label": "Agricium and Tungsten", "location": "MIC-L1",
+     "started_at": "2026-11-26T19:40:00-08:00", "ready_at": "2026-11-26T22:24:00-08:00"},
+    {"id": "t2", "kind": "other", "label": "Med bed refill", "ready_at": "2026-11-27T09:00:00-08:00"}
+  ],
+
+  "sell": [
+    {"what": "Taranite", "scu": 7.8, "quality": 310, "price": 28000, "where": "TDD New Babbage"},
+    {"what": "Quartz", "scu": 3.1, "price": 1450, "where": "New Babbage", "note": "low lots only"}
+  ]
+}

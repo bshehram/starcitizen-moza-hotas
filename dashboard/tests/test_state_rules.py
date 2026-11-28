@@ -204,7 +204,9 @@ class NoClockTest(unittest.TestCase):
                  ("datetime", "now"), ("datetime", "utcnow"), ("datetime", "today"), ("date", "today")}
 
     def test_no_clock_calls_in_the_source(self):
-        for name in ("records.py", "events.py", "state.py", "summary.py", "words.py", "names.py"):
+        # Stage 3's modules too: the views, rules, alerts and timers take "now" as an argument.
+        for name in ("records.py", "events.py", "state.py", "summary.py", "words.py", "names.py",
+                     "refdata.py", "plan.py", "rules.py", "alerts.py", "views.py", "board.py"):
             tree = ast.parse((lib.DASHBOARD / "scdash" / name).read_text(encoding="utf-8"))
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):

@@ -25,22 +25,54 @@ line has an `id` unique within the session and stable across rereads (the event'
 small index), and a `rev` that grows when the line's text is changed later (a jump's route and
 fuel arrive a millisecond after the target). The timeline collects them all.
 
-Other players' names: the state keeps those it sees (killers, ship channel owners, actors) in a
-private set, and `to_dict()` and `build_summary()` replace any of them found in a text with
-"another player", whatever text it is (a contract title, an objective).
+Other players' names: the state keeps those it sees (killers, ship channel owners, actors, and in
+stage 3 the players the law notices name) in a private set, and `to_dict()` and
+`build_summary()` replace any of them found in a text with "another player", whatever text it
+is (a contract title, an objective).
+
+Stage 3 added (dashboard/SURVEY.md): failed and withdrawn contracts and objectives, the law
+notices and pay; pickups and drop-offs read from objective texts; the session's tally of ships
+destroyed, crippled and lost, counted once per vehicle at its highest level; a death taken from
+the body item; and, from the reference tables (refdata.py), each contract's kind, view, setting
+and giver, the ship's job and cargo grid, and each shop's kind and place. What the page needs
+beyond the state (the view, its model, alerts, timers) is board.build(); the state's own
+`plan`, `timers`, `alerts` and `view` slots stay empty.
 """
 import re
+from array import array
+from bisect import bisect_left
 from collections import deque
 
 from . import config
+from . import law
+from . import refdata
 from .names import LocationNames
-from .words import clean_all, clean_text, compatible, duration, fit, iso, money, ship_class
+from .words import clean_all, clean_text, compatible, duration, fit, iso, money, scu, ship_class
 
 ALERT, MAJOR, MINOR = "alert", "major", "minor"
 
 # How an <EndMission> CompletionType reads [seen: Complete 13 and Abandon 7 of 20 in 2026-11].
-# Any other type is kept as its own lower-case word.
-END_STATUS = {"complete": "complete", "abandon": "abandoned"}
+# `Fail` and `Deactivate` come from other tools [ref: SURVEY.md §1, unverified here]; a
+# withdrawn contract is "Deactivate" in the line and "Withdrawn" in its notice. Any other type is
+# kept as its own lower-case word.
+END_STATUS = {"complete": "complete", "abandon": "abandoned", "fail": "failed", "failed": "failed",
+              "deactivate": "withdrawn", "withdrawn": "withdrawn"}
+ENDED = {"complete", "abandoned", "failed", "withdrawn"}
+
+# Objective texts that name a stop (SURVEY.md §2). Courier pickups and drop-offs are seen in the
+# user's logs (samples/courier.log); the hauling manifest is in the game's text and other tools'
+# parsers only [ref], so a stop read from it is marked unverified.
+COLLECT_RE = re.compile(r"^(?:Collect|Pick ?up|Retrieve)\s+(.+?)\s+[Ff]rom\s+(.+)$")
+DELIVER_RE = re.compile(r"^Deliver\s+(.+?)\s+[Tt]o\s+(.+)$")
+HAUL_RE = re.compile(r"^Deliver\s+(\d{1,7})\s*/\s*(\d{1,7})\s+(SCU|Cargo Box(?:es)?|Boxes|Box)"
+                     r"(?:\s+of\s+(.+?))?\s+to\s+(.+)$", re.I)
+OBJECTIVE_ID_RE = re.compile(r"^(pickup|dropoff)_[0-9A-Fa-f]{8}-[0-9A-Fa-f-]{27}_(\d{1,3})")
+QUANTITY_RE = re.compile(r"^\s*([\d.]{1,20})\s*([A-Za-z]*)\s*$")
+
+# The tally's vehicle levels [ref: CSR: level 1 is crippled (a soft death), 2 destroyed].
+CRIPPLED, DESTROYED = 1, 2
+TALLY_KEEP = 100                                     # vehicles remembered for the tally
+BURST_GAP = 2.0                                      # seconds between items of one recovery burst
 
 GAME_STATES = ("not_running", "menu", "in_game", "ended")
 
@@ -54,17 +86,92 @@ ACTIVE_KINDS = {"quantum_target", "seat_left", "channel_joined", "ship_retrieved
                 "shop_sell", "hangar_queue", "commodity_sell", "commodity_buy", "rental",
                 "refinery_sell"}
 
-# Names that are not anyone's, when a killer or an actor is logged [my reasoning].
-NOT_A_NAME = {"", "unknown", "none", "null", "invalid"}
+# Names that are not anyone's, when a killer or an actor is logged [my reasoning]; "you" is the
+# word the law notices put where the user is ("... against you").
+NOT_A_NAME = {"", "unknown", "none", "null", "invalid", "you", "another", "player"}   # never "another another player"
 OTHER_PLAYER = "another player"
 YOU = "you"                                         # the user's own handle, in public output
+MAX_OTHERS = 1000          # other players' names remembered at once (a real session meets dozens)
+MAX_NAME = 100             # a capture longer than this is not a handle
+NOT_REDACTED = {"names", "ref", "me", "_others", "_others_re", "_forgotten_rx", "_forgot_order",
+                "_forgot_sorted", "_kept_lower"}
+# Forgotten names still hidden in output, as 8-byte hashes (Python's own string hash: the table
+# lives in this process only): 50,000 cost 0.8 MB with the sorted copy. Past that the oldest go.
+MAX_FORGOTTEN = 50000
+_RUN_RE = re.compile(r"[A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*")   # a handle-shaped run of a text
+_PUNCT = ".,;:!?()[]{}\"'"
+
+
+class _Redactor:
+    """A pattern with its own replacement, where `redact` expects a pattern."""
+
+    def __init__(self, rx, fn):
+        self.rx, self.fn = rx, fn
+
+    def sub(self, _repl, text):
+        return self.rx.sub(self.fn, text)
+
+
+def name_regex(names):
+    """One pattern for many names, as a trie (so a thousand names cost the length of the longest
+    at each place, not a thousand tries), whole words only, without regard to case. None for no
+    names."""
+    trie = {}
+    for name in names:
+        node = trie
+        for ch in name:                     # as written: re.I matches every case, and lower()
+            node = node.setdefault(ch, {})  # can change a name's length (U+0130)
+        node[""] = {}
+
+    def build(node):
+        alts = [re.escape(ch) + build(sub) for ch, sub in sorted(node.items()) if ch]
+        if not alts:
+            return ""
+        body = alts[0] if len(alts) == 1 and "" not in node else "(?:%s)" % "|".join(alts)
+        return body + "?" if "" in node and alts else body
+    if not trie:
+        return None
+    return re.compile(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % build(trie), re.I)
+
+
+def redact(rx, x):
+    """Replace the names `rx` matches with "another player" in every text inside `x`, changing
+    the containers in place (dict values, list and deque items, set members); a text or tuple
+    comes back new."""
+    if isinstance(x, str):
+        return rx.sub(OTHER_PLAYER, x)
+    if isinstance(x, dict):
+        for k, v in list(x.items()):
+            nv = redact(rx, v)
+            if nv is not v:
+                x[k] = nv
+        return x
+    if isinstance(x, (list, deque)):
+        for i, v in enumerate(x):
+            nv = redact(rx, v)
+            if nv is not v:
+                x[i] = nv
+        return x
+    if isinstance(x, tuple):
+        return tuple(redact(rx, v) for v in x)
+    if isinstance(x, set):
+        new = {redact(rx, v) for v in x}
+        x.clear()
+        x.update(new)
+        return x
+    return x
 
 
 class State:
-    """The dashboard's state for one log. Feed it events in file order with `apply`."""
+    """The dashboard's state for one log. Feed it events in file order with `apply`.
 
-    def __init__(self, names=None):
+    `ref` is the reference tables (refdata.RefData); the process's shared one by default. They
+    give contracts their kind and view, ships their job and cargo grid, shops their kind and
+    place, and commodities their names: generic game data, the same on every reread."""
+
+    def __init__(self, names=None, ref=None):
         self.names = names if names is not None else LocationNames()
+        self.ref = ref if ref is not None else refdata.shared()
         self.reset()
 
     # ------------------------------------------------------------------ life cycle
@@ -74,8 +181,13 @@ class State:
                         "version": None, "game": "not_running", "world": None,
                         "ended": None, "last_t": None, "events": 0, "spawns": 0,
                         "in_game_since": None, "in_game_s": 0.0, "unreadable": 0}
-        self._others = set()                                  # other players' names: never shown
-        self._others_re = None
+        self._others = {}                                     # other players' names: never shown;
+        self._others_re = None                                # a dict as an ordered set, oldest first
+        self._forgotten_rx = None
+        self.forgotten = 0                                    # how many times names were forgotten
+        self._forgot_order = array("q")                       # hashes of forgotten names, oldest first
+        self._forgot_sorted = array("q")                      # the same, sorted for lookups
+        self._kept_lower = None                               # the names known, lower case (scrub)
         self._pending_world = None
         self.me = {"handle": None, "player_id": None}         # memory only (PLAN §8)
         self.server = {"shard": None, "joined": None, "shards": []}
@@ -87,7 +199,8 @@ class State:
         self.places = []
         self.body = None
         self.near = None
-        self.zone = {"jurisdiction": None, "armistice": None, "monitored": None}
+        self.zone = {"jurisdiction": None, "armistice": None, "monitored": None, "monitored_down": None,
+                     "t": None}
         self.ship = None
         self.vehicles = {}
         self.quantum = None
@@ -114,6 +227,14 @@ class State:
         self._landing = None
         self._last_disconnect = None
         self._storage_seen = {}
+        # Stage 3: the session's tally, its run-ins with the law, pay, where the ship was left.
+        self.tally = {"destroyed": 0, "crippled": 0, "lost": 0, "downed": 0}
+        self._tally = {}                                      # vehicle id -> its highest level
+        self.law = []
+        self.rewards = []
+        self.ship_left = None
+        self._burst = None                                    # the item-recovery burst being read
+        self._last_inv = None                                 # the last inventory location code
         # Stage 3 fills these from the plan data; kept here so the shape does not change.
         self.plan = None
         self.timers = []
@@ -172,21 +293,106 @@ class State:
     def _mine(self, name):
         """Is this name the user's? Before the login line (a log fragment) any name counts."""
         h = self.me["handle"]
-        mine = h is None or (name or "").lower() == h.lower()
+        n = clean_text(name or "").strip()
+        mine = h is None or n.lower() == h.lower()
         if not mine:
-            self._other(name)
+            self._other(n)
         return mine
 
     def _other(self, name):
-        """Remember another player's name, privately, so no text of ours ever shows it."""
-        if not name or name.strip().lower() in NOT_A_NAME or len(name) < 3:
+        """Remember another player's name, privately, so no text of ours ever shows it.
+
+        The name is kept as the scrubber will meet it: cleaned the way every text is cleaned
+        before it is scrubbed (a name with U+202E inside matched no cleaned text, and leaked:
+        stage 3 review). The set is bounded (MAX_OTHERS) and fails closed: see `_forget`."""
+        name = clean_text(name or "").strip()
+        if not name or name.lower() in NOT_A_NAME or not 3 <= len(name) <= MAX_NAME:
             return
         h = self.me["handle"]
         if h is not None and name.lower() == h.lower():
             return
-        if name not in self._others:
-            self._others.add(name)
-            self._others_re = None
+        if name in self._others:
+            del self._others[name]                 # seen again: the newest, last to be forgotten
+            self._others[name] = None
+            return
+        self._others[name] = None
+        self._others_re = None
+        if len(self._others) > MAX_OTHERS:
+            self._forget(list(self._others)[:MAX_OTHERS // 2])
+
+    def _forget(self, names):
+        """Forget the oldest names, and first take each of them out of every text the state
+        holds, so a forgotten name can never show up again in anything kept from before. The walk
+        goes over all of the state's own containers (not a list of them), so one added later is
+        covered too. Names are forgotten half the set at a time, so a flood of names costs one
+        walk per MAX_OTHERS // 2 of them. A forgotten name met again is learned again.
+
+        The walk's pattern holds the names kept and the user's handle too, and leaves those as
+        they are: a pattern of the forgotten names alone matched "Bob" inside a kept "Bob-Smith"
+        and left "another player-Smith" (stage 3 review, round 2). Matching longest first, a
+        handle is always replaced whole or not at all. The forgotten names stay hidden in
+        output as hashes (`_hide_forgotten`)."""
+        gone = set(names)
+        h = self.me["handle"]
+        keep = {n.lower() for n in self._others if n not in gone} | ({h.lower()} if h else set())
+        rx = name_regex(list(self._others) + ([h] if h else []))
+        if rx is not None:
+            def swap(m, keep=keep):
+                return m.group(0) if m.group(0).lower() in keep else OTHER_PLAYER
+            fn = _Redactor(rx, swap)
+            for key, value in self.__dict__.items():
+                if key not in NOT_REDACTED:
+                    redact(fn, value)
+            self._forgotten_rx = fn
+            self.forgotten += 1
+        for n in names:
+            self._others.pop(n, None)
+        self._others_re = None
+        order = self._forgot_order
+        order.extend(hash(n.lower()) for n in names)
+        if len(order) > MAX_FORGOTTEN:
+            del order[:len(order) - MAX_FORGOTTEN]
+        self._forgot_sorted = array("q", sorted(order))
+
+    def redact_held(self, obj):
+        """Take the names forgotten last out of a container held outside the state (the reader's
+        list of every feed line). The reader calls it when `forgotten` changes."""
+        if self._forgotten_rx is not None:
+            redact(self._forgotten_rx, obj)
+
+    def _hide_forgotten(self, text, kept):
+        """A forgotten name met later in a text that teaches nothing (a contract title naming a
+        player forgotten long ago) is still hidden: every handle-shaped run of the text is looked
+        up among the hashes of the names forgotten, longest first across its "-" parts. A part
+        that is a name still known (`kept`, lower case) is left whole for the scrubber, so neither
+        pass can cut a handle in two. Only after a flood of names (MAX_OTHERS): a normal session
+        pays nothing."""
+        table = self._forgot_sorted
+
+        def gone(s):
+            k = hash(s.lower())
+            i = bisect_left(table, k)
+            return i < len(table) and table[i] == k
+
+        def run(m):
+            parts = m.group(0).split("-")
+            out, i, n = [], 0, len(parts)
+            while i < n:
+                for j in range(n, i, -1):
+                    span = "-".join(parts[i:j])
+                    if span.lower() in kept:
+                        out.append(span)
+                    elif gone(span):
+                        out.append(OTHER_PLAYER)
+                    else:
+                        continue
+                    i = j
+                    break
+                else:
+                    out.append(parts[i])
+                    i += 1
+            return "-".join(out)
+        return _RUN_RE.sub(run, text)
 
     def scrub(self, obj):
         """`obj` (JSON-like) with every other player's name seen in this session replaced by
@@ -194,21 +400,32 @@ class State:
         wherever it came from. Control and bidi characters are taken out of every text too
         (`words.clean_text`), so nothing the log says can steer a screen or a console."""
         handle = self.me["handle"]
-        if not self._others and not handle:
+        if not self._others and not handle and not self._forgot_sorted:
             return clean_all(obj)
-        if self._others_re is None:
-            names = set(self._others) | ({handle} if handle else set())
-            alts = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
-            self._others_re = re.compile(r"(?<![A-Za-z0-9_])(?:%s)(?![A-Za-z0-9_])" % alts, re.I)
-        rx = self._others_re
         mine = handle.lower() if handle else None
+        if self._others_re is None:
+            self._others_re = name_regex(list(self._others) + ([handle] if handle else []))
+            self._kept_lower = None
+        rx = self._others_re
+        if self._forgot_sorted:
+            if self._kept_lower is None:
+                self._kept_lower = {n.lower() for n in self._others} | ({mine} if mine else set())
+            kept = self._kept_lower
+
+            def hide(s):
+                return self._hide_forgotten(s, kept)
+        else:
+            hide = None
 
         def name_for(m):
             return YOU if m.group(0).lower() == mine else OTHER_PLAYER
 
         def walk(x):
             if isinstance(x, str):
-                return rx.sub(name_for, clean_text(x))
+                s = clean_text(x)
+                if hide:                            # first: it leaves known names whole
+                    s = hide(s)
+                return rx.sub(name_for, s) if rx is not None else s
             if isinstance(x, dict):
                 return {clean_text(k) if isinstance(k, str) else k: walk(v) for k, v in x.items()}
             if isinstance(x, (list, tuple)):
@@ -309,8 +526,9 @@ class State:
                                       "(%s), which has worked" % places}
 
     def _on_login(self, ev):
-        self.me["handle"] = ev.handle
-        self._others.discard(ev.handle)
+        handle = clean_text(ev.handle).strip()      # as the scrubber meets it in cleaned text
+        self.me["handle"] = handle
+        self._others.pop(handle, None)
         self._others_re = None                      # the scrubber now knows the handle too
         return MINOR, "Logged in"
 
@@ -327,6 +545,8 @@ class State:
         was = s["game"]
         self._close_stint(ev.t)
         self._close_queue(ev.t, "back to the menu")
+        self._close_jump(ev.t, "back to the menu")
+        self._leave_zone(ev.t)
         self._pending_world = None
         s["game"] = "menu"
         s["world"] = None
@@ -336,7 +556,23 @@ class State:
             return MINOR, "Back at the main menu"
         return None
 
+    def _close_jump(self, t, why):
+        """A quantum target still open when the user leaves the world (the menu, a disconnect, a
+        new server, a respawn) is over: else it would bring Travel back on the next server
+        (stage 3 review)."""
+        q = self.quantum
+        if q and q["closed"] is None:
+            q["closed"], q["closed_by"] = t, why
+
+    def _leave_zone(self, t):
+        """Out of the world: "Monitored Space Down" was about where the user was. Without a
+        "Restored" notice it would stay down for good (stage 3 review)."""
+        if self.zone.get("monitored_down"):
+            self.zone.update(monitored_down=None, t=t)
+
     def _on_join_server(self, ev):
+        self._close_jump(ev.t, "joined a server")
+        self._leave_zone(ev.t)
         self._pending_world = "pu"
         self.server["shard"] = ev.shard
         self.server["joined"] = ev.t
@@ -378,6 +614,8 @@ class State:
         self._cap(self.left_server)
         self._close_stint(ev.t)
         self._close_queue(ev.t, "left the server")
+        self._close_jump(ev.t, "left the server")
+        self._leave_zone(ev.t)
         self._close_incident(ev.t)
         if self.session["game"] == "in_game":
             self.session["game"] = "menu"
@@ -430,6 +668,8 @@ class State:
                 return MAJOR, "Left %s" % self._place(loc["code"])
             return None
         code = self._loc_ids.get(ev.landing_to)
+        if code:
+            self._last_inv = code
         if loc and loc["docked"] and loc["left"] is None and (
                 loc["id"] == ev.landing_to or (code and self.names.place(code) == self.names.place(loc["code"]))):
             loc["t"], loc["id"] = ev.t, ev.landing_to   # still here: moved inside it, or confirmed
@@ -440,6 +680,7 @@ class State:
 
     def _on_location_inventory(self, ev):
         self.codes.add(ev.code)
+        self._last_inv = ev.code                  # where a shared shop name is (shops.json lookup)
         if self._landing and self._landing != "0" and self._landing not in self._loc_ids:
             self._loc_ids[self._landing] = ev.code
         loc = self.location
@@ -462,16 +703,25 @@ class State:
         self.near = {"name": ev.body, "t": ev.t}
 
     def _on_jurisdiction(self, ev):
-        self.zone["jurisdiction"] = ev.name
+        self.zone.update(jurisdiction=ev.name, t=ev.t)
         return MINOR, "Entered %s jurisdiction" % ev.name
 
     def _on_armistice(self, ev):
-        self.zone["armistice"] = ev.inside
+        self.zone.update(armistice=ev.inside, t=ev.t)
         return MINOR, "Entering the armistice zone" if ev.inside else "Leaving the armistice zone"
 
     def _on_monitored(self, ev):
-        self.zone["monitored"] = ev.inside
+        self.zone.update(monitored=ev.inside, t=ev.t)
         return MINOR, "Entered monitored space" if ev.inside else "Left monitored space"
+
+    def _on_monitored_down(self, ev):
+        # "Monitored Space Down": the comm array that reports crimes here is offline [game text;
+        # unverified in a log]. Not the same as leaving monitored space.
+        self.zone.update(monitored_down=ev.down, t=ev.t)
+        if ev.down:
+            self._note(ev, "monitored_down", "Monitored space down")
+            return MAJOR, "Monitored space down"
+        return MINOR, "Monitored space restored"
 
     # ------------------------------------------------------------------ quantum travel
 
@@ -654,6 +904,14 @@ class State:
         q = self.quantum
         if q and q["closed"] is None:
             q["closed"], q["closed_by"] = ev.t, "left seat"
+        if self.ship and self.ship["vehicle_id"] == ev.vehicle_id and self.ship["own"]:
+            # Where the ship was left, for the on-foot view: the place the user is at, else the
+            # planet or moon in range (the log has nothing closer, PLAN §3).
+            loc = self.location
+            self.ship_left = {"name": self._ship_word(ev.vehicle_id, ev.vehicle_class),
+                              "vehicle_id": ev.vehicle_id, "class": ev.vehicle_class, "t": ev.t,
+                              "code": loc["code"] if loc and loc["left"] is None else None,
+                              "body": (self.body or self.near or {}).get("name")}
         return MAJOR, "Left the pilot seat of the %s" % self._ship_word(ev.vehicle_id, ev.vehicle_class)
 
     def _on_stowed(self, ev):
@@ -665,18 +923,63 @@ class State:
 
     def _on_vehicle_destroyed(self, ev):
         self._mine(ev.killer)                      # remembers another player's name, if it is one
-        own = ev.vehicle_id in self.vehicles or (
-            self.me["player_id"] is not None and ev.owner_id == self.me["player_id"])
+        pid = self.me["player_id"]
+        own = ev.vehicle_id in self.vehicles or (pid is not None and ev.owner_id == pid)
         if not own:
-            return MINOR, "Destroyed nearby: %s" % ship_class(ev.vehicle_class)
+            if self._count_kill(ev, pid):
+                what = "destroyed" if ev.level_to >= DESTROYED else "crippled"
+                ship = self._class_word(ev.vehicle_class)
+                return MAJOR, "You %s %s %s" % (what, "an" if ship[:1] in "AEIOUaeiou" else "a", ship)
+            if ev.reason == "GameRules":
+                return MINOR, "Removed nearby: %s" % self._class_word(ev.vehicle_class)
+            return MINOR, "Destroyed nearby: %s" % self._class_word(ev.vehicle_class)
         v = self._vehicle(ev.vehicle_id, ev.vehicle_class)
         v["status"], v["t"] = "destroyed", ev.t
         self.ships_lost.append({"t": ev.t, "vehicle_id": ev.vehicle_id, "class": ev.vehicle_class,
                                 "reason": ev.reason})
         self._cap(self.ships_lost)
+        if ev.reason != "GameRules" and ev.level_to >= DESTROYED and self._tally_level(ev, "lost"):
+            self.tally["lost"] += 1
         how = {"SelfDestruct": "self-destructed", "Ejection": "abandoned (ejection)",
                "Collision": "destroyed in a collision"}.get(ev.reason, "destroyed (%s)" % ev.reason)
         return MAJOR, "Your %s was %s" % (self._ship_word(ev.vehicle_id, ev.vehicle_class), how)
+
+    def _class_word(self, cls):
+        s = self.ref.ship(cls)
+        return (s or {}).get("name") or ship_class(cls)
+
+    def _tally_level(self, ev, side):
+        """Count a vehicle once, at the highest level it reaches (SURVEY.md §4: one line per
+        damage-state change, 0 -> 1 crippled and 1 -> 2 destroyed). True when this line raises it."""
+        seen = self._tally.get(ev.vehicle_id)
+        if seen is not None and seen["level"] >= ev.level_to:
+            return False
+        if seen is None:
+            self._tally[ev.vehicle_id] = seen = {"level": 0, "side": side, "class": ev.vehicle_class, "t": ev.t}
+            if len(self._tally) > TALLY_KEEP:
+                del self._tally[next(iter(self._tally))]
+        was = seen["level"]
+        seen.update(level=ev.level_to, t=ev.t)
+        if side == "kill" and was == CRIPPLED:
+            self.tally["crippled"] -= 1            # it was counted crippled; now it is destroyed
+        return True
+
+    def _count_kill(self, ev, pid):
+        """A ship the user destroyed or crippled: the killer's id is the user's player id, and
+        the ship is not the user's (SURVEY.md §4, CSR's rule) [unverified: no kill by the user is in
+        the project's record]. Never on a self-destruct, whose killer can be anyone [seen]; never
+        a wreck the game removes by its own rules (reason GameRules, the salvage drones [seen]);
+        only a ship or vehicle class, since sentries are logged the same way [ref]."""
+        if pid is None or ev.killer_id != pid or ev.owner_id == pid:
+            return False
+        if ev.reason in ("SelfDestruct", "GameRules") or ev.level_to < CRIPPLED:
+            return False
+        if not self.ref.is_vehicle(ev.vehicle_class):
+            return False
+        if not self._tally_level(ev, "kill"):
+            return False
+        self.tally["destroyed" if ev.level_to >= DESTROYED else "crippled"] += 1
+        return True
 
     def _on_fatal_collision(self, ev):
         # `PlayerPilot: 1` alone makes it the user's crash: all 4 lines of 2026-11 were the user's
@@ -704,12 +1007,14 @@ class State:
         self._open_incident(ev, "downed")
         if self.health["status"] == "ok":
             self.health.update(status="downed", t=ev.t)
+            self.tally["downed"] += 1
         return ALERT, "Downed (incapacitated)"
 
     def _on_emergency(self, ev):
         self._open_incident(ev, "downed")
         if self.health["status"] == "ok":
             self.health.update(status="downed", t=ev.t)
+            self.tally["downed"] += 1
             return ALERT, "Downed: emergency services on the way"
         return None
 
@@ -722,13 +1027,26 @@ class State:
             "%s injury: %s, tier %d" % (ev.severity, ev.part.lower(), ev.tier)
 
     def _on_item_lost(self, ev):
+        # A death is the body item, not the burst (SURVEY.md §5): the first line of the user's
+        # own burst is always 'body_01_noMagicPocket' [seen: markers.log, courier.log], and a
+        # burst for a corpse nearby starts with gear instead [ref: star-citizen-live, 4.7-4.8].
+        # So a burst counts only when it starts with a body; its other items are counted with it.
+        # A body item always starts a burst of its own: a gear burst from another body just
+        # before must not swallow the user's death (stage 3 review).
+        is_body = ev.item_class.lower().startswith("body_")
+        b = self._burst
+        if b is None or is_body or ev.t - b["t"] > BURST_GAP:
+            self._burst = b = {"t": ev.t, "body": is_body}
+        b["t"] = ev.t
+        if not b["body"]:
+            return None                            # not the user's body: someone else's gear
         inc = self._open_incident(ev, "died")
         last = inc["_last_item"]
         inc["items_lost"] += 1
         inc["_last_item"] = ev.t
         if self.health["status"] != "dead":
             self.health.update(status="dead", t=ev.t)
-        if last is None:                           # the first line of a burst, one per item
+        if last is None:                           # the body line, one per death
             return ALERT, "Died: gear left on the body (a respawn confirms it)"
         return None
 
@@ -767,6 +1085,7 @@ class State:
         self._cap(self.deaths)
         self.health = {"status": "ok", "t": ev.t, "injuries": []}
         self._close_queue(ev.t, "respawned")
+        self._close_jump(ev.t, "respawned")
         # The respawn place is logged a few milliseconds BEFORE `Spawned!` (Update Inventory
         # Location, then RequestLocationInventory) [seen in the samples and every respawn]. Keep a
         # place set after the incident began; forget one from before it (where the user died).
@@ -817,44 +1136,96 @@ class State:
         if c is None:
             c = {"mission_id": mid, "title": title, "status": None, "accepted": None,
                  "ended": None, "end_reason": None, "giver": None, "internal": None,
-                 "objectives": [], "objective": None, "t": t}
+                 "objectives": [], "objective": None, "t": t,
+                 # stage 3: from reference/contracts.json (see _classify), and what the log adds
+                 "kind": None, "view": None, "setting": None, "giver_name": None, "type_name": None,
+                 "lookup": None, "unmapped": False, "touched": t, "reward": None}
             self.contracts[key] = c
-            self._trim_contracts()
+            self._trim_contracts(key)
+            self._classify(c)
         return c
 
-    def _trim_contracts(self):
+    def _trim_contracts(self, keep):
+        """At the cap, drop an ended contract first, oldest first; then one not known to be
+        active; then the oldest active one. Never `keep`, the one just created (the first form
+        dropped it, since it is not active yet when it is made: stage 3 review)."""
         while len(self.contracts) > config.MAX_CONTRACTS:
-            old = next((k for k, c in self.contracts.items() if c["status"] != "active"),
-                       next(iter(self.contracts)))
+            order = [k for k in self.contracts if k != keep]
+            old = next((k for k in order if self.contracts[k]["status"] in ENDED), None) or \
+                next((k for k in order if self.contracts[k]["status"] != "active"), None) or order[0]
             del self.contracts[old]
 
+    def _classify(self, c):
+        """Kind, view, setting (on foot or in a ship) and giver from reference/contracts.json, in
+        the order its `_meta.lookup` gives: the marker's contract name, its generator, the title.
+        Asked again whenever one of those three arrives; the answers are cached."""
+        info = self.ref.contract(c["internal"], c["giver"], c["title"])
+        c.update(kind=info["kind"], view=info["view"], setting=info["setting"],
+                 giver_name=info["giver"] or _generator_words(c["giver"]), type_name=info["type_name"],
+                 lookup=info["how"], unmapped=bool(info["unmapped"]))
+
+    def _touch(self, c, t):
+        if c is not None and (c["touched"] is None or t >= c["touched"]):
+            c["touched"] = t
+
     # From CSR sc_livelog.py lines 405-425 (the contract notices). Changed: a contract announced
-    # again (same mission id) is updated, not added a second time; `Contract Failed:` is not
-    # handled because the user's logs have none (PLAN §3).
+    # again (same mission id) is updated, not added a second time; a failed or withdrawn contract
+    # (stage 3, SURVEY.md §1) has handlers of this project's own below.
     def _on_contract_accepted(self, ev):
         c = self._contract(ev.mission_id, ev.title, ev.t)
         again = c["accepted"] is not None
-        c["title"] = ev.title
+        if c["title"] != ev.title:
+            c["title"] = ev.title
+            self._classify(c)
         if c["status"] in (None, "active"):
             c["status"] = "active"
         if c["accepted"] is None:
             c["accepted"] = ev.t
+        self._touch(c, ev.t)
         if again:
             return MINOR, "Contract still active: %s" % ev.title
         return MAJOR, "Contract accepted: %s" % ev.title
 
     def _on_contract_complete(self, ev):
         c = self._contract(ev.mission_id, ev.title, ev.t)
-        c["title"] = c["title"] or ev.title
+        if not c["title"]:
+            c["title"] = ev.title
+            self._classify(c)
         if c["status"] != "complete":
             c["status"] = "complete"
             c["ended"] = c["ended"] or ev.t
+        # A drop-off gets no "Objective Complete" of its own: the contract completing is the
+        # delivery [seen: courier.log, all four completed couriers; SURVEY.md §2 for hauls].
+        for o in c["objectives"]:
+            if o["state"] == "active" and (o.get("stop") or {}).get("kind") == "dropoff":
+                o["state"] = "complete"
         return MAJOR, "Contract complete: %s" % ev.title
+
+    def _contract_end_notice(self, ev, status):
+        """"Contract Failed:" or "Contract Withdrawn:" [game text, unverified in a log]. Its
+        `<EndMission>` line can come first or after; the contract is announced once."""
+        c = self._contract(ev.mission_id, ev.title, ev.t)
+        if not c["title"]:
+            c["title"] = ev.title
+            self._classify(c)
+        if c["status"] == status:
+            return None                            # its <EndMission> line said so already
+        if c["status"] in (None, "active"):
+            c["status"] = status
+            c["ended"] = c["ended"] or ev.t
+        self._note(ev, "contract_" + status, "Contract %s: %s" % (status, ev.title))
+        return MAJOR, "Contract %s: %s" % (status, ev.title)
+
+    def _on_contract_failed(self, ev):
+        return self._contract_end_notice(ev, "failed")
+
+    def _on_contract_withdrawn(self, ev):
+        return self._contract_end_notice(ev, "withdrawn")
 
     # From CSR sc_livelog.py lines 301-324 (`_objective`): an objective is found by its id, else
     # by its text, and the contract's current objective is the newest one still open. Changed:
-    # the hauling "drops" CSR tracks are left out; only New Objective and Objective Complete are
-    # read, the two kinds in the user's logs [seen: 85 and 33 notices].
+    # the hauling "drops" CSR tracks are left out of this adaptation; stage 3 reads pickups,
+    # drop-offs and the hauling manifest with this project's own `_stop()` below.
     def _objective(self, ev, state):
         c = self._contract_for(ev.mission_id)
         if not c:
@@ -867,12 +1238,20 @@ class State:
         o = (next((o for o in objs if ev.objective_id and o["id"] == ev.objective_id), None)
              or next((o for o in objs if o["text"] == text), None))
         if o is None:
-            o = {"id": ev.objective_id, "text": text, "optional": optional, "state": state, "t": ev.t}
+            o = {"id": ev.objective_id, "text": text, "optional": optional, "state": state, "t": ev.t,
+                 "done": None, "stop": None}
             objs.append(o)
             del objs[:-config.MAX_OBJECTIVES]
+        if o["text"] != text or o.get("stop") is None:
+            o["stop"] = _stop(text, ev.objective_id or o["id"])
         o.update(text=text, state=state)
+        if state != "active" and o.get("done") is None:
+            o["done"] = ev.t
+        if c["status"] is None and state == "active":
+            c["status"] = "active"                 # a contract from an earlier launch, still running
         live = [x for x in objs if x["state"] == "active"]
         c["objective"] = (live or objs)[-1]["text"]
+        self._touch(c, ev.t)
         return c
 
     def _on_objective_new(self, ev):
@@ -883,13 +1262,25 @@ class State:
         c = self._objective(ev, "complete")
         return (MINOR, "Objective complete: %s" % ev.text) if c else None
 
+    def _on_objective_failed(self, ev):
+        # Not the contract's end: a patrol's optional objective can fail and the contract still
+        # complete [ref: QuantumWake, SURVEY.md §1].
+        c = self._objective(ev, "failed")
+        return (MAJOR, "Objective failed: %s" % ev.text) if c else None
+
+    def _on_objective_withdrawn(self, ev):
+        c = self._objective(ev, "withdrawn")
+        return (MINOR, "Objective withdrawn: %s" % ev.text) if c else None
+
     # From CSR sc_livelog.py lines 241-247 (<EndMission>): the authoritative end of a contract;
     # an abandon raises no HUD notice. Changed: a mission this log never announced gets a record
-    # of its own, since contracts carry over between launches.
+    # of its own, since contracts carry over between launches; a failure or withdrawal already
+    # announced by its notice is not announced again.
     def _on_mission_ended(self, ev):
         c = self.contracts.get(ev.mission_id) or self._contract(ev.mission_id, None, ev.t)
         kind = ev.completion.strip().lower()
         status = END_STATUS.get(kind, kind or "ended")
+        told = c["status"] == status
         if c["status"] in (None, "active"):
             c["status"] = status
         c["ended"] = c["ended"] or ev.t
@@ -897,11 +1288,86 @@ class State:
         title = c["title"] or c["internal"] or "a contract from an earlier launch"
         if status == "complete":
             return None if c["accepted"] is not None and c["title"] else (MAJOR, "Contract ended: %s" % title)
+        if told and status in ("failed", "withdrawn"):
+            return None                            # its notice said so already
+        if status in ("failed", "withdrawn") and c["status"] == status:
+            self._note(ev, "contract_" + status, "Contract %s: %s" % (status, title))
         return MAJOR, "Contract %s: %s" % (status, title)
 
     def _on_mission_marker(self, ev):
         c = self._contract(ev.mission_id, None, ev.t)
-        c["giver"], c["internal"] = ev.giver, ev.contract
+        if (c["giver"], c["internal"]) != (ev.giver, ev.contract):
+            c["giver"], c["internal"] = ev.giver, ev.contract
+            self._classify(c)
+        self._touch(c, ev.t)
+
+    def _on_reward(self, ev):
+        # "Awarded <n> aUEC": only legacy contracts log their pay [ref: QuantumWake, SURVEY.md §2].
+        c = self.contracts.get(ev.mission_id) if ev.mission_id else None
+        if c is None:                              # the contract that just completed, if any
+            c = next((x for x in reversed(list(self.contracts.values()))
+                      if x["status"] == "complete" and x["ended"] is not None and 0 <= ev.t - x["ended"] < 60), None)
+        if c is not None:
+            c["reward"] = ev.amount
+        self.rewards.append({"t": ev.t, "amount": ev.amount, "mission_id": c["mission_id"] if c else None})
+        self._cap(self.rewards)
+        self._note(ev, "reward", "Awarded %s aUEC" % money(ev.amount))
+        return MAJOR, "Awarded %s aUEC" % money(ev.amount)
+
+    # ------------------------------------------------------------------ the law (stage 3)
+
+    def _law(self, ev, kind, text, note=True, **extra):
+        row = {"t": ev.t, "kind": kind, "text": text}
+        row.update(extra)
+        self.law.append(row)
+        self._cap(self.law)
+        if note:
+            self._note(ev, kind, text)
+
+    def _on_crimestat(self, ev):
+        # "Decreased" has no text in global.ini [game] but a tool matches it [ref]: kept, not raised.
+        text = "CrimeStat rating increased" if ev.up else "CrimeStat rating decreased"
+        self._law(ev, "crimestat", text, note=ev.up, up=ev.up)
+        return (ALERT if ev.up else MINOR), text
+
+    def _learn(self, word):
+        """Learn a word from a law or comms notice as another player's name, only if it can be a
+        handle and is no word of the game (law.learnable): the victim of a crime is as often a
+        security force or a civilian ("Hurston Security" made the jurisdiction read "another
+        player Dynamics": stage 3 review, round 2). The notice's own text never holds it."""
+        w = law.learnable(word, self.ref.game_words(self.names)) if word else None
+        if w:
+            self._other(w)
+
+    def _on_crime(self, ev):
+        # The victim can be anyone, so it is never worded; a victim of one word that can be a
+        # handle is learned, so another text naming the same player hides it too.
+        victim = (ev.victim or "").split()
+        if len(victim) == 1:
+            self._learn(victim[0])
+        crime = law.crime_name(ev.crime) or "a crime"
+        text = "Crime committed: %s%s" % (crime, " against someone" if victim else "")
+        self._law(ev, "crime", text, crime=crime)
+        return MAJOR, text
+
+    def _on_crime_against_you(self, ev):
+        # The charge notice's first slot is a player (law.py): worded as "another player" here,
+        # and learned under the same rule.
+        self._learn(ev.attacker)
+        crime = law.crime_name(ev.crime) or "a crime"
+        text = "Attacked: another player committed %s against you" % crime
+        self._law(ev, "attacked", text, crime=crime)
+        return ALERT, text
+
+    def _on_fined(self, ev):
+        text = "Fined %s UEC" % money(ev.amount)
+        self._law(ev, "fined", text, amount=ev.amount)
+        return MAJOR, text
+
+    def _on_impounded(self, ev):
+        text = "Vehicle impounded%s" % (": %s" % ev.vehicle if ev.vehicle else "")
+        self._law(ev, "impounded", text, vehicle=ev.vehicle or None)
+        return ALERT, text
 
     # ------------------------------------------------------------------ hangar, refinery, trade
 
@@ -945,13 +1411,32 @@ class State:
         return MAJOR, "%s completed at %s" % (what, ev.station)
 
     def _trade(self, ev, kind, shop, item, price, quantity=None, extra=None):
+        # `at`: the last inventory location before the line, which says where a shop name shared
+        # across a chain is (shops.json; PLAN §3's trap list) [ref: CSR, QuantumWake].
         row = {"t": ev.t, "offset": ev.offset, "kind": kind, "shop": shop, "item": item,
-               "price": price, "quantity": quantity, "result": None}
+               "price": price, "quantity": quantity, "result": None, "at": self._last_inv}
         if extra:
             row.update(extra)
         self.trade.append(row)
         self._cap(self.trade, config.MAX_TRADES)
         return row
+
+    def shop_info(self, row):
+        """A trade row's shop: kind, display name, and its place (shops.json's when the name is at
+        one place only, else the place of the last inventory location before the line)."""
+        s = self.ref.shop(row.get("shop")) or {}
+        place = s.get("place")
+        how = "table" if place else None
+        if not place and row.get("at"):
+            place, how = self.names.place(row["at"]), "last inventory location"
+        return {"kind": s.get("kind"), "name": s.get("name") or row.get("shop"), "place": place,
+                "place_name": self.names.place_name(place) if place else None, "place_from": how}
+
+    def _where(self, shop):
+        info = self.shop_info({"shop": shop, "at": self._last_inv})
+        if info["place_name"]:
+            return " at %s" % info["place_name"]
+        return ""
 
     def _on_shop_buy(self, ev):
         self._trade(ev, "buy", ev.shop, ev.item, ev.price, ev.quantity)
@@ -974,14 +1459,29 @@ class State:
                 return None
         return None
 
+    # Commodity quantities (SURVEY.md §0.2). The buy line says its unit, hundredths of an SCU:
+    # `quantity[3200.000000 cSCU]` for 25,025 aUEC at `shopPricePerCentiSCU[7.82]`, which is
+    # 32 SCU at 782 a SCU [seen: markers.log, the figures agree]. The sell line prints a bare
+    # number, `quantity[9]`, read as SCU as other tools do [ref: SC-Game-log-Parser]; unverified:
+    # the one sample's box data lists a single 2 SCU box beside it, which does not fit 9 SCU.
     def _on_commodity_sell(self, ev):
+        name = self.ref.resource(ev.resource_id)
+        amount, unit = _quantity(ev.quantity)
+        scu_ = amount if unit in ("", "SCU") else (amount / 100.0 if unit == "cSCU" and amount is not None else None)
         self._trade(ev, "commodity_sell", ev.shop, ev.resource_id, ev.amount, ev.quantity,
-                    {"box": ev.box})
-        return MAJOR, "Sold a commodity at %s for %s aUEC" % (ev.shop, money(ev.amount))
+                    {"box": ev.box, "commodity": name, "scu": scu_, "scu_verified": unit == "cSCU"})
+        what = "%s SCU of %s" % (scu(scu_), name or "a commodity") if scu_ is not None else (name or "a commodity")
+        return MAJOR, "Sold %s for %s aUEC%s" % (what, money(ev.amount), self._where(ev.shop))
 
     def _on_commodity_buy(self, ev):
-        self._trade(ev, "commodity_buy", ev.shop, ev.resource_id, ev.price, ev.quantity)
-        return MAJOR, "Bought a commodity at %s for %s aUEC (%s)" % (ev.shop, money(ev.price), ev.quantity)
+        name = self.ref.resource(ev.resource_id)
+        amount, unit = _quantity(ev.quantity)
+        scu_ = (amount / 100.0 if unit == "cSCU" else amount if unit in ("", "SCU") else None) if amount is not None else None
+        per = ev.price / scu_ if scu_ else None
+        self._trade(ev, "commodity_buy", ev.shop, ev.resource_id, ev.price, ev.quantity,
+                    {"commodity": name, "scu": scu_, "per_scu": per, "scu_verified": unit == "cSCU"})
+        what = "%s SCU of %s" % (scu(scu_), name or "a commodity") if scu_ is not None else (name or "a commodity")
+        return MAJOR, "Bought %s for %s aUEC%s" % (what, money(ev.price), self._where(ev.shop))
 
     def _on_refinery_sell(self, ev):
         self._trade(ev, "refinery_sell", ev.shop, None, None)
@@ -1031,6 +1531,8 @@ class State:
         return MINOR, "Screenshot %s" % ev.name
 
     def _on_notice(self, ev):
+        for name in getattr(ev, "names", ()) or ():    # a law or comms notice worded without a name
+            self._learn(name)
         if ev.hint:
             return None
         return MINOR, ev.text
@@ -1040,6 +1542,31 @@ class State:
     def unmapped(self):
         """Location codes seen that the names table does not know (for data/unmapped.json)."""
         return sorted(c for c in self.codes if not self.names.known(c) and not self.names.dynamic(c))
+
+    def unmapped_contracts(self):
+        """Contracts that reference/contracts.json could not place (its lookup's step 5: kind
+        unknown, Mission view), for data/unmapped.json beside the location codes."""
+        out, seen = [], set()
+        for c in self.contracts.values():
+            key = (c["internal"], c["giver"], c["title"])
+            if c["unmapped"] and key not in seen:
+                seen.add(key)
+                out.append({"contract": c["internal"], "generator": c["giver"], "title": c["title"]})
+        return out
+
+    def ship_info(self, ship=None):
+        """The reference facts for a ship record (the current one by default): display name, job,
+        cargo grid in SCU, fleet or not. None when neither its class nor its name is known."""
+        sh = ship if ship is not None else self.ship
+        if not sh:
+            return None
+        return self.ref.ship(sh.get("class"), sh.get("name"))
+
+    def current_contracts(self):
+        """Active contracts, the most recently touched first (the log does not say which one the
+        user is tracking, PLAN §4)."""
+        act = [c for c in self.contracts.values() if c["status"] == "active"]
+        return sorted(act, key=lambda c: c["touched"] or c["t"] or 0, reverse=True)
 
     def to_dict(self, private=False):
         """The state as JSON-ready data. With private=False (what is shown or saved), other
@@ -1075,8 +1602,8 @@ class State:
                              docked=loc["docked"], left=iso(loc["left"])) if loc else None,
             "places": [dict(place(p["code"]), t=iso(p["t"]), how=p["how"]) for p in self.places],
             "body": dict(place(self.body["name"]), t=iso(self.body["t"])) if self.body else None,
-            "zone": dict(self.zone),
-            "ship": _times(self.ship),
+            "zone": _times(self.zone),
+            "ship": dict(_times(self.ship), info=self.ship_info()) if self.ship else None,
             "vehicles": {vid: _times(v) for vid, v in self.vehicles.items()},
             "quantum": _jump(q, place) if q else None,
             "jumps": [_jump(j, place) for j in self.jumps],
@@ -1084,7 +1611,17 @@ class State:
             "hangar": {"queue": _times(self.hangar["queue"]), "ready": iso(self.hangar["ready"]),
                        "waits": [_times(w) for w in self.hangar["waits"]]},
             "refinery": [_times(r) for r in self.refinery],
-            "trade": [_times(r) for r in self.trade],
+            "trade": [dict(_times(r), shop_info=self.shop_info(r)) for r in self.trade],
+            # Stage 3: the session's tally, law, pay, where the ship was left, and the contracts
+            # the reference table could not place.
+            "tally": dict(self.tally),
+            "law": [_times(x) for x in self.law],
+            "rewards": [_times(x) for x in self.rewards],
+            "ship_left": dict(_times(self.ship_left), where=self._place(self.ship_left["code"])
+                              if self.ship_left["code"] else (self._place(self.ship_left["body"])
+                                                              if self.ship_left["body"] else None))
+            if self.ship_left else None,
+            "unmapped_contracts": self.unmapped_contracts(),
             "blueprints": [_times(b) for b in self.blueprints],
             "health": {"status": self.health["status"], "t": iso(self.health["t"]),
                        "injuries": [_times(i) for i in self.health["injuries"]]},
@@ -1110,7 +1647,7 @@ class State:
 # ---------------------------------------------------------------------- module helpers
 
 TIME_KEYS = {"t", "joined", "ready", "retrieved", "selected", "arrived", "closed", "obstructed",
-             "accepted", "ended", "respawn", "up", "treated"}
+             "accepted", "ended", "respawn", "up", "treated", "touched", "done"}
 
 
 def _times(d):
@@ -1130,6 +1667,62 @@ def _contract_out(c):
     out = _times(c)
     out["objectives"] = [_times(o) for o in c["objectives"]]
     return out
+
+
+def _generator_words(g):
+    """A generator name the table does not know, in words ('Example_Generator' -> 'Example')."""
+    if not g:
+        return None
+    words = re.sub(r"_?Generator$", "", g).replace("_", " ").strip()
+    return words or None
+
+
+def _quantity(text):
+    """'3200.000000 cSCU' -> (3200.0, 'cSCU'); '9' -> (9.0, ''); junk -> (None, None)."""
+    m = QUANTITY_RE.match(text or "")
+    if not m:
+        return None, None
+    try:
+        x = float(m.group(1))
+    except ValueError:
+        return None, None
+    return (x, m.group(2)) if x == x and x < 1e9 else (None, None)
+
+
+def _stop(text, objective_id):
+    """A pickup or drop-off read from an objective's text and id (SURVEY.md §2), or None.
+
+    - Courier [seen: courier.log]: "Collect Data Probe From HUR-L1 Green Glade Station" with id
+      `pickup_<guid>_0`, "Deliver Data Probe To HUR-L3 Thundering Express Station" with
+      `dropoff_<guid>_0`.
+    - Hauling [game text, ref: CSR, QuantumWake, SC-Game-log-Parser; unverified]: "Deliver 0/177
+      SCU of Potassium to Ruin Station above Pyro VI", or "Deliver 0/12 Cargo Boxes to <place>",
+      with `dropoff_<guid>_<drop index>`.
+    """
+    kind, index = None, None
+    m = OBJECTIVE_ID_RE.match(objective_id or "")
+    if m:
+        kind, index = m.group(1), int(m.group(2))
+    h = HAUL_RE.match(text)
+    if h:
+        unit = "SCU" if h.group(3).upper() == "SCU" else "boxes"
+        return {"kind": kind or "dropoff", "index": index, "item": h.group(4), "commodity": h.group(4),
+                "place": h.group(5).strip(), "amount": int(h.group(1)), "total": int(h.group(2)),
+                "unit": unit, "shape": "hauling", "verified": False}
+    c = COLLECT_RE.match(text)
+    if c and kind in (None, "pickup"):
+        return {"kind": "pickup", "index": index, "item": c.group(1), "commodity": None,
+                "place": c.group(2).strip(), "amount": None, "total": None, "unit": None,
+                "shape": "courier", "verified": True}
+    d = DELIVER_RE.match(text)
+    if d and kind in (None, "dropoff"):
+        return {"kind": "dropoff", "index": index, "item": d.group(1), "commodity": None,
+                "place": d.group(2).strip(), "amount": None, "total": None, "unit": None,
+                "shape": "courier", "verified": True}
+    if kind:                                  # an id says pickup or drop-off, the text says no more
+        return {"kind": kind, "index": index, "item": None, "commodity": None, "place": None,
+                "amount": None, "total": None, "unit": None, "shape": "id only", "verified": False}
+    return None
 
 
 def _is_device(j, want):

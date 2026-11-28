@@ -34,6 +34,7 @@ class LogReader:
         self.apply_errors = 0
         self._new_lines = []
         self._finished = []
+        self._forgotten = 0
 
     # The follower's sink -------------------------------------------------------------------
 
@@ -45,6 +46,7 @@ class LogReader:
             self._finished.append(self.summary(complete=True))
         self.parser.reset()
         self.state = State(self.names)
+        self._forgotten = 0
 
     def lines(self, lines, offsets):
         if not self.parser.session and self.follower.first_line is not None:
@@ -90,6 +92,12 @@ class LogReader:
                 self.apply_errors += 1
                 self.state.session["unreadable"] += 1
                 continue
+            if self.state.forgotten != self._forgotten:
+                # The state forgot some names after taking them out of all it holds; the lines
+                # held here (every feed line, for `timeline`) lose them the same way.
+                self._forgotten = self.state.forgotten
+                self.state.redact_held(self.all_lines)
+                self.state.redact_held(self._new_lines)
             if self.keep_events:
                 self.events.append(ev)
                 self.all_lines.extend(x for x in lines if x["rev"] == 0)

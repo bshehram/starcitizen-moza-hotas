@@ -41,8 +41,17 @@ import re
 # is required here (CSR stripped any `<...>`), and a level part is any leading bracket (CSR's list
 # of six level names missed `[SPAM 119][Error]` and the `[CSessionManager::...]` names).
 NOTICE_END_RE = re.compile(r'" \[\d+\]')
-# This project's own: the team tags every complete record of interest ends with [seen].
-TEAM_END_RE = re.compile(r"\[Team_[^\]]*\](?:\[[^\]]*\])*\s*$")
+# This project's own: the team tags every complete record of interest ends with [seen]. Checked
+# from the last "[Team_" with a pattern that cannot backtrack: anchored at the end, the first
+# form ("[Team_..](?:[..])*\s*$", searched) went back over every group from every start, which
+# a 60 KB piece of "[Team_a]" made quadratic (stage 3 review).
+_GROUPS_RE = re.compile(r"(?:\[[^\[\]]*\])+")
+
+
+def team_end(text):
+    s = text.rstrip()
+    i = s.rfind("[Team_")
+    return i >= 0 and _GROUPS_RE.fullmatch(s, i) is not None
 
 MAX_PIECES = 8          # CSR's cap (line 180); the most seen is 3
 MAX_INTERLEAVE = 4      # lines with their own level read while a record waits; the most seen is 1
@@ -216,7 +225,7 @@ class RecordReader:
             # its pieces. Changed: SetVehicleSpawningInformations waits the same way, for its
             # team tags.
             notice = "Added notification \"" in text
-            done = NOTICE_END_RE.search(text) if notice else TEAM_END_RE.search(text)
+            done = NOTICE_END_RE.search(text) if notice else team_end(text)
             if not done:
                 if self._pending is not None:      # a second record waiting: close the first
                     self._close(False)
@@ -245,7 +254,7 @@ class RecordReader:
         rec = p.record
         piece = body.decode("utf-8", "replace")
         rec.text += "\n" + piece
-        done = NOTICE_END_RE.search(piece) if p.notice else TEAM_END_RE.search(piece)
+        done = NOTICE_END_RE.search(piece) if p.notice else team_end(piece)
         if done:
             self._close(True)
         elif rec.text.count("\n") + 1 >= MAX_PIECES:

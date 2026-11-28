@@ -20,10 +20,23 @@ DYNAMIC_RE = re.compile(r"^(?:MISSION_QT_|NavPoint_Dynamic_)")
 DYNAMIC_NAMES = (("MISSION_QT_", "Mission beacon"), ("NavPoint_Dynamic_", "Nav point"))
 
 
+_NORM_RE = re.compile(r"[^a-z0-9]+")
+MAX_FIND = 200            # find_place() reads no longer text (stage 3 review: 500 cached 60 KB texts)
+MAX_FOUND = 500           # its cache
+
+
+def norm(text):
+    """'MIC-L2 Long Forest' -> 'micl2longforest': names as the plan and the log write them."""
+    return _NORM_RE.sub("", (text or "").lower())
+
+
 class LocationNames:
     def __init__(self, table=None, source=None):
         self.table = table or {}
         self.source = source
+        self._by_place = None           # place -> (name, short), built on first use (stage 3)
+        self._by_name = None            # normalized name or short -> place
+        self._found = {}                # find_place() answers, bounded
 
     @classmethod
     def load(cls, path):
@@ -69,3 +82,72 @@ class LocationNames:
         """The place key shared by every code for the same place, or the code itself."""
         e = self.table.get(code)
         return (e.get("place") if e else None) or code
+
+    # -- stage 3: places named in words (the plan, objectives, refinery notices) -------------
+
+    def _index(self):
+        if self._by_place is not None:
+            return
+        by_place, by_name, field = {}, {}, set()
+        for code, e in self.table.items():
+            p = e.get("place")
+            if not p:
+                continue
+            # The first entry with a name wins; a station's quantum code and inventory code
+            # carry the same name [seen in locations.json].
+            if p not in by_place and e.get("name"):
+                by_place[p] = (e.get("name"), e.get("short") or e.get("name"))
+            is_field = e.get("kind") == "field"
+            for text in (e.get("name"), e.get("short"), code):
+                k = norm(text)
+                if len(k) < 3:
+                    continue
+                # 'CRU L5' (the field) and 'CRU-L5' (the station) read the same: the station
+                # wins, since that is where a timer or a sale is; a field is named 'CRU-L5 field'.
+                if k not in by_name or (by_name[k] in field and not is_field):
+                    by_name[k] = p
+            if is_field:
+                field.add(p)
+        self._by_place, self._by_name = by_place, by_name
+
+    def place_name(self, place):
+        """The display name of a place key ('mic-l2' -> 'MIC-L2 Long Forest Station')."""
+        if not place:
+            return None
+        self._index()
+        e = self._by_place.get(place)
+        return e[0] if e else self.name(place)
+
+    def place_short(self, place):
+        if not place:
+            return None
+        self._index()
+        e = self._by_place.get(place)
+        return e[1] if e else self.short(place)
+
+    def find_place(self, text):
+        """The place a text names: a code from either family, a name or a short name in any
+        case and punctuation ('MIC-L2', 'mic l2 long forest station'), or a longer text that
+        holds one ('TDD New Babbage'). None when nothing fits."""
+        if not text or not isinstance(text, str) or len(text) > MAX_FIND:
+            return None                 # no place name is that long; and nothing long is kept
+        if text in self._found:
+            return self._found[text]
+        e = self.table.get(text)
+        if e and e.get("place"):
+            out = e["place"]
+        else:
+            self._index()
+            k = norm(text)
+            out = self._by_name.get(k)
+            if out is None and len(k) >= 5:
+                # The longest known name inside the text, so 'TDD New Babbage' is New Babbage
+                # and not a shorter name that happens to sit inside it.
+                best = None
+                for name, p in self._by_name.items():
+                    if len(name) >= 5 and name in k and (best is None or len(name) > len(best[0])):
+                        best = (name, p)
+                out = best[1] if best else None
+        if len(self._found) < MAX_FOUND:
+            self._found[text] = out
+        return out

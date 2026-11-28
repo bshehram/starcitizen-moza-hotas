@@ -19,6 +19,8 @@ from .words import clean_all, clean_text, clock, day, duration, local, money, sh
 TS_RE = re.compile(rb"<(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3})Z>")
 QUIT_MARK = b"<SystemQuit>"
 TAIL_BYTES = 64 * 1024        # <SystemQuit> was within the last 714 bytes of every 2026-11 log [seen]
+# Notable kinds the summary prints on lines of their own (Law, Pay), so not again under Notices.
+LISTED_ELSEWHERE = {"crime", "crimestat", "attacked", "fined", "impounded", "reward"}
 
 
 def load_names():
@@ -87,7 +89,9 @@ def render_text(reader, summary, tz=None, show_all=False):
     out.append("")
     for x in _lines_to_show(reader.all_lines, show_all):
         mark = "!" if x["level"] == "alert" else " "
-        out.append("%s %11s  %s" % (mark, clock(x["t"], tz), x["text"]))
+        # A feed line can name another player (a crime against the user): scrubbed like the
+        # state's own output, so the printout says "another player" (PLAN §8).
+        out.append("%s %11s  %s" % (mark, clock(x["t"], tz), st.scrub(x["text"])))
     out.append("")
     out.extend(render_summary(summary, st, tz))
     # Text from the log never steers the console: no control or bidi characters (words.clean_text).
@@ -128,13 +132,29 @@ def render_summary(sm, st, tz=None):
             len(jumps), "s" if len(jumps) != 1 else "", arrived, "s" if arrived != 1 else ""))
     if sm["contracts"]:
         out.append("  Contracts   " + "; ".join(
-            "%s (%s)" % (c["title"] or c["internal"] or "untitled", c["status"] or "unknown")
+            "%s (%s%s)" % (c["title"] or c["internal"] or "untitled",
+                           "%s, " % c["kind"] if c.get("kind") else "", c["status"] or "unknown")
             for c in sm["contracts"]))
     else:
         out.append("  Contracts   none")
-    if sm["notices"]:
+    t = sm.get("tally") or {}
+    if any(t.get(k) for k in ("destroyed", "crippled", "lost", "downed")):
+        out.append("  Combat      destroyed %d, crippled %d, lost %d, downed %d%s" % (
+            t["destroyed"], t["crippled"], t["lost"], t["downed"],
+            " (your kills are read from the log's killer id: unverified)" if t["destroyed"] or t["crippled"] else ""))
+    if sm.get("law"):
+        out.append("  Law         " + "; ".join(
+            "%s (%s)" % (x["text"], clock(parse_iso(x["t"]), tz)) for x in sm["law"]))
+    if sm.get("rewards"):
+        out.append("  Pay         " + "; ".join(
+            "%s aUEC (%s)" % (money(x["amount"]), clock(parse_iso(x["t"]), tz)) for x in sm["rewards"]))
+    if sm.get("unmapped_contracts"):
+        out.append("  Unplaced    %s" % ", ".join(
+            x["contract"] or x["title"] or "?" for x in sm["unmapped_contracts"]))
+    shown = [x for x in sm["notices"] if x["kind"] not in LISTED_ELSEWHERE]
+    if shown:
         out.append("  Notices     " + "; ".join(
-            "%s (%s)" % (x["text"], clock(parse_iso(x["t"]), tz)) for x in sm["notices"]))
+            "%s (%s)" % (x["text"], clock(parse_iso(x["t"]), tz)) for x in shown))
     tr = sm["trade"]
     priced = [r for r in tr if r["price"] is not None]
     parts = []
@@ -186,7 +206,7 @@ def render_json(reader, summary, tz=None, show_all=False):
                    "preflight": dict(st.preflight),
                    "profile": st.profile["name"] if st.profile else None},
         "events": [{"id": x["id"], "t": iso_local(x["t"], tz), "utc": x_iso(x["t"]), "level": x["level"],
-                    "kind": x["kind"], "text": x["text"], "offset": x["offset"]}
+                    "kind": x["kind"], "text": st.scrub(x["text"]), "offset": x["offset"]}
                    for x in _lines_to_show(reader.all_lines, show_all)],
         "summary": summary,
     }

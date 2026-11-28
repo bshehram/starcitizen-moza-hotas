@@ -1,0 +1,17 @@
+<2026-11-28T05:00:00.000Z> BackupNameAttachment=" Build(13220821) 27 Nov 26 (21 00 00)"  -- used by backup system
+<2026-11-28T05:00:00.000Z> FileVersion: 4.10.201.48085
+<2026-11-28T05:00:07.000Z> - Connected joystick0: MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}
+<2026-11-28T05:00:07.050Z> - Connected joystick1: MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}
+<2026-11-28T05:00:15.000Z> [Notice] <AccountLoginCharacterStatus_Character> Character: createdAt 900000000001 - updatedAt 900000000002 - geid 900000000003 - accountId 1000001 - name Pilot_Example - state STATE_CURRENT [Team_GameServices][Login]
+<2026-11-28T05:00:19.000Z> [Notice] <Legacy login response> [CIG-net] User Login Success - Handle[Pilot_Example] - Time[900000000004] [Team_GameServices][Login]
+<2026-11-28T05:00:22.000Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="ProcessBootRequest"!
+<2026-11-28T05:00:26.000Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-28T05:01:30.000Z> [Notice] <Join PU> address[192.0.2.1] port[64353] shard[pub_example_00000000_001] locationId[900000000005] [Team_GameServices][GIM][Matchmaking]
+<2026-11-28T05:01:30.000Z> [CSessionManager::ConnectCmd] Connect started!
+<2026-11-28T05:02:00.000Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [0] -> [900000000006]. Location [0] -> [900000000006]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-28T05:02:00.010Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-28T05:02:40.000Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-28T05:05:00.000Z> [Notice] <CLocalMissionPhaseMarker::CreateMarker> Creating objective marker: missionId [e0000061-0000-4000-8000-000000000061], generator name [Example_Generator], contract [Example_Unlisted_Contract], contractDefinitionId[e0000062-0000-4000-8000-000000000062], objectiveId [e0000063-0000-4000-8000-000000000063], markerEntityId [4490], zoneHostId [900000000007], [Team_MissionFeatures][Missions]
+<2026-11-28T05:05:00.005Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Accepted:  A Very Unusual Job: " [20] to queue. New queue size: 1, MissionId: [e0000061-0000-4000-8000-000000000061], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T05:05:00.005Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Go to the marker: " [21] to queue. New queue size: 2, MissionId: [e0000061-0000-4000-8000-000000000061], ObjectiveId: [e0000063-0000-4000-8000-000000000063] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T05:06:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Find the lost data pad and bring it back: " [22] to queue. New queue size: 3, MissionId: [e0000061-0000-4000-8000-000000000061], ObjectiveId: [e0000064-0000-4000-8000-000000000064] [Team_CoreGameplayFeatures][Missions][Comms]

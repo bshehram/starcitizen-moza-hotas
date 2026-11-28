@@ -5,15 +5,20 @@ import random
 import unittest
 
 import scdash_testlib as lib
-from scdash import pipeline
+from scdash import board, pipeline
 
-SAMPLES = ["run_a.log", "courier.log", "menu_return.log", "markers.log", "records.log", "preflight_fail.log"]
+SAMPLES = ["run_a.log", "courier.log", "menu_return.log", "markers.log", "records.log", "preflight_fail.log",
+           # stage 3's built samples (line shapes unverified): the tally, stops, law, failures
+           "built_hauling.log", "built_bounty.log", "built_law.log", "built_failed.log"]
 
 
 def snapshot(reader):
+    # Stage 3's payload too (views, alerts, timers), at a fixed "now" after the last event.
+    now = (reader.state.session["last_t"] or 0) + 60
     return (json.dumps([e.to_dict() for e in reader.events], sort_keys=True),
             json.dumps(reader.state.to_dict(private=True), sort_keys=True),
-            json.dumps(reader.all_lines, sort_keys=True))
+            json.dumps(reader.all_lines, sort_keys=True),
+            json.dumps(board.build(reader.state, None, {}, now, game_running=True), sort_keys=True))
 
 
 def one_pass(path):
@@ -46,6 +51,8 @@ def grown(data, seed, max_piece, read_piece, path=None):
 
 class IncrementalTest(unittest.TestCase):
     def test_random_pieces_equal_one_pass(self):
+        """Also on the built samples, whose line shapes are unverified (SURVEY.md): this checks only
+        that any reading order gives the same result, not what the lines mean."""
         for name in SAMPLES:
             data = lib.sample_bytes(name)
             whole = snapshot(one_pass(lib.sample_path(name)))

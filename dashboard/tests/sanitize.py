@@ -66,12 +66,18 @@ NAME_CONTEXTS = [
     r"<Actor Position Divergence> \[([^\]]+)\]",
     r"child id = \d+ name = (\S+) to unblock",
     r"localClient \[([^\]]+)\]",
+    # Stage 3, the law notices (SURVEY.md §4) [game text, not yet seen in a log]: a player who
+    # commits a crime against the user, and the victim of the user's own crime, which the game
+    # puts on the notice's second line ("Crime Committed: Assault" / "against <name>: ").
+    r"\"([^\"\s:]+) committed [^\"\n]*? against you",
+    r"Z> against ([^\s:\"]+): \"",
+    r"Crime Committed: [^\"\n]*? against ([^\s:\"]+): \"",
 ]
 NAME_PATTERNS = [re.compile(p) for p in NAME_CONTEXTS]
 USER_RE = re.compile(r"username (\S+) signedIn")
 HOST_RE = re.compile(r"<Hostname> Name: ([^,]+), Hostname: (\S+)")
 ACCOUNT_RE = re.compile(r"accountId (\d+)")
-NOT_NAMES = {"invalid", "null", "0", "", "player", "vehicle", "location", "unknown", "none"}
+NOT_NAMES = {"invalid", "null", "0", "", "player", "vehicle", "location", "unknown", "none", "you"}
 ENTITY_RE = re.compile(r"_\d{6,}$")     # an entity ('AEGS_Avenger_Titan_944...'), not a player
 
 

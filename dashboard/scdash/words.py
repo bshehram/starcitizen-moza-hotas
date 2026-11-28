@@ -5,7 +5,7 @@ time zone the caller passes (the computer's own when it passes none).
 """
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # Characters a text from the log must not carry onto a screen or a console: the C0 and C1 control
 # characters (ESC sequences, a bell, a NUL) and the bidirectional controls, which can reverse the
@@ -89,6 +89,88 @@ def money(x):
     if x is None:
         return "?"
     return "{:,.0f}".format(x)
+
+
+# ---------------------------------------------------------------------------- stage 3 display
+
+def short_day(t, tz=None):
+    """'Nov 26' (month first, no year)."""
+    dt = local(t, tz)
+    return dt.strftime("%b ") + str(dt.day)
+
+
+def week_day(t, tz=None):
+    """'Fri, Nov 27', as the status strip shows the date."""
+    dt = local(t, tz)
+    return dt.strftime("%a, %b ") + str(dt.day)
+
+
+def day_clock(t, tz=None):
+    """'Nov 26, 4:12 PM': a time that may not be today."""
+    return "%s, %s" % (short_day(t, tz), clock(t, tz, seconds=False))
+
+
+def hours_minutes(seconds):
+    """'1:47' for a session length, '0:05' under an hour."""
+    if seconds is None:
+        return None
+    m = int(max(0, seconds) // 60)
+    return "%d:%02d" % divmod(m, 60)
+
+
+def number(x, places=0):
+    """'11,655', or '2.66' with places=2; None stays None."""
+    if x is None:
+        return None
+    return ("{:,.%df}" % places).format(x)
+
+
+def scu(x):
+    """An amount of SCU as people write it: '64', '2.66', '0.5'."""
+    if x is None:
+        return None
+    if abs(x - round(x)) < 1e-9:
+        return number(round(x))
+    return ("{:,.2f}".format(x)).rstrip("0").rstrip(".")
+
+
+def signed_percent(x):
+    """'+8%', '-3%', '0%'."""
+    if x is None:
+        return None
+    return "%+d%%" % round(x) if round(x) else "0%"
+
+
+def next_midnight(t, tz=None):
+    """The next local midnight after `t` (seconds since the epoch), in `tz` or this computer's
+    zone: the moment every "today" time is worded with its date instead. None if it cannot be
+    told."""
+    try:
+        if tz is None:
+            d = datetime.fromtimestamp(t)                       # naive local, with its own DST
+            return (datetime(d.year, d.month, d.day) + timedelta(days=1)).timestamp()
+        d = datetime.fromtimestamp(t, tz)
+        return (datetime(d.year, d.month, d.day, tzinfo=tz) + timedelta(days=1)).timestamp()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def parse_time(text):
+    """A time written with its offset ('2026-11-26T17:30:00-08:00', or 'Z') -> seconds since the
+    epoch, or None. A time without an offset is read as this computer's local time. Read with
+    `datetime.fromisoformat` and no zone database (PLAN §10: `zoneinfo` has no data on Windows)."""
+    if not isinstance(text, str) or not 10 <= len(text) <= 40:
+        return None
+    try:
+        dt = datetime.fromisoformat(text.strip())
+        if dt.tzinfo is None:
+            dt = dt.astimezone()                    # naive: this computer's zone
+        t = dt.timestamp()
+    except (ValueError, OverflowError, OSError):
+        return None
+    if not 1420070400 <= t < 4102444800:            # 2015 to 2099, as for log times
+        return None
+    return t
 
 
 ROMAN = {"i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6"}

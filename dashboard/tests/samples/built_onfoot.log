@@ -1,0 +1,26 @@
+<2026-11-28T04:00:00.000Z> BackupNameAttachment=" Build(13220821) 27 Nov 26 (20 00 00)"  -- used by backup system
+<2026-11-28T04:00:00.000Z> FileVersion: 4.10.201.48085
+<2026-11-28T04:00:07.000Z> - Connected joystick0: MOZA AB6 FFB Base  {1002346E-0000-0000-0000-504944564944}
+<2026-11-28T04:00:07.050Z> - Connected joystick1: MOZA MTQ Throttle Panel  {1101346E-0000-0000-0000-504944564944}
+<2026-11-28T04:00:15.000Z> [Notice] <AccountLoginCharacterStatus_Character> Character: createdAt 900000000001 - updatedAt 900000000002 - geid 900000000003 - accountId 1000001 - name Pilot_Example - state STATE_CURRENT [Team_GameServices][Login]
+<2026-11-28T04:00:19.000Z> [Notice] <Legacy login response> [CIG-net] User Login Success - Handle[Pilot_Example] - Time[900000000004] [Team_GameServices][Login]
+<2026-11-28T04:00:22.000Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="ProcessBootRequest"!
+<2026-11-28T04:00:26.000Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-28T04:01:30.000Z> [Notice] <Join PU> address[192.0.2.1] port[64353] shard[pub_example_00000000_001] locationId[900000000005] [Team_GameServices][GIM][Matchmaking]
+<2026-11-28T04:01:30.000Z> [CSessionManager::ConnectCmd] Connect started!
+<2026-11-28T04:02:00.000Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [0] -> [900000000006]. Location [0] -> [900000000006]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-28T04:02:00.010Z> [CSessionManager::OnClientSpawned] Spawned!
+<2026-11-28T04:02:40.000Z> [Notice] <RequestLocationInventory> Player[Pilot_Example] requested inventory for Location[Stanton4_NewBabbage] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-28T04:04:00.000Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [900000000031], LandingArea: Pilot_Example's
+<2026-11-28T04:04:00.000Z> Small Hangar [Team_GameServices][ASOP]
+<2026-11-28T04:05:30.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "You have joined channel 'Origin M80 : Pilot_Example'.
+<2026-11-28T04:05:30.000Z> : " [13] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:06:00.000Z> [Notice] <Update Inventory Location> Player [Pilot_Example] is changing location. Landing [900000000006] -> [0]. Location [900000000006] -> [900000000011]. Pending [0] [Team_CoreGameplayFeatures][Inventory]
+<2026-11-28T04:08:00.000Z> [Notice] <CLocalMissionPhaseMarker::CreateMarker> Creating objective marker: missionId [e0000051-0000-4000-8000-000000000051], generator name [CitizensForProsperity_Mercenary_FPS], contract [CFP_Pyro_M_XSOutposts_EliminateAll_1], contractDefinitionId[e0000052-0000-4000-8000-000000000052], objectiveId [e0000053-0000-4000-8000-000000000053], markerEntityId [4480], zoneHostId [900000000007], [Team_MissionFeatures][Missions]
+<2026-11-28T04:08:00.005Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Accepted:  Defend Ruin Station from Outlaws: " [20] to queue. New queue size: 1, MissionId: [e0000051-0000-4000-8000-000000000051], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:08:00.005Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Draw out Kade Ross by eliminating enough hostile forces: " [21] to queue. New queue size: 2, MissionId: [e0000051-0000-4000-8000-000000000051], ObjectiveId: [e0000053-0000-4000-8000-000000000053] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:12:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered Monitored Space: " [22] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:31:00.000Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [900000000003] releasing control token for 'ORIG_m80_900000000031' [900000000031] [Team_CGP4][Vehicle]
+<2026-11-28T04:51:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Objective Complete: Draw out Kade Ross by eliminating enough hostile forces: " [30] to queue. New queue size: 1, MissionId: [e0000051-0000-4000-8000-000000000051], ObjectiveId: [e0000053-0000-4000-8000-000000000053] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:51:00.005Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Neutralize Kade Ross: " [31] to queue. New queue size: 2, MissionId: [e0000051-0000-4000-8000-000000000051], ObjectiveId: [e0000054-0000-4000-8000-000000000054] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T04:52:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Moderate Injury Detected - Left Arm - Tier 2 Treatment Required : " [32] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]

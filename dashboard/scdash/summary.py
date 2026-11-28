@@ -41,8 +41,11 @@ def build_summary(state, complete=False, last_line_t=None):
     spent = earned = 0.0
     for r in state.trade:
         ok = r["result"] in (None, "Success")
+        shop = state.shop_info(r)
         trade.append({"t": iso(r["t"]), "kind": r["kind"], "shop": r["shop"], "item": r["item"],
-                      "price": r["price"], "quantity": r["quantity"], "result": r["result"]})
+                      "price": r["price"], "quantity": r["quantity"], "result": r["result"],
+                      "commodity": r.get("commodity"), "scu": r.get("scu"),
+                      "shop_name": shop["name"], "shop_kind": shop["kind"], "place": shop["place"]})
         if ok and r["price"] is not None:
             if r["kind"] in SPEND:
                 spent += r["price"]
@@ -81,14 +84,25 @@ def build_summary(state, complete=False, last_line_t=None):
         "contracts": [{"mission_id": c["mission_id"], "title": c["title"], "status": c["status"],
                        "accepted": iso(c["accepted"]), "ended": iso(c["ended"]),
                        "end_reason": c["end_reason"], "internal": c["internal"], "giver": c["giver"],
-                       "objective": c["objective"]} for c in state.contracts.values()],
+                       "objective": c["objective"],
+                       # stage 3: from reference/contracts.json, and the pay when the log printed it
+                       "kind": c["kind"], "view": c["view"], "setting": c["setting"],
+                       "giver_name": c["giver_name"], "lookup": c["lookup"], "reward": c["reward"]}
+                      for c in state.contracts.values()],
+        "unmapped_contracts": state.unmapped_contracts(),
+        # The session's tally (SURVEY.md §4): your kills are read from the killer's id on the
+        # destroyed line [unverified: no kill by the user is in the project's record yet].
+        "tally": dict(state.tally, kills_verified=False),
+        "law": [{"t": iso(x["t"]), "kind": x["kind"], "text": x["text"]} for x in state.law],
+        "rewards": [{"t": iso(x["t"]), "amount": x["amount"]} for x in state.rewards],
         "notices": [{"t": iso(x["t"]), "kind": x["kind"], "text": x["text"]} for x in state.notable],
         "hangar_waits": [{"joined": iso(w["joined"]), "ready": iso(w["ready"]), "estimate_s": w["wait_s"],
                           "ended": w.get("ended")} for w in state.hangar["waits"]],
         "refinery": [{"t": iso(r["t"]), "count": r["count"], "station": r["station"]} for r in state.refinery],
         "blueprints": [{"t": iso(b["t"]), "name": b["name"]} for b in state.blueprints],
         "trade": trade,
-        "trade_totals": {"spent": round(spent, 2), "earned": round(earned, 2)},
+        "trade_totals": {"spent": round(spent, 2), "earned": round(earned, 2),
+                         "rewards": round(sum(x["amount"] for x in state.rewards), 2)},
         "deaths": [{"t": iso(d["t"]), "respawn": iso(d["respawn"]), "cause": d["cause"],
                     "items_lost": d["items_lost"]} for d in state.deaths],
         "recoveries": [{"t": iso(r["t"]), "up": iso(r["up"]), "cause": r["cause"],
