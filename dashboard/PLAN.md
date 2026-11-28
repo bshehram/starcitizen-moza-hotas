@@ -62,7 +62,7 @@ committed passes its tests, and the generator's `--check` passes.
 | Shops | Not started. | The shop names are in the purchase and sale lines of the logs (§3). |
 | Contract kinds | Not started. | The SCMDB mission lists for 4.10.3 and for the 5.0 test build, fetched 2026-11-27, are in `data/handoff/downloads/`. See the 5.0 note in §4. |
 | Refining | Not started. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast". Which stations have a refinery is the `Refinery` amenity in each star-map record. |
-| The survey of what salvage, combat and hauling leave in the log | **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
+| The survey of what salvage, combat and hauling leave in the log | **Rebuilt without the logs on 2026-11-27: [`SURVEY.md`](SURVEY.md).** From this plan's own record, the game's files and five other tools' parsers, every item marked with how it is known. What it changes for stage 3: add notice kinds for a failed or withdrawn contract and objective, the crime and fine group, and pay; read hauling and courier stops out of the objective texts; keep a per-session tally of ships destroyed and lost; take a death from the body item, not the whole burst; and the kind of a contract comes from its contract name, with a trailing `_<n>` stripped, because twelve generators mix kinds. Two faults it found in the reader: the tutorial-tip rule would hide a long "Contract Failed" notice, and a failed contract would read "Contract fail". The first survey, below, was: **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
 
 `data/handoff/` is git-ignored. It survived the reinstall through the kit's backup of this
 folder. The logs it was surveying did not (see "What the Windows reinstall changed" below), so
@@ -79,7 +79,9 @@ game's own files, and other open-source tools' parsers, each item marked with ho
 2. **The launch check with the service itself** (stage 2's last check): with the game closed run
    `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
    read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
-   like). The follower alone already passed this (§8).
+   like). The follower alone already passed this (§8). *Half done on 2026-11-27: the service
+   followed the first launch on the fresh install, which had no log to rotate. Read the log
+   again after the second launch.*
 3. **Stage 3, first the part behind the page** (§12 stage 3): events for what salvage, combat,
    hauling and missions leave in the log (from the survey), `plan.json` and its loader with
    `plan.example.json`, timers, alerts, the view rules, and a written description of the state
@@ -150,8 +152,27 @@ Claude's memory. Checked that evening **[seen]**:
     `productid` in `Settings.json` beside it. Exit code 0, and the service is then registered.
     Not the dashboard's doing, but the next reinstall will meet it again.
   - *The telemetry variable.* `GRPC_CLIENT_SERVER_ENABLED=true` for the user, set again at
-    5:10 PM with `setx` (the user's standing decision, §15). The launcher was already running,
-    so it takes effect the next time the launcher is started. Still never seen working.
+    5:10 PM with `setx` (the user's standing decision, §15). The launcher was restarted before
+    the first launch, and **the stream was registered for the first time on this PC** in that
+    session (below).
+- **The first session on the new install began at 5:20 PM** **[seen, while it was still
+  running]**:
+  - The game started, so Easy Anti-Cheat is in order. Joysticks: AB6 first, MTQ second, the
+    keyboard third. The user loaded `MOZA.xml`, and the game's saved profile, written at 5:26 PM
+    with the game still running, matches it exactly (`validate_actionmaps.py`: 127 OK, nothing
+    different, nothing left over).
+  - `Game.log` shows `[Env Var  ] GRPC_CLIENT_SERVER_ENABLED=true`, then `Service
+    'sc.game.telemetry.v1.GameTelemetryService' registered` and
+    `[sc.game.telemetry.v1.GameTelemetryService]: 127.0.0.1:2942 [Insecure]`, eight seconds
+    after the log began. So the launcher variable does switch the stream on in build
+    4.10.201.48085. A first recording with the reader's `capture()` was started at about
+    5:33 PM, with the user in the game world.
+  - **The launch check with the service (step 2 below), first half.** The service had been
+    started at 5:09 PM with no `Game.log` on disk at all. It saw the game process at 5:20:04,
+    found no log, and five seconds later began the new session at offset 0 from the first line
+    the game wrote. Ten minutes in: 29 events, 21.8 MB, one second of CPU in all, no error.
+    What a first launch cannot show is the rotation, because there was no older log to move
+    into `logbackups`. The second launch, with the service still running, settles that.
 - **Still true:** the repo must sit at this path
   (`...\StarCitizen\LIVE\user\client\0\controls\mappings`), or Claude's memory for the project
   does not reconnect. No logon task has ever been registered.
@@ -274,8 +295,14 @@ in `LIVE\logbackups\`, not from the wording here.
 | Screenshot taken | `ScreenShot: ScreenShots/<name>.jpg` |
 | Leaving the game world, and why | `<Channel Disconnected> cause=<n> reason="..."`, with a twin `<Channel Process Disconnection>` line. Counted in the November logs **[seen 2026-11-27]**: 30016 "Player requested disconnect" (54) is the user leaving the server: a quit when `<SystemQuit>` follows (row above), otherwise a return to the menu. 30016 "DisconnectCmd: disconnect light ExitToMenu" (2) is also a return to the menu. After either return the session goes on. 30028 "player inactive" (1) is the inactivity kick. 30010 "Nub destroyed" (160) appears between the menu and the game and is not an end. 30013 appears only on `<Channel Process Disconnection>` (3), with a reason starting "Remote Disconnect - Signal raised ...": the *server* crashed. A crash of the game itself leaves no line at all (the log just stops), so that case is read from the process going away. Other tools say 30016 is also logged for a server drop **[ref, §14]**. One more cause turned up on 2026-11-27, in two launches: 41058 "Player Query failed". |
 
+**What salvage, combat, hauling and missions leave in the log is in [`SURVEY.md`](SURVEY.md)**
+(rebuilt 2026-11-27 without the old logs: each line shape with how it is known, the full set of
+contract and objective notices from the game's own text, the 113 contract generators and what
+each means, 16 things to check in the user's next sessions, and what the log cannot show).
+
 Markers other tools use that are **not** in the user's November logs **[seen 2026-11-27]**:
-`Contract Failed:` (perhaps only because no contract failed), `granted control token for
+`Contract Failed:` (real: the text is in the game's files and three tools parse it, so the user
+simply had no failed contract; [`SURVEY.md`](SURVEY.md) §1), `granted control token for
 '<CLASS>_<id>'` on taking the pilot seat (the logs have only the *releasing* line on leaving it,
 so taking a seat is still read from the `You have joined channel` notice), and `<Actor Death>` /
 `CActor::Kill` (another tool's code says the publisher removed these in late 2025). Don't build on
