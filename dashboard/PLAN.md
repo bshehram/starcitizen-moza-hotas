@@ -128,7 +128,10 @@ game's own files, and other open-source tools' parsers, each item marked with ho
    the page receives. Then review, then commit.
 4. **Stage 3, the views:** Now, Travel, Mining, Salvage, Combat (in a ship and on foot), Cargo,
    Mission, Refinery, Selling, Preflight and Idle, built on stage 2's page from the tracked
-   mockup, each captured and looked at in both orientations (§11). The rough spots the designer
+   mockup, each captured and looked at in both orientations (§11). **Plus the rig reference
+   section the user asked for on 2026-11-27 (§4 item 18):** the MOZA cards inside the page,
+   picked with the mouse, with its data and diagram files generated from the card tables. It
+   has no mockup yet, so its layout is designed in this step and shown to the user. The rough spots the designer
    listed are in §11. Then review, then commit.
 5. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
    `plan.json` step added to the update routine in the memory note `game-plan-artifact` (§16).
@@ -284,6 +287,7 @@ readable at a glance from a seat away.
 | "performant as much as possible" | Memory is tight on this PC while the game runs, and adding RAM is not an option. Every megabyte and every wake-up is a cost. §9. |
 | "it will be in either portrait or landscape mode ... depending on my mood" (2026-11-27) | The page has two layouts, 1920x1080 and 1080x1920, and picks one from the shape of its window. There is no setting to change. §11. |
 | "a terminal window running claude inside of this dashboard ... so instead of it being a read only dashboard i can alt-tab to it while in quantum and ask questions"; "i dont want to type in claude to start it" (2026-11-27) | A terminal panel in the page that runs Claude Code, and only Claude Code, started by the dashboard itself in this folder. §4 (*The Claude terminal*), §8, §12 stage 4b. |
+| "a tab or section that i can select/switch to with the mouse ... that shows the reference cards for the moza rig", "for both portrait/landscape modes", "like a quick reference section" (2026-11-27) | A rig reference section in the page: every button and axis with its diagram, rearranged for the screen, picked with the mouse and kept until the user goes back to the live views. §4 item 18, §11, §12 stage 3. |
 
 ## 3. What it can and cannot know
 
@@ -745,6 +749,45 @@ get Claude going.
 The log-driven views work with the terminal switched off (a setting), and `replay` never starts
 one.
 
+### The rig reference (part of stage 3's views)
+
+The user asked for this on 2026-11-27, in the second build session: "for both
+portrait/landscape modes, can i get a tab or section that i can select/switch to with the mouse
+... that shows the reference cards for the moza rig? you will have to re-arrange the diagram and
+labels from the cards as is but ill let u sort that out, like a quick reference section".
+
+18. **A rig reference section: the stick and throttle cards, inside the dashboard.** Every
+    button and axis of the MHG grip, the AB6 base and the MTQ throttle with what it does, beside
+    the manufacturer's numbered diagrams, as on the printed cards in [`../cards/`](../cards/).
+    - **Picked with the mouse, and it stays.** A small switcher on the page has "Live" (the
+      dashboard choosing views by itself, as everywhere else in this plan) and "Rig reference".
+      The reference is never chosen by a rule, and unlike the other hand picks (§11) a change of
+      context does not take it away: it stays until the user clicks back to Live. Alerts still
+      show across the top while it is open. This is the one part of the page that is meant to
+      be operated, so it may scroll, page and filter where the live views may not.
+    - **Rearranged for the screen, not the printed card shrunk.** The cards are US-Letter
+      sheets with up to 65 rows in 11-point type. At the page's 18-pixel floor (§11) one device
+      does not fit one screen, so the section is split by device (grip, base, throttle panel,
+      throttle modules), each with its diagram view beside or above its rows, laid out
+      separately for landscape and portrait and for the terminal on or off. A filter by
+      operator mode (all, flight, mining, salvage) brings the rows that change with the mode to
+      the front ([`../CLAUDE.md`](../CLAUDE.md) §5); it starts on the mode the live views think
+      the user is in. The layout is Claude's to settle (the user: "ill let u sort that out");
+      show it to them in both orientations before calling it done.
+    - **It cannot drift from the cards.** The rows come from the same tables the card generator
+      holds ([`../tools/regen_cards.py`](../tools/regen_cards.py)), read the way
+      `reference/controls.json` already reads them, with the test that fails when a label
+      changes. The diagram views are the generator's own crops of the manufacturer art in
+      [`../diagrams/`](../diagrams/), written out in the page's colors by the same run that
+      makes the cards.
+    - **The page's one set of image files.** Everything else on the page is type and inline
+      icons (§9, §11). The diagrams are raster art, so they are files, served from the fixed
+      list like the rest and loaded only when the section is first opened, so a session that
+      never opens it pays nothing. Measure what the open section adds to the window (§9).
+    - What state each binding is in (flown, loaded, trial) is shown the way `controls.json`
+      already marks it, so the screen does not claim more than [`../CLAUDE.md`](../CLAUDE.md)
+      does.
+
 ### Later, each only if the user asks
 
 - Switching views from the keyboard while the game has focus, through a system-wide hotkey
@@ -752,7 +795,6 @@ one.
   combinations the game does not use (check the keyboard column of the action catalog) and ask
   the user first.
 - A device watch that flags a stick or throttle dropping off USB.
-- A controls view per operator mode, from the same tables the reference cards use.
 - Switching views from the stick base's two unbound levers. The page cannot read them: the browser
   exposes at most 32 buttons per device and these are numbered 57 to 62 **[ref: Chromium source,
   §14]**. The service would have to read the stick itself through DirectInput.
@@ -1379,6 +1421,14 @@ files, all local, all bounded.
 - Numbers the user acts on (scan values, quality figures, countdowns) get the largest type.
 - Times are local. American spelling and month-first dates, as everywhere in this project.
 - No sound: browsers block it until someone clicks the page.
+- **A view switcher, small and out of the way.** Two entries, "Live" and "Rig reference" (§4
+  item 18), in the status strip in both layouts. It is sized to be clicked with a mouse from the
+  desk and quiet enough not to read as data from the pilot's seat, and it shows which of the two
+  is active. A click is all it needs; the page still never takes focus by itself.
+- **The rig reference is the one section built to be operated.** It may scroll, page between
+  devices and filter by operator mode, because the user comes to it with the mouse. Its type
+  keeps the 18-pixel floor. Its diagrams are the only image files on the page and load when it
+  is first opened.
 
 **Opening the window [ref, §14].** Use the browser's app mode with a profile folder of its own:
 
@@ -1422,6 +1472,7 @@ wins:
 
 | State | View |
 | --- | --- |
+| The user has opened the rig reference (§4 item 18) | Rig reference, until they click back to Live. No rule below chooses it and no change of context drops it. |
 | No game running | Idle, with the last session's summary |
 | Game starting or in the menu | Preflight |
 | Downed or dead | Combat when a combat contract is active (the mockup has that screen), otherwise Now; the alert on top either way |
@@ -1473,7 +1524,16 @@ check that can actually fail.
      `view` can name any activity view, and the run carries what that view shows: targets for
      mining, a goal and a sell point for salvage, the trade for a cargo run. Settle the shape in
      this stage and write `plan.example.json` with one run of each kind.
-   *Done when:* a replay of a mining session shows Preflight, Travel, Mining and Refinery at the
+   - **The rig reference (§4 item 18, asked for on 2026-11-27).** The full card tables into
+     `reference/` beside `controls.json`, with the test that fails when a card label changes;
+     the diagram views written in the page's colors by the run of
+     [`../tools/regen_cards.py`](../tools/regen_cards.py) that makes the cards; the switcher;
+     and the section itself, laid out for landscape and portrait, with the terminal on and off.
+     In the payload it is a view that only a hand pick selects and that no change of context
+     drops.
+   *Done when:* the rig reference opens with one click in both orientations, holds every row the
+   two printed cards hold (a test compares them with the card tables), stays open through a
+   change of context, and the user has seen it; a replay of a mining session shows Preflight, Travel, Mining and Refinery at the
    right moments, a replay of a session with a contract shows Combat, Cargo or Salvage as its
    kind requires (a real session where the logs have one, a built sample where they don't, and
    the report says which), a deliberately wrong joystick order in a test log raises the red
@@ -1707,6 +1767,7 @@ Use the default unless they say otherwise, and tell them what was chosen.
 
 | Decision | Their answer | What was turned down |
 | --- | --- | --- |
+| A rig reference inside the dashboard (§4 item 18) | **Yes:** a section picked with the mouse, in both orientations, showing the reference cards for the MOZA rig. How the diagrams and labels are rearranged for the screen is left to Claude ("ill let u sort that out"). | - |
 | UEX's refinery yields in the public repo (§10) | **They stay in git:** "leave the uex data in git its fine". Each row keeps its date and source. | Moving them to the git-ignored data folder beside the prices, because UEX's terms welcome use of its API but do not say the data may be republished (Claude's lean). |
 
 Still to be put to the user, with a recommendation, before the stage that needs it: how far to
