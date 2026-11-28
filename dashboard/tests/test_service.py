@@ -520,19 +520,25 @@ class UnreadableCount(Case):
         self.assertEqual(svc.status()["session"]["unreadable"], n)
 
 
+# A user block as the service keeps it: one quick timer in the shape `board.add_quick_timer` makes
+# (only such timers are kept from a file since the wiring review: finding B).
+KEPT = {"timers": [{"id": "q1", "label": "kept", "added_at": "2030-01-01T00:00:00.000Z",
+                    "ready_at": "2030-01-01T01:00:00.000Z"}]}
+
+
 class UserBlock(Case):
     def test_what_the_user_entered_survives_a_restart(self):
         self.inst.write_log(h.log_bytes())
         self.inst.data.mkdir(parents=True, exist_ok=True)
-        service.write_json(self.inst.data / "state.json", {"schema": 1, "user": {"timers": [{"label": "kept"}]},
+        service.write_json(self.inst.data / "state.json", {"schema": 1, "user": KEPT,
                                                            "state": {}})
         svc = self.make(running=False, state_save_seconds=2.0)
         svc.start_reading()
         svc._save_state()
-        self.assertEqual(service.read_json(self.inst.data / "state.json")["user"], {"timers": [{"label": "kept"}]})
+        self.assertEqual(service.read_json(self.inst.data / "state.json")["user"], KEPT)
         svc2 = self.make(running=False)                         # and again after another restart
         svc2.start_reading()
-        self.assertEqual(svc2.user_data, {"timers": [{"label": "kept"}]})
+        self.assertEqual(svc2.user_data, KEPT)
 
 
 class Leftovers(Case):
@@ -643,7 +649,7 @@ class StartUpSurvives(Case):
         self.inst.write_log(h.log_bytes())
         self.inst.data.mkdir(parents=True)
         p = self.inst.data / "state.json"
-        service.write_json(p, {"schema": 1, "user": {"timers": [{"label": "kept"}]}, "state": None})
+        service.write_json(p, {"schema": 1, "user": KEPT, "state": None})
         # Our own file, opened by this test with no sharing at all (a backup tool's way): neither
         # read nor replaced while the handle is held.
         handle = k32.CreateFileW(str(p), 0x80000000, 0, None, 3, 0x80, None)
@@ -660,7 +666,7 @@ class StartUpSurvives(Case):
                 k32.CloseHandle(handle)
             self.assertTrue(h.wait_until(lambda: (service.read_json(p) or {}).get("state"), 10),
                             "saved once it could be")
-            self.assertEqual(service.read_json(p)["user"], {"timers": [{"label": "kept"}]},
+            self.assertEqual(service.read_json(p)["user"], KEPT,
                              "what the user entered was read first, never saved over")
             self.assertTrue(t.is_alive())
         finally:

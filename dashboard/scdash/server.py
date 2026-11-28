@@ -1,7 +1,15 @@
 """The local web server: the page, the event streams, a health check, and the request guard.
 
-It listens on 127.0.0.1 only (PLAN §8). What it serves is fixed: the three files of the page and
-the routes registered in code. No part of a request is ever used to open a file.
+It listens on 127.0.0.1 only (PLAN §8). What it serves is fixed: the page's three files (`FILES`),
+the rig reference's files under /rig/ (`rig_files()`: rig.json and the images found in web/rig/
+when the server is made, by a strict name rule), and the routes registered in code. The table of
+files is a dictionary built once; no part of a request is ever used to open a file, and a card
+regeneration that adds or renames an image is served only after a restart of the service.
+
+Every JSON text it sends goes through `json_text()`, and every event-stream payload through
+`encodable()`: no number that is not finite (a browser's JSON.parse refuses NaN) and no lone
+surrogate (UTF-8 cannot encode one; json.loads makes one from "\\ud800" in a plan, a state file
+or a request body) can make an answer or a stream message fail.
 
 The guard runs before anything else, for every request:
 
@@ -52,12 +60,16 @@ import io
 import json
 import os
 import re
+import math
 import select
 import selectors
 import socket
+import stat
+import sys
 import threading
 import time
 import traceback
+from collections import OrderedDict
 from urllib.parse import parse_qs, urlsplit
 
 from . import config
@@ -66,12 +78,26 @@ from .winutil import exclusive_address
 PROGRAM = "scdash"
 TOKEN_HEADER = "X-SCDash-Token"
 
-# The page's files: request path -> (file in web/, content type). Nothing else is ever opened.
+# The page's files: request path -> (file in web/, content type). With the rig reference's files
+# (`rig_files()`) this is the whole lookup, exact, so no other name can be reached. Each file is
+# read from disk when it is asked for and not kept, so one never asked for costs nothing.
 FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
 }
+
+# The rig reference (PLAN §4 item 18), written into web/rig/ by tools/regen_cards.py: rig.json and
+# the diagram images, whose set changes with the cards. Served: rig.json, and each image whose
+# name is lower-case ASCII letters, digits and underscores with ".png", a plain file (no junction
+# or link, the folder itself neither, and a single hard link) of at most
+# config.MAX_RIG_FILE_BYTES; at most config.MAX_RIG_IMAGES of them, by name. Looked at once, when
+# the server is made; each request checks the file again.
+RIG_DIR = "rig"
+RIG_DATA = "rig.json"
+RIG_IMAGE_RE = re.compile(r"[a-z0-9_]{1,48}\.png")
+RIG_SCAN_MAX = 10000                         # entries looked at in web/rig/: a bounded scan
+SURROGATES = re.compile("[\ud800-\udfff]")   # a lone surrogate: a code point UTF-8 cannot encode
 
 COMMON_HEADERS = (
     ("Cache-Control", "no-store"),
@@ -88,6 +114,8 @@ LENGTH_RE = re.compile(r"[0-9]{1,9}")        # ASCII digits only: str.isdigit() 
 HEAD_END = re.compile(rb"\n\r?\n")           # the empty line that ends a request head
 ACCEPT_BATCH = 16                            # connections taken per turn, before the waiting ones are read
 FAULT_REPORT_SECONDS = 60.0                  # a front-end fault that repeats: one log line this often at most
+FAULT_FULL_AGAIN_SECONDS = 3600.0            # the same fault in full again at most this often
+MAX_FAULT_KINDS = 50                         # distinct faults remembered for that
 
 
 class Guard:
@@ -108,6 +136,173 @@ class Guard:
 READ = Guard("read")
 CHANGE = Guard("change", token_header=True, origin=True, json_body=True)
 PRIVATE = Guard("private read", token_header=True, same_origin=True)
+
+
+def encodable(text):
+    """`text`, with every lone surrogate replaced by U+FFFD, so that it always encodes as UTF-8.
+    Text from a JSON file or a request body can hold one ("\\ud800" is valid JSON); written out
+    with ensure_ascii=False it would raise UnicodeEncodeError at the first encode (stage 3 review).
+    The usual case, text with none, costs one encode."""
+    try:
+        text.encode("utf-8")
+        return text
+    except UnicodeEncodeError:
+        return SURROGATES.sub("\ufffd", text)
+
+
+MAX_DEPTH = 64          # nesting `scrub` and `_finite` walk; what is deeper becomes None
+
+
+def json_depth_over(obj, limit):
+    """Is `obj` nested deeper than `limit` (a dict or list counts one level)? Without recursion,
+    so a value of any depth can be looked at: json.loads takes about 2,900 levels on Python 3.12
+    and a recursive walk fails near 1,000 (the wiring review, finding A)."""
+    stack = [(obj, 0)]
+    while stack:
+        x, d = stack.pop()
+        if isinstance(x, (dict, list, tuple)):
+            if d >= limit:
+                return True
+            stack.extend((v, d + 1) for v in (x.values() if isinstance(x, dict) else x))
+    return False
+
+
+def scrub(obj, _depth=0):
+    """Every string in a JSON-like object, keys too, through `encodable`. A value nested deeper
+    than MAX_DEPTH becomes None: this never raises RecursionError. Text that may be that deep (a
+    file) is looked at with `json_depth_over` first, and what is dropped is logged there."""
+    if isinstance(obj, str):
+        return encodable(obj)
+    if _depth >= MAX_DEPTH and isinstance(obj, (dict, list, tuple)):
+        return None
+    if isinstance(obj, dict):
+        return {encodable(k) if isinstance(k, str) else k: scrub(v, _depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [scrub(v, _depth + 1) for v in obj]
+    return obj
+
+
+def _finite(obj, _depth=0):
+    """`obj` with every number that is not finite replaced by None (JSON has no NaN), and what is
+    nested deeper than MAX_DEPTH too."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if _depth >= MAX_DEPTH and isinstance(obj, (dict, list, tuple)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _finite(v, _depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_finite(v, _depth + 1) for v in obj]
+    return obj
+
+
+def json_text(obj, ensure_ascii=False, **kw):
+    """json.dumps for everything the dashboard writes or sends: text that UTF-8 can always encode
+    and a browser can always parse. A NaN or an infinity (json.loads takes "NaN" from a file)
+    becomes null instead of the invalid `NaN`, and a lone surrogate becomes U+FFFD. The usual
+    case costs one dumps and one encode."""
+    try:
+        text = json.dumps(obj, ensure_ascii=ensure_ascii, allow_nan=False, **kw)
+    except ValueError:
+        text = json.dumps(_finite(obj), ensure_ascii=ensure_ascii, allow_nan=False, **kw)
+    return encodable(text)
+
+
+def _plain(path, folder=False):
+    """Is `path` a plain file (or, with `folder`, a plain folder): no junction, no symbolic link,
+    no other reparse point, and for a file a single link? Looked at with lstat, which follows
+    nothing. A hard link is no reparse point, but its data can live anywhere on the volume, the
+    data folder's run.json (with the token) included: a file with more than one name is not
+    plain (the wiring review, finding K)."""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    if stat.S_ISLNK(st.st_mode) or getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+        return False
+    if folder:
+        return stat.S_ISDIR(st.st_mode)
+    return stat.S_ISREG(st.st_mode) and st.st_nlink == 1
+
+
+def rig_files(web_dir):
+    """The rig reference's files actually in web_dir/rig/, as (table, left_out): the table maps a
+    request path to (file under web_dir, content type), the same shape as FILES; left_out names
+    what was there and is not served, and why. See RIG_IMAGE_RE above for the rule. The folder
+    is looked at here only: the server builds its table once, when it is made, so a request
+    never reaches the file system, and a card regeneration that adds or renames an image needs a
+    restart of the service before the new name is served. (A changed file under a name already
+    served is read fresh on its next request.)"""
+    folder = os.path.join(str(web_dir), RIG_DIR)
+    table, left_out, images = {}, [], []
+    if not os.path.lexists(folder):
+        return table, left_out
+    if not _plain(folder, folder=True):
+        return table, ["%s/ (a junction, a link or not a folder: nothing in it is served)" % RIG_DIR]
+    try:
+        with os.scandir(folder) as it:
+            for n, entry in enumerate(it):
+                if n >= RIG_SCAN_MAX:
+                    left_out.append("(more than %d entries: the rest not looked at)" % RIG_SCAN_MAX)
+                    break
+                name = entry.name
+                if name.startswith(".") and name != ".png":
+                    # The generator keeps a .gitattributes beside its files. A dot-file is never
+                    # served (the rule takes no leading dot), and it belongs there, so it is not
+                    # reported either: a warning at every start would bury the ones that matter.
+                    continue
+                is_data = name == RIG_DATA
+                if not is_data and not RIG_IMAGE_RE.fullmatch(name):
+                    left_out.append("%r (not a name the rule takes)" % name[:60])
+                    continue
+                path = os.path.join(folder, name)
+                if not _plain(path):
+                    left_out.append("%r (a junction, a link, a hard link or not a plain file)" % name)
+                    continue
+                try:
+                    size = os.lstat(path).st_size
+                except OSError:
+                    continue
+                if size > config.MAX_RIG_FILE_BYTES:
+                    left_out.append("%r (larger than %d KB)" % (name, config.MAX_RIG_FILE_BYTES // 1024))
+                    continue
+                if is_data:
+                    table["/%s/%s" % (RIG_DIR, name)] = ("%s/%s" % (RIG_DIR, name), "application/json; charset=utf-8")
+                else:
+                    images.append(name)
+    except OSError:
+        return {}, ["%s/ (could not be listed)" % RIG_DIR]
+    images.sort()
+    for name in images[config.MAX_RIG_IMAGES:]:
+        left_out.append("%r (more than %d images)" % (name, config.MAX_RIG_IMAGES))
+    for name in images[:config.MAX_RIG_IMAGES]:
+        table["/%s/%s" % (RIG_DIR, name)] = ("%s/%s" % (RIG_DIR, name), "image/png")
+    return table, left_out
+
+
+def error_key(exc_info=None):
+    """What makes two failures the same one: the exception's type and the file and line it was
+    raised at, never its message or the traceback's text, which can name a new temporary file
+    each time (a save that failed every 10 s logged a full traceback every time: stage 2 review).
+    Reads no source file."""
+    etype, _, tb = exc_info or sys.exc_info()
+    where = ("", 0)
+    for frame, lineno in traceback.walk_tb(tb):
+        where = (frame.f_code.co_filename, lineno)
+    return (getattr(etype, "__name__", repr(etype)),) + where
+
+
+def remember(kinds, key, now, again, cap):
+    """True when the failure `key` is to be logged in full now: never seen, or last logged in full
+    `again` seconds ago or more. `kinds` (an OrderedDict, key -> time) keeps at most `cap`."""
+    last = kinds.get(key)
+    if last is not None and now - last < again:
+        return False
+    kinds[key] = now
+    kinds.move_to_end(key)
+    while len(kinds) > cap:
+        kinds.popitem(last=False)
+    return True
 
 
 class Refused(Exception):
@@ -167,6 +362,7 @@ class Hub:
     def publish(self, text):
         if "\n" in text or "\r" in text:
             raise ValueError("an event payload must be one line")
+        text = encodable(text)                 # each page's thread encodes it: it must never raise there
         with self._cond:
             self._payload = text
             self._version += 1
@@ -339,9 +535,10 @@ class _FrontEnd:
         self._slots = threading.BoundedSemaphore(config.MAX_CONNECTIONS)
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name="scdash-http", daemon=True)
-        self._faults = 0                          # failed turns not yet reported
+        self._faults = 0                          # failed turns counted and not yet reported
         self._fault_reported = None               # when the last report went to the log
         self._last_fault = ""
+        self._fault_kinds = OrderedDict()         # error_key -> when it was last logged in full
 
     def start(self):
         self._sel.register(self.socket, selectors.EVENT_READ, None)
@@ -362,6 +559,10 @@ class _FrontEnd:
                 except Exception:                 # noqa: BLE001 - one connection must not stop the server
                     self._fault()
                     self._stop.wait(0.05)
+                # The count of repeats goes out on this timer, every turn looked at (at most
+                # poll_interval apart), not only when the next fault comes (stage 2 review).
+                if self._faults and time.monotonic() - self._fault_reported >= FAULT_REPORT_SECONDS:
+                    self._fault_summary(time.monotonic())
         finally:
             if self._faults:
                 self._fault_summary(time.monotonic())
@@ -371,22 +572,28 @@ class _FrontEnd:
             self.socket.close()
 
     def _fault(self):
-        """A failed turn, logged at WARNING so that it shows in the file log: the first in full,
-        then at most one line every FAULT_REPORT_SECONDS with how many more came, so a fault that
-        repeats every turn is seen and cannot fill the log."""
+        """A failed turn, logged at WARNING so that it shows in the file log. A fault of a kind
+        not logged in full in the last FAULT_FULL_AGAIN_SECONDS (by `error_key`: its type and
+        where it was raised) is logged in full at once, even while another one's repeats are being
+        counted; a repeat is counted, and the count goes out from `_run` at most every
+        FAULT_REPORT_SECONDS. So a fault that repeats every turn cannot fill the log, and one
+        that differs is never held back behind it."""
         now = time.monotonic()
         self._last_fault = traceback.format_exc().rstrip()
-        if self._fault_reported is None:
+        if remember(self._fault_kinds, error_key(), now, FAULT_FULL_AGAIN_SECONDS, MAX_FAULT_KINDS):
+            if self._faults:
+                self._fault_summary(now)          # the repeats counted so far come first
             self._fault_reported = now
             self.app.log_warning("web server front end failed (carrying on):\n%s" % self._last_fault)
             return
+        if self._fault_reported is None:
+            self._fault_reported = now
         self._faults += 1
-        if now - self._fault_reported >= FAULT_REPORT_SECONDS:
-            self._fault_summary(now)
 
     def _fault_summary(self, now):
         self.app.log_warning("web server front end failed %d more time(s) in the last %.0f s; the last: %r"
-                             % (self._faults, now - self._fault_reported, (self._last_fault.splitlines() or [""])[-1][:200]))
+                             % (self._faults, now - (self._fault_reported or now),
+                                (self._last_fault.splitlines() or [""])[-1][:200]))
         self._faults, self._fault_reported = 0, now
 
     def _turn(self):
@@ -484,7 +691,7 @@ class _FrontEnd:
     def _refuse(self, w, status, reason, method=b""):
         """Answer here and close, without a worker (the same JSON error a worker would send)."""
         self.app.count("refused")
-        body = json.dumps({"error": reason}, separators=(",", ":")).encode("utf-8")
+        body = json_text({"error": reason}, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
         head = ["HTTP/1.0 %d %s" % (status, http.HTTPStatus(status).phrase), "Server: " + PROGRAM,
                 "Content-Type: application/json; charset=utf-8", "Content-Length: %d" % len(body),
                 "Connection: close"] + ["%s: %s" % kv for kv in COMMON_HEADERS]
@@ -612,7 +819,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _reply(self, status, obj=None, body=None, ctype="application/json; charset=utf-8", extra=()):
         if body is None:
-            body = json.dumps(obj if obj is not None else {}, separators=(",", ":")).encode("utf-8")
+            body = json_text(obj if obj is not None else {}, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
         try:
             self.send_response(status)
             self.send_header("Content-Type", ctype)
@@ -695,7 +902,13 @@ class Server:
         self.deadlines = None
         self._httpd = None                # the front end; `.socket` is the listening socket
         self._allowed_hosts = set()
-        for path in FILES:
+        # The files served: fixed from here on (a request path is only ever looked up in it).
+        rig, left_out = rig_files(web_dir)
+        self.files = dict(FILES, **rig)
+        if left_out:
+            self.log_warning("web/%s/: %d served, left out: %s" % (
+                RIG_DIR, len(rig), "; ".join(left_out[:10]) + ("; ..." if len(left_out) > 10 else "")))
+        for path in self.files:
             self.route("GET", path, self._file, READ)
 
     # Registering ----------------------------------------------------------------------------
@@ -831,12 +1044,23 @@ class Server:
     # The page -------------------------------------------------------------------------------
 
     def _file(self, req):
-        name, ctype = FILES[req.path]
+        name, ctype = self.files[req.path]
+        path = os.path.join(str(self.web_dir), name)
+        limit = None
+        if name.startswith(RIG_DIR + "/"):
+            # The rule the table was built by, again on each request: the folder or the file
+            # turned into a junction or a link since the start is not followed, and a file that
+            # grew past the bound is not sent.
+            if not (_plain(os.path.join(str(self.web_dir), RIG_DIR), folder=True) and _plain(path)):
+                raise Refused(404, "not found")
+            limit = config.MAX_RIG_FILE_BYTES
         try:
-            with open(os.path.join(str(self.web_dir), name), "rb") as f:
-                data = f.read()
+            with open(path, "rb") as f:
+                data = f.read() if limit is None else f.read(limit + 1)
         except OSError:
             raise Refused(404, "not found") from None
+        if limit is not None and len(data) > limit:
+            raise Refused(404, "not found")
         extra = ()
         if name == "index.html":
             text = data.decode("utf-8")

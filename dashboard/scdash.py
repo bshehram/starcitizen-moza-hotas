@@ -5,6 +5,7 @@
     python dashboard/scdash.py stop                     # stops it, and it stays stopped until `start`
     python dashboard/scdash.py run                      # the service in the foreground, until Ctrl+C
     python dashboard/scdash.py replay "26 Nov 26 (15 11 12)"   # a past log, at speed, on port 47827
+    python dashboard/scdash.py replay <log> --plan dashboard/plan.example.json   # with a plan of its own
     python dashboard/scdash.py timeline [log] [--json] [--list --since 2026-11-26]
 
 Every service command takes `--data <folder>` (default dashboard/data) and, where it makes sense,
@@ -35,6 +36,8 @@ from scdash import config, timeline
 
 if not hasattr(scdash, "__path__"):        # guard: we must have the package, not this script
     raise SystemExit("import scdash found %s instead of the package folder" % scdash.__file__)
+
+PLAN_COPY_MAX = 1 << 20          # `replay --plan`: a larger file is refused (the plan reader takes 256 KB)
 
 STAGE4 = {
     "install": "register the logon task (stage 4, not built yet)",
@@ -86,6 +89,8 @@ def main(argv=None):
     rp.add_argument("--terminal", action="store_true", help="lay the page out with the terminal region")
     rp.add_argument("--exit-at-end", action="store_true", help="stop when the log has been fed")
     rp.add_argument("--live", help="the game's LIVE folder, to find a backup by name")
+    rp.add_argument("--plan", help="a plan.json to replay with (copied into the replay's own folder; "
+                                   "for example dashboard/plan.example.json). Without it there is no plan")
 
     for name, text in STAGE4.items():       # stage 4 fills these in
         sub.add_parser(name, help=text)
@@ -270,7 +275,7 @@ def cmd_stop(args):
 
 def cmd_status(args):
     from scdash import service
-    from scdash.words import clean_all, clock, duration
+    from scdash.words import clean_all, clock, day_clock, duration
     paths, settings, notes, log = _resolve(args)
     info = service.instance_info(paths, args.port or settings["port"])
     st = service.instance_status(info)
@@ -323,12 +328,31 @@ def cmd_status(args):
         sess.get("id"), sess.get("events"), _clock_iso(sess.get("last_event"), clock) or "-"))
     if sess.get("unreadable"):
         print("  Unreadable lines skipped: %d" % sess["unreadable"])
+    if sess.get("withheld"):
+        print("  Notices withheld (a shape that may name a player, not read): %d" % sess["withheld"])
     mb = lambda v: "%.1f MB" % (v / 1e6) if v else "?"   # noqa: E731
     print("  Memory    %s private working set, %s working set, %s committed" % (
         mb(mem.get("private_ws")), mb(mem.get("working_set")), mb(mem.get("private"))))
     print("  CPU       %.1f s in all; below-normal priority: %s" % (s.get("cpu_s", 0), "yes" if s.get("below_normal_priority") else "no"))
     print("  Pages     %s connected; %s state sends; %s errors caught" % (
         s.get("pages"), s.get("publishes"), s.get("errors")))
+    b = s.get("board") or {}
+    if b.get("view"):
+        how = "picked by hand; the rules would show %s" % b.get("auto") if b.get("picked") else "rule %s" % b.get("rule")
+        nxt = _clock_iso(b.get("next_change"), day_clock) if b.get("next_change") else None
+        print("  View      %s (%s)%s" % (b["view"], how, "; changes by itself at %s" % nxt if nxt else ""))
+    pl = s.get("plan") or {}
+    if pl:
+        if pl.get("loaded"):
+            print("  Plan      loaded%s%s" % ("; run %s" % pl["run"] if pl.get("run") else "",
+                                           "; updated %s" % _clock_iso(pl["updated"], day_clock) if pl.get("updated") else ""))
+        else:
+            print("  Plan      none")
+        if pl.get("notice"):
+            print("  Notice    %s" % pl["notice"])
+    if b:
+        probs = b.get("problem_list") or []
+        print("  Problems  %d%s" % (b.get("problems") or 0, ": %s" % "; ".join(probs) if probs else ""))
     if out["stop_marker"]:
         print("  Note      a stop marker is present, though it runs (a manual `run`?)")
     return 0
@@ -358,10 +382,24 @@ def cmd_replay(args):
     if data == live_data or live_data in data.parents:
         raise SystemExit("replay never uses the live data folder %s: pick another with --data" % live_data)
     try:
-        for name in ("source.log", "Game.log"):        # both opened in place: never through a link (PLAN §8)
+        for name in ("source.log", "Game.log", "plan.json"):  # opened in place: never through a link (PLAN §8)
             bad = service.link_on_the_way(data, data / "replay" / name, include_self=True)
             if bad is not None:
                 raise SystemExit("replay never writes through a junction or a link: %s" % bad)
+        # The replay's plan is its own copy, data/replay/plan.json: taken from --plan, or none at
+        # all (a copy an earlier replay left in a kept folder is removed). The live plan is never read.
+        plan_copy = data / "replay" / "plan.json"
+        if args.plan:
+            plan_src = Path(args.plan)
+            try:
+                size = plan_src.stat().st_size
+            except OSError as e:
+                raise SystemExit("--plan %s cannot be read (%s)" % (plan_src, e.__class__.__name__)) from None
+            if size > PLAN_COPY_MAX:
+                raise SystemExit("--plan %s is larger than %d KB, more than a plan can be" % (plan_src, PLAN_COPY_MAX // 1024))
+            service.atomic_write(plan_copy, plan_src.read_bytes()[:PLAN_COPY_MAX + 1])
+        elif plan_copy.exists():
+            plan_copy.unlink()
         # A copy in the replay's own folder, taken now: the feed may take minutes, and a live
         # Game.log must never be held open that long (PLAN §8).
         copy = service.copy_log(src, data / "replay" / "source.log")
@@ -378,10 +416,12 @@ def cmd_replay(args):
         feeder = service.ReplayFeeder(copy, feed, clock)
         info = {"source": src.name, "speed": round(speed, 1), "from": iso(first), "to": iso(last)}
         svc = service.Service(data, feed, settings, mode="replay", clock=clock, probe=feeder, feeder=feeder,
-                              notes=notes, replay_info=info, exit_when_done=args.exit_at_end, console=True)
+                              notes=notes, replay_info=info, exit_when_done=args.exit_at_end, console=True,
+                              plan_path=plan_copy)
         feeder.logger = svc.log
-        print("Replay of %s (%s of log) at %.1fx: http://127.0.0.1:%d/  data %s%s. Ctrl+C to stop." % (
-            src.name, _span_words(span), speed, args.port, data, " (temporary)" if temp and not args.keep else ""))
+        print("Replay of %s (%s of log) at %.1fx%s: http://127.0.0.1:%d/  data %s%s. Ctrl+C to stop." % (
+            src.name, _span_words(span), speed, " with the plan %s" % Path(args.plan).name if args.plan else "",
+            args.port, data, " (temporary)" if temp and not args.keep else ""))
         sys.stdout.flush()
         code = svc.run()
         if svc.refusal and svc.refusal[0] == "port":

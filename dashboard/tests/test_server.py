@@ -5,10 +5,16 @@ also needs the token, a JSON body and this server's Origin; no path from a reque
 the health check does not carry the token; and the event stream merges, keeps alive, caps."""
 import json
 import logging
+import os
+import re
+import shutil
 import socket
+import tempfile
 import threading
 import time
 import unittest
+from pathlib import Path
+from urllib.parse import quote
 
 import scdash_testlib as lib  # noqa: F401  (puts dashboard/ on sys.path)
 import test_service_helpers as h
@@ -16,6 +22,7 @@ from unittest import mock
 
 from scdash import config, server, winutil
 from scdash.server import CHANGE, PRIVATE, READ, Hub, Server
+from test_service import make_junction
 
 TOKEN = "test-token-not-secret-0123456789abcdef"
 
@@ -499,6 +506,291 @@ class FilesAndToken(ServerCase):
         self.assertNotIn(b"<script>x</script>", body)
 
 
+class RigFiles(ServerCase):
+    """The rig reference's data and images (PLAN §4 item 18) are served from what web/rig/ holds
+    when the server is made, by a strict name rule: with their types, the same bytes as on disk,
+    no token in them, and nothing else under /rig/. The image set changes with the cards, so
+    nothing here names an image."""
+
+    @staticmethod
+    def expected():
+        """web/rig/ by the rule, written out here on its own: rig.json, and lower-case ASCII
+        letters, digits and underscores with .png, plain files."""
+        out = {}
+        for name in os.listdir(config.WEB_DIR / "rig"):
+            p = config.WEB_DIR / "rig" / name
+            if not p.is_file() or p.is_symlink():
+                continue
+            if name == "rig.json":
+                out["/rig/" + name] = "application/json; charset=utf-8"
+            elif re.fullmatch(r"[a-z0-9_]{1,48}\.png", name, re.ASCII):
+                out["/rig/" + name] = "image/png"
+        return out
+
+    def test_each_is_served_with_its_type(self):
+        rig = self.expected()
+        self.assertIn("/rig/rig.json", rig)
+        self.assertGreaterEqual(sum(1 for c in rig.values() if c == "image/png"), 1)
+        self.assertEqual({p for p in self.srv.files if p.startswith("/rig/")}, set(rig))
+        self.assertEqual({p for p in server.FILES}, {"/", "/app.js", "/style.css"}, "no image is named in code")
+        for path, ctype in rig.items():
+            status, hdr, body = h.request(self.port, "GET", path)
+            self.assertEqual(status, 200, path)
+            self.assertEqual(hdr["content-type"], ctype, path)
+            self.assertEqual(body, (config.WEB_DIR / path.lstrip("/")).read_bytes(), path)
+            self.assertEqual(hdr.get("x-content-type-options"), "nosniff")
+            self.assertEqual(hdr.get("cross-origin-resource-policy"), "same-origin")
+            self.assertNotIn(TOKEN.encode(), body)
+            self.assertNotIn("content-security-policy", hdr, "the page's policy is on the page alone")
+        data = json.loads(h.request(self.port, "GET", "/rig/rig.json")[2])
+        self.assertIsInstance(data, dict)
+        some_png = sorted(p for p, c in rig.items() if c == "image/png")[0]
+        status, hdr, body = h.request(self.port, "GET", some_png, host="evil.example:%d" % self.port)
+        self.assertEqual(status, 403, "the Host check holds for them too")
+        status, _, _ = h.request(self.port, "GET", "/rig/rig.json", {"Sec-Fetch-Site": "cross-site"})
+        self.assertEqual(status, 403, "and a foreign page's fetch")
+        self.assertEqual(h.request(self.port, "HEAD", "/rig/rig.json")[0], 405)
+        self.assertEqual(h.request(self.port, "POST", "/rig/rig.json", body={})[0], 405)
+
+    def test_every_image_rig_json_names_is_served(self):
+        """The cards' generator names the images in rig.json; the server serves them by its name
+        rule. An image named otherwise (a hyphen, a capital) would be a 404 on the page."""
+        named = set()
+
+        def walk(x):
+            if isinstance(x, str) and x.lower().endswith(".png"):
+                named.add(x)
+            elif isinstance(x, dict):
+                for v in x.values():
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        walk(json.loads((config.WEB_DIR / "rig" / "rig.json").read_text(encoding="utf-8")))
+        self.assertTrue(named, "rig.json names its images")
+        for name in sorted(named):
+            self.assertIn("/rig/" + name, self.srv.files, "%s: named in rig.json, not served by the rule" % name)
+
+    def test_the_page_policy_allows_images_from_the_server_itself(self):
+        _, hdr, _ = h.request(self.port, "GET", "/")
+        csp = hdr["content-security-policy"]
+        self.assertIn("img-src 'self' data:", csp)
+        self.assertIn("connect-src 'self'", csp, "rig.json is read with fetch()")
+
+    def test_nothing_else_under_rig_is_reachable(self):
+        tricks = ["/rig", "/rig/", "/rig/.", "/rig/./rig.json", "/rig//rig.json", "/rig/RIG.JSON", "/Rig/rig.json",
+                  "/rig/rig.json/", "/rig/rig.json.", "/rig/rig.json%00", "/rig/rig.json%20", "/rig%2frig.json",
+                  "/rig%2Frig.json", "/rig/%72ig.json", "/rig\\rig.json", "/rig/..", "/rig/../app.js",
+                  "/rig/../index.html", "/rig/../../scdash/server.py", "/rig/..%2f..%2fscdash%2fserver.py",
+                  "/rig/%2e%2e/%2e%2e/scdash.py", "/rig/rig.json::$DATA", "/rig/RIG~1.JSO", "/rig/desktop.ini",
+                  "/rig/ab6_base.PNG", "/rig/ab6_base.png.json", "/rig/ab6_base", "/rig/no_such_view_here.png",
+                  "/rig/*", "/rig/?", "/rig/rig.json?../../scdash.py#x", "/web/rig/rig.json", "/./rig/rig.json"]
+        for path in tricks:
+            status, hdr, body = h.request(self.port, "GET", path)
+            if path == "/rig/rig.json?../../scdash.py#x":
+                self.assertEqual(status, 200, "a query is no part of the path")
+                self.assertEqual(body, (config.WEB_DIR / "rig" / "rig.json").read_bytes())
+                continue
+            self.assertEqual(status, 404, path)
+            self.assertNotIn(b"import", body, path)
+            self.assertNotIn(b"PNG", body, path)
+
+
+class RigFolderRule(unittest.TestCase):
+    """The table of rig files is built once, from what a web folder of the test's own holds: a
+    strict name rule, plain files only (a junction or a link is not followed, the rule the data
+    folder has, PLAN §8), bounded in size and number; and a request never reaches the file
+    system for a name the table does not hold."""
+
+    PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 24
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="scdash-rig-"))
+        self.web = self.tmp / "web"
+        (self.web / "rig").mkdir(parents=True)
+        self.servers = []
+        self.warnings = []
+
+    def tearDown(self):
+        for s in self.servers:
+            s.stop()
+        for p in sorted(self.tmp.rglob("*"), key=lambda p: -len(p.parts)):
+            if p.is_dir() and (p.is_symlink() or os.path.isjunction(p)):
+                os.rmdir(p) if os.path.isjunction(p) else p.unlink()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def put(self, name, data=None, folder=None):
+        p = (folder or self.web / "rig") / name
+        p.write_bytes(self.PNG if data is None else data)
+        return p
+
+    def serve(self):
+        lg = logging.getLogger("scdash-test-rig-%x-%d" % (id(self), len(self.servers)))
+        lg.setLevel(logging.DEBUG)
+        lg.propagate = False
+        test = self
+
+        class Grab(logging.Handler):
+            def emit(self, record):
+                test.warnings.append(record.getMessage())
+        lg.addHandler(Grab())
+        srv = Server(h.free_port(), TOKEN, web_dir=self.web, logger=lg, poll_interval=0.05).start()
+        self.servers.append(srv)
+        return srv
+
+    def get(self, srv, path):
+        return h.request(srv.port, "GET", path)
+
+    def test_a_dot_file_is_neither_served_nor_reported(self):
+        # The generator's own .gitattributes sits in web/rig/. It must not be served, and it must
+        # not raise a warning at every start of the service.
+        self.put("rig.json", b'{"views": []}')
+        self.put("a.png")
+        self.put(".gitattributes", b"*.json text eol=lf")
+        self.put(".hidden.png")
+        srv = self.serve()
+        self.assertEqual(self.get(srv, "/rig/a.png")[0], 200)
+        for path in ("/rig/.gitattributes", "/rig/.hidden.png"):
+            self.assertEqual(self.get(srv, path)[0], 404, path)
+        self.assertEqual([w for w in self.warnings if "left out" in w], [], self.warnings)
+
+    def test_the_name_rule(self):
+        self.put("rig.json", b'{"views": []}')
+        good = ["a.png", "view_2.png", "mtq_axes.png", "x" * 48 + ".png"]
+        bad = ["Odd-Name.png", "UPPER.png", "a.PNG", "x.png.bak", "\u00e9t\u00e9.png", "sp ace.png", "notes.txt",
+               ".png", "x" * 49 + ".png", "a.b.png", "rig.json.png", "\uff41.png", "desktop.ini"]
+        for name in good:
+            self.put(name)
+        for name in bad:
+            try:
+                self.put(name)
+            except OSError:
+                pass                                   # a name this file system will not take
+        (self.web / "rig" / "sub").mkdir()
+        self.put("c.png", folder=self.web / "rig" / "sub")
+        (self.web / "rig" / "dir.png").mkdir()          # a folder with an image's name
+        srv = self.serve()
+        rig = {p for p in srv.files if p.startswith("/rig/")}
+        self.assertEqual(rig, {"/rig/rig.json"} | {"/rig/" + n for n in good})
+        for name in good:
+            status, hdr, body = self.get(srv, "/rig/" + name)
+            self.assertEqual((status, hdr["content-type"], body), (200, "image/png", self.PNG), name)
+        for path in ["/rig/" + n for n in bad] + ["/rig/sub/c.png", "/rig/sub", "/rig/dir.png"]:
+            for asked in {path, quote(path)}:         # raw where a request line can carry it, and escaped
+                if " " in asked or not asked.isascii():
+                    continue
+                self.assertEqual(self.get(srv, asked)[0], 404, asked)
+        self.assertEqual(self.get(srv, "/rig/rig.json")[2], b'{"views": []}')
+        self.assertTrue(any("left out" in w and "Odd-Name.png" in w for w in self.warnings), self.warnings)
+
+    def test_bounded_in_size_and_number(self):
+        self.put("rig.json", b"{}")
+        for i in range(6):
+            self.put("v%d.png" % i)
+        self.put("big.png", b"x" * 101)
+        with mock.patch.object(config, "MAX_RIG_IMAGES", 4), mock.patch.object(config, "MAX_RIG_FILE_BYTES", 100):
+            srv = self.serve()
+            self.assertEqual({p for p in srv.files if p.endswith(".png")}, {"/rig/v%d.png" % i for i in range(4)},
+                             "the first four by name; the one over the size bound left out")
+            self.assertEqual(self.get(srv, "/rig/big.png")[0], 404)
+            self.assertEqual(self.get(srv, "/rig/v4.png")[0], 404)
+            # a file that grows past the bound after the start is not sent
+            self.put("v0.png", b"y" * 101)
+            self.assertEqual(self.get(srv, "/rig/v0.png")[0], 404)
+            self.put("v0.png", b"y" * 100)
+            self.assertEqual(self.get(srv, "/rig/v0.png")[2], b"y" * 100, "read fresh: a changed card is served")
+
+    def test_a_name_added_after_the_start_needs_a_restart(self):
+        self.put("rig.json", b"{}")
+        srv = self.serve()
+        self.put("new_view.png")
+        self.assertEqual(self.get(srv, "/rig/new_view.png")[0], 404, "the table is fixed at the start")
+        again = self.serve()
+        self.assertEqual(self.get(again, "/rig/new_view.png")[0], 200)
+
+    def test_a_junction_for_the_folder_is_not_followed(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        self.put("rig.json", b'{"outside": true}', folder=outside)
+        self.put("a.png", folder=outside)
+        (self.web / "rig").rmdir()
+        if not make_junction(self.web / "rig", outside):
+            self.skipTest("no junction could be made here")
+        srv = self.serve()
+        self.assertEqual({p for p in srv.files if p.startswith("/rig/")}, set())
+        for path in ("/rig/rig.json", "/rig/a.png"):
+            self.assertEqual(self.get(srv, path)[0], 404, path)
+        self.assertTrue(any("junction" in w for w in self.warnings), self.warnings)
+
+    def test_a_folder_swapped_for_a_junction_after_the_start_is_not_followed(self):
+        self.put("rig.json", b'{"inside": true}')
+        self.put("a.png")
+        srv = self.serve()
+        self.assertEqual(self.get(srv, "/rig/a.png")[0], 200)
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        self.put("rig.json", b'{"outside": true}', folder=outside)
+        self.put("a.png", b"\x89PNG outside", folder=outside)
+        (self.web / "rig").rename(self.tmp / "rig-moved")
+        if not make_junction(self.web / "rig", outside):
+            self.skipTest("no junction could be made here")
+        for path in ("/rig/rig.json", "/rig/a.png"):
+            status, _, body = self.get(srv, path)
+            self.assertEqual(status, 404, path)
+            self.assertNotIn(b"outside", body)
+
+    def test_a_junction_inside_the_folder_is_not_served(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        self.put("rig.json", b"{}")
+        if not make_junction(self.web / "rig" / "j.png", outside):
+            self.skipTest("no junction could be made here")
+        srv = self.serve()
+        self.assertNotIn("/rig/j.png", srv.files)
+        self.assertEqual(self.get(srv, "/rig/j.png")[0], 404)
+
+    def test_a_hard_link_is_not_served(self):
+        """K: a hard link is no reparse point, and its data can be anywhere on the volume (the data
+        folder's run.json, with the token): only a file with a single link is served, at the
+        start and on each request."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        secret = outside / "run.json"
+        secret.write_bytes(b'{"token": "not for a page"}')
+        self.put("rig.json", b"{}")
+        self.put("a.png")
+        try:
+            os.link(secret, self.web / "rig" / "hardlink.png")
+        except OSError:
+            self.skipTest("no hard link could be made here")
+        srv = self.serve()
+        self.assertNotIn("/rig/hardlink.png", srv.files)
+        self.assertEqual(self.get(srv, "/rig/hardlink.png")[0], 404)
+        self.assertEqual(self.get(srv, "/rig/a.png")[0], 200)
+        self.assertTrue(any("hardlink.png" in w for w in self.warnings), self.warnings)
+        for name in ("a.png", "rig.json"):            # a served name replaced by a hard link after the start
+            (self.web / "rig" / name).unlink()
+            os.link(secret, self.web / "rig" / name)
+            status, _, body = self.get(srv, "/rig/" + name)
+            self.assertEqual(status, 404, name)
+            self.assertNotIn(b"token", body)
+
+    def test_the_scan_of_the_folder_is_bounded(self):
+        self.put("rig.json", b"{}")
+        for i in range(10):
+            self.put("v%d.png" % i)
+        with mock.patch.object(server, "RIG_SCAN_MAX", 5):
+            srv = self.serve()
+        self.assertLessEqual(len([p for p in srv.files if p.startswith("/rig/")]), 5)
+        self.assertTrue(any("more than 5 entries" in w for w in self.warnings), self.warnings)
+
+    def test_no_rig_folder_serves_the_page_alone(self):
+        (self.web / "rig").rmdir()
+        srv = self.serve()
+        self.assertEqual(set(srv.files), set(server.FILES))
+        self.assertEqual(self.warnings, [])
+
+
 class Binding(unittest.TestCase):
     def test_a_second_server_cannot_take_the_port(self):
         a = Server(h.free_port(), TOKEN, poll_interval=0.05).start()
@@ -658,6 +950,29 @@ class EventStream(ServerCase):
     def test_payload_must_be_one_line(self):
         with self.assertRaises(ValueError):
             self.hub.publish('{"a":\n1}')
+
+    def test_a_lone_surrogate_cannot_break_a_page_stream(self):
+        """Each page's thread encodes the payload; a code point UTF-8 cannot encode would raise
+        there on every reconnect, and the page would never get a state (stage 3 review)."""
+        self.hub.publish('{"t":"a\ud800b"}')
+        self.assertEqual(self.hub.latest, '{"t":"a\ufffdb"}')
+        c = Stream(self.port)
+        try:
+            self.assertTrue(h.wait_until(lambda: c.data(), 3), "the page gets it")
+            self.assertEqual(json.loads(c.data()[0]), {"t": "a\ufffdb"})
+            self.hub.publish('{"n":2}')
+            self.assertTrue(h.wait_until(lambda: c.data()[-1] == '{"n":2}', 3), "and the stream stays up")
+        finally:
+            c.close()
+
+    def test_answers_are_always_valid_json(self):
+        self.srv.route("GET", "/api/odd", lambda r: (200, {"t": "a\ud800", "n": float("nan")}), READ)
+        status, hdr, body = h.request(self.port, "GET", "/api/odd")
+        self.assertEqual(status, 200)
+
+        def no_constant(name):
+            raise ValueError(name)
+        self.assertEqual(json.loads(body.decode("utf-8"), parse_constant=no_constant)["n"], None)
 
     def test_stop_ends_the_streams(self):
         c = Stream(self.port)

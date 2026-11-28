@@ -19,12 +19,24 @@ from test_service import make_junction
 
 LIVE_FILES = ("run.json", "state.json", "service.log", "service.log.1", "unmapped.json", "stopped.json",
               "config.json", "sessions", "replay")
+# What the live instance itself writes in dashboard/data/ while it runs (its saves, its log and
+# the log's rotation, unmapped codes, a summary when a session ends).
+LIVE_WRITES = ("state.json", "service.log", "service.log.1", "unmapped.json", "sessions")
 
 
 def live_data_snapshot():
-    """What a replay could write in dashboard/data/: presence and modification time of each."""
+    """What a replay could write in dashboard/data/: presence and modification time of each.
+
+    While the live instance runs (its lock for dashboard/data is held: a named mutex, nothing in
+    the folder is opened), the files it writes itself are left out, or its own save during the
+    test fails it (seen 2026-11-28, with the game running). `replay/`, `run.json`,
+    `stopped.json` and `config.json` are compared either way, and a replay that used this folder
+    would write `replay/source.log` before anything else."""
+    live = service.Paths(config.DATA_DIR).lock().held_elsewhere()
     out = {}
     for name in LIVE_FILES:
+        if live and name in LIVE_WRITES:
+            continue
         p = config.DATA_DIR / name
         out[name] = p.stat().st_mtime_ns if p.exists() else None
         if p.is_dir():
@@ -57,6 +69,10 @@ class Replay(unittest.TestCase):
         self.inst.write_log(h.log_bytes())
         r = h.cli("start", *self.inst.args(process="nosuchgame.exe"))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        # `start` returns once the health check answers, which can be before the instance's first
+        # read of the log is done and logged; its first message comes after those lines (with no
+        # game). Counted earlier, its own start-up lines failed the count below (seen 2026-11-28).
+        self.assertTrue(h.wait_until(lambda: h.state(self.inst.port), 15), "the instance's first message")
         live_run = service.read_json(self.inst.data / "run.json")
         live_log_lines = (self.inst.data / "service.log").read_text(encoding="utf-8").count("\n")
 
@@ -92,6 +108,70 @@ class Replay(unittest.TestCase):
         self.assertEqual((self.inst.data / "service.log").read_text(encoding="utf-8").count("\n"), live_log_lines)
         # and dashboard/data/ is as it was
         self.assertEqual(live_data_snapshot(), live_before)
+
+    def test_the_board_follows_the_replay_and_a_plan_reaches_it(self):
+        """Stage 3: `replay` drives the board too, on the replay's clock; `--plan` copies a plan
+        into the replay's own folder (data/replay/plan.json), and without it there is none."""
+        data = self.inst.dir / "replay-data"
+        port = h.free_port()
+        example = lib.DASHBOARD / "plan.example.json"
+        p = self.replay(h.RUN_A, "--minutes", "0.12", "--port", port, "--data", data, "--plan", example,
+                        "--exit-at-end")
+        seen = []
+        end = time.monotonic() + 30
+        while p.poll() is None and time.monotonic() < end:
+            try:
+                st = h.state(port)
+            except (service.NotListening, OSError, ValueError):
+                st = None
+            if st and st.get("board"):
+                b = st["board"]
+                seen.append((b["view"]["name"], b["plan"]["loaded"], b["plan"]["run"]))
+            time.sleep(0.1)
+        out, err = p.communicate(timeout=30)
+        self.assertEqual(p.returncode, 0, out + err)
+        self.assertIn("with the plan plan.example.json", out)
+        self.assertTrue(seen, "the stream carried a board")
+        self.assertTrue(all(s[1] for s in seen), "the plan is in every board: %s" % seen[:3])
+        self.assertTrue(all(s[2] for s in seen), "with its current run")
+        views = [s[0] for s in seen]
+        self.assertGreaterEqual(len(set(views)), 2, "the view follows the replay: %s" % views)
+        self.assertEqual((data / "replay" / "plan.json").read_bytes(), example.read_bytes())
+        # again in the same (kept) folder without --plan: the copy is gone, there is no plan
+        p = self.replay(h.RUN_A, "--speed", "5000", "--port", h.free_port(), "--data", data, "--exit-at-end")
+        out, err = p.communicate(timeout=60)
+        self.assertEqual(p.returncode, 0, out + err)
+        self.assertFalse((data / "replay" / "plan.json").exists())
+        log = (data / "service.log").read_text(encoding="utf-8")
+        self.assertIn("plan.json: there is no plan.json yet", log.split("mode replay")[-1])
+
+    def test_a_plan_that_cannot_be_read_is_refused(self):
+        r = h.cli("replay", h.RUN_A, "--port", h.free_port(), "--data", self.inst.dir / "rd",
+                  "--plan", self.inst.dir / "no-such-plan.json", "--speed", "5000", "--exit-at-end")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("cannot be read", r.stdout + r.stderr)
+
+    def test_a_plan_over_the_size_bound_is_refused(self):
+        big = self.inst.dir / "big-plan.json"
+        big.write_bytes(b" " * ((1 << 20) + 1))
+        r = h.cli("replay", h.RUN_A, "--port", h.free_port(), "--data", self.inst.dir / "rd", "--plan", big,
+                  "--speed", "5000", "--exit-at-end")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("larger than", r.stdout + r.stderr)
+        self.assertFalse((self.inst.dir / "rd" / "replay" / "plan.json").exists())
+
+    def test_a_plan_is_never_copied_through_a_link(self):
+        data = self.inst.dir / "replay-data"
+        (data / "replay").mkdir(parents=True)
+        outside = self.inst.dir / "outside"
+        outside.mkdir()
+        if not make_junction(data / "replay" / "plan.json", outside):
+            self.skipTest("no junction could be made here")
+        r = h.cli("replay", h.RUN_A, "--port", h.free_port(), "--data", data, "--speed", "5000", "--exit-at-end",
+                  "--plan", lib.DASHBOARD / "plan.example.json")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("junction", r.stdout + r.stderr)
+        self.assertEqual(os.listdir(outside), [])
 
     def test_page_while_replaying(self):
         data = self.inst.dir / "replay-data"

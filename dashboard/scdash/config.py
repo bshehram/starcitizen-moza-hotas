@@ -15,7 +15,7 @@ DATA_DIR = DASHBOARD_DIR / "data"                      # git-ignored: the only p
 REFERENCE_DIR = DASHBOARD_DIR / "reference"            # generic game data, committed
 LOCATIONS_FILE = REFERENCE_DIR / "locations.json"
 SESSIONS_DIR = DATA_DIR / "sessions"                   # session summaries (written from stage 2 on)
-UNMAPPED_FILE = DATA_DIR / "unmapped.json"             # location codes with no known name (stage 2)
+UNMAPPED_FILE = DATA_DIR / "unmapped.json"             # location codes and contracts with no known entry
 
 LIVE_ENV = "SCDASH_LIVE"
 
@@ -100,6 +100,26 @@ MAX_UNMAPPED = 2000                  # codes kept in data/unmapped.json
 RUN_JSON_RETRY_SECONDS = 2.0         # between tries at an unwritable run.json
 RUN_JSON_GIVE_UP_SECONDS = 20.0      # then the instance stops (exit 3): nothing could find or stop it
 SERVER_CHECK_SECONDS = 10.0          # the main loop looks at the server's thread at least this often
+
+# Stage 3 in the service: the plan, the board, what the user changes on the page.
+PLAN_NAME = "plan.json"              # data/plan.json, written by Claude, only read here
+PLAN_CHECK_SECONDS = 1.0             # plan.json is looked at on a loop turn at most this often (one stat)
+MAX_UNMAPPED_CONTRACTS = 500         # contracts kept in data/unmapped.json (each up to ~1 KB)
+CATCH_UP_PUBLISH_SECONDS = 2.0       # while catching up on a large log, a half-read state goes out at most this often
+CHANGE_LOCK_SECONDS = 5.0            # a change from the page waits this long for the main loop, then 503
+MAX_USER_OPS = 100                   # changes kept to merge into a state.json that could not be read yet
+ERROR_FULL_AGAIN_SECONDS = 3600.0    # a repeating error is logged in full again at most this often
+MAX_ERROR_KINDS = 50                 # distinct errors remembered for that
+MAX_PROBLEM_SETS = 100               # distinct sets of board problems logged, once each
+MAX_USER_EXTRA_KEYS = 32             # keys of the user block beside timers and view, kept for later stages
+MAX_USER_EXTRA_BYTES = 16 * 1024     # those keys together, as JSON
+MAX_USER_EXTRA_DEPTH = 16            # how deep one of them may nest
+MAX_DATA_FILE_BYTES = 32 << 20       # state.json or unmapped.json larger than this is moved aside, not read
+SHUTDOWN_LOCK_SECONDS = 30.0         # the last save waits this long for a change in flight
+SHUTDOWN_SAVE_SECONDS = 30.0         # ... and this long for its write (and one in flight) to end
+MAX_DAMAGED_COPIES = 5               # state.damaged.json and state.damaged-2..5.json (the same for unmapped)
+MAX_RIG_IMAGES = 64                  # images served from web/rig/ (the cards make about ten)
+MAX_RIG_FILE_BYTES = 1 << 20         # each file served from web/rig/ (the images are 7 to 23 KB, rig.json 12 KB)
 
 
 def load_settings(data_dir, overrides=None):

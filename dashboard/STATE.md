@@ -33,8 +33,9 @@ Every text has been through the state's scrubber: another player's name reads "a
 the user's handle "you", and no control or bidirectional character is left (PLAN §8). Every text
 is at most 300 characters (`board.MAX_TEXT`; longer ones end in "…"). Every list is bounded.
 
-The service sends it beside today's message parts (`service`, `clock`, `flags`, `state`); the
-suggested key is `board`. The page then takes its alerts from `board.alerts` only: they already
+The service sends it as `board`, beside the stage 2 message parts (`service`, `clock`, `flags`,
+`state`): the last section, "The message and the endpoints", has the whole message and the four
+changes the page can ask for. The page then takes its alerts from `board.alerts` only: they already
 hold the preflight, downed and hangar alerts the stage 2 page builds by itself, so drop those.
 `state.alerts`, `state.timers`, `state.plan` and `state.view` stay empty.
 
@@ -623,3 +624,153 @@ New keys, all scrubbed like the rest: `tally` (`destroyed`, `crippled`, `lost`, 
 `zone` gains `monitored_down` and `t`; `monitored_down` is reset on a return to the menu, a
 server join and a disconnect. An open quantum target is closed by a return to the menu, a
 disconnect, a server join and a respawn, so it no longer brings the Travel view back.
+
+## The message and the endpoints
+
+*Added 2026-11-28 with the service's wiring (`scdash/service.py`, `scdash/server.py`), and
+corrected after its review's fix round the same day. Read from the code and checked by
+`tests/test_wiring.py`, `tests/test_server.py` and three real sessions replayed through the
+service; every answer quoted in the endpoint table below was also seen from a running instance
+(a temporary data folder, a free port, a sample log, 2026-11-28), except the 503s, whose windows
+are too short to hit by hand: those are read from the code and checked by `test_wiring`
+(`FirstRead`, `StopAndChanges`, `LockAndCatchUp`).*
+
+### The message
+
+One event-stream message (`event: state`, one JSON line) on `GET /api/stream`, and the same text
+on `GET /api/state`:
+
+```json
+{"service": {"mode": "live", "pid": 4242, "started": "2026-11-26T23:05:00.000Z", "game_running": true,
+             "game_since": "2026-11-26T23:11:20.000Z", "log_found": true, "replay": null, "terminal": false},
+ "clock": {"rate": 1.0, "real": 0, "virtual": 0, "session_end": null},
+ "flags": {"hangar_stuck": false},
+ "state": {"schema": 1, "session": {"…": "…"}, "feed": ["…"], "…": "…"},
+ "board": {"schema": 1, "view": {"name": "mining", "…": "…"}, "model": {"…": "…"}, "…": "…"}}
+```
+
+| Key | What it is |
+| --- | --- |
+| `service` | `mode` (`live` or `replay`), `pid` and `started` (which instance sent it: the page reloads itself when they change, because a restarted service has a new token), `game_running`, `game_since`, `log_found`, `replay` (null live; in a replay `{"source", "speed", "from", "to", "done"}`), `terminal` (the terminal region is laid out). |
+| `clock` | The page's "now" is `virtual + (Date.now() - real) * rate`: the system clock live (`rate` 1, `real` and `virtual` 0), the replay's clock in a replay (`rate` 0 once the replay is over). `session_end`: milliseconds, once the game is not running, else null. |
+| `flags` | Facts that need the clock and are not in the board: `hangar_stuck`. |
+| `state` | `State.to_dict(private=False)`: the stage 2 state, with the stage 3 additions above. |
+| `board` | The payload this file describes, **never null**. If `board.build` itself raised (it is documented never to), or returned something JSON cannot hold, it is the failed payload's shape, with the same keys as any other: an empty Now view, `view.rule` `"error"`, `strip` null, `timers` and `alerts` empty, and `problems` `["service: <exception type>"]`; the service builds it again a minute later, not before. |
+
+When a message is sent:
+
+- Only when its text differs from the last one, and merged to at most two a second per page
+  (`push_min_seconds`). `retry: 3000` comes first, a comment line every 15 s, at most 4 pages on
+  the stream at once (`max_pages`). A fifth gets a 503, which an EventSource does not retry by
+  itself: `app.js` tries again every 5 s. Every open tab on the dashboard holds one of the four,
+  and a browser allows about six connections to one address across all its tabs.
+- The board is built again only when one of its inputs changed (an event applied to the state, a
+  session that ended in the same file, `plan.json`'s plan or notice, the user block, whether the
+  game runs) or when the service's clock has reached the last payload's `next_change_ms`. Bytes
+  read that make no event change nothing.
+- `plan.json` is looked at once a second while the game runs and about every 10 s when it does
+  not (one `stat`; it is read only when its size or time changed).
+- **Nothing half-read.** While the service catches up on a large log (a restart in the middle of
+  a session), no message goes out for the first 2 s, then one every 2 s at most: an alert that
+  ended long ago (a downing) must not flash up. A catch-up that long needs a log of a few hundred
+  MB, and its messages every 2 s are half-read ones. With the game running, the first message
+  comes after the first read (no game: after the last log has been read once), so a page never
+  gets an empty state from a restarted service, and the four changing routes answer 503 until
+  then (below), so no change can publish a board built on nothing.
+- **Every text encodes and every number parses.** A lone surrogate from a plan, `state.json` or a
+  request body (`"\ud800"` is valid JSON) is sent as U+FFFD, and a number that is not finite as
+  null, so the browser's `JSON.parse` never fails on a message. The same holds for every answer
+  below and every file the service writes.
+
+### The endpoints
+
+Every request needs exactly one `Host` of `127.0.0.1:<port>` or `localhost:<port>`, and a
+`Sec-Fetch-Site` other than `same-origin` or `none` is refused on every route. A **changing**
+request also needs the `X-SCDash-Token` header (the page has the token in
+`<meta name="scdash-token">`; it is never accepted in a URL), an `Origin` of this server, exactly
+one `Content-Type: application/json`, a `Content-Length` of ASCII digits, and a body that is a
+JSON object with exactly the listed fields (an unknown or a missing one is a 400).
+
+| Method and path | Body | Answer (200) |
+| --- | --- | --- |
+| `GET /`, `/app.js`, `/style.css` | - | The page; the HTML carries the token and the Content-Security-Policy below. |
+| `GET /rig/rig.json` | - | The rig reference's data (`application/json`), written by `tools/regen_cards.py`. |
+| `GET /rig/<name>.png` | - | A diagram, for each view's `image` in `rig.json`. Take the names from `rig.json`; do not write them into the page. |
+| `GET /api/health` | - | `{"program": "scdash", "pid", "started"}` and nothing else. |
+| `GET /api/status` | - | The instance's figures (what `scdash.py status --json` prints under `status`), with `session` `{id, game, last_event, events, unreadable, withheld}` (`withheld`: notices of a shape that may name a player, not read), `board` `{view, auto, rule, why, picked, builds, next_change, problems, problem_list}`, `plan` `{path, loaded, notice, updated, run}`, `user` `{read, quick_timers, pick}` and `reference_tables`. Every path in it (`data_dir`, `python`, `log.path`, `plan.path`) shows the user's profile folder as `%USERPROFILE%`, which keeps the Windows user name out. |
+| `GET /api/state` | - | The last message, or 503 `{"error": "no state yet"}` before the first one. |
+| `GET /api/stream` | - | The event stream above. |
+| `POST /api/view` | `{"view": "<name>"}`, one of `now`, `travel`, `mining`, `salvage`, `combat`, `cargo`, `mission`, `refinery`, `selling`, `preflight`, `idle`, `reference` | `{"ok": true, "view": {"name", "auto", "picked"}}`. Any other name is a 400 that lists the twelve. **503** `{"error": "still reading the log: pick again in a moment"}` while the service is catching up on a large log: a pick is kept under the context it was made in, and on a half-read state it would be dropped at once. |
+| `POST /api/view/live` | `{}` | `{"ok": true, "had_pick": <bool>, "view": {...}}`: the hand pick (the reference cards included) is forgotten and the rules choose again. `had_pick` says whether the user block held now had a pick; while `state.json` is unread, the change is recorded anyway and applies to the file's pick once it is read, so `false` then does not mean nothing will be dropped. |
+| `POST /api/timers/add` | `{"label": "<1 to 60 characters>", "minutes": <0.5 to 1440>}` (a number; `true` is not one) | `{"ok": true, "timer": {"id", "label", "ready_at"}, "view": {...}}`. The `id` is `quick:q<ms>`, or `quick:q<ms>-<n>` when that one is taken: keep the one the answer or the payload gives. Lone surrogates are taken out of the label, and control and bidi characters too (the answer's `label` is the cleaned one). 400 `"label must be a text of 1 to 60 characters"` for one longer, empty or only spaces (before or after the surrogates go); 400 `"label must have at least one visible character"` for one with no letter, digit, punctuation or symbol (only zero-width characters, a soft hyphen, tag characters or a combining mark alone, for example). At most 10 quick timers: the oldest goes. |
+| `POST /api/timers/remove` | `{"id": "quick:<id>"}`, the `id` the payload's timer carries (`quick:` and 1 to 48 of `A-Z a-z 0-9 _ . : -`, else a 400) | `{"ok": true, "removed": <bool>, "view": {...}}`. Removing one that is not there is no error. `removed` says whether the user block held now had it; while `state.json` is unread, the removal is recorded anyway and applies to the file's timers once it is read. |
+| `POST /api/shutdown` | `{"reason": "<text>"}` (optional) | `{"ok": true, "pid"}`; the service stops. For the commands, not the page. |
+
+**The four changing routes can also answer 503**, each as `{"error": "<reason>"}`, and each means
+"nothing was changed: try again in a moment":
+
+| Reason | When |
+| --- | --- |
+| `still reading the log: try again in a moment` | Before the service's first read of the log has reached its end (with the game running, the first message comes then; after a restart mid-session that can be the whole catch-up). A change made on an empty state would publish a board built on nothing. A first read that fails counts as done (with no game, once its retry on the next turn fails too), and so does one that reached the end in a turn that failed afterwards, so a failing log or a failing later step never locks the page out. |
+| `shutting down` | Once a stop has been asked for (`stop`, the shutdown endpoint, a signal). A change already being made then is finished and is in the last save (unless that save's write does not end within 30 s: the stop does not wait longer). |
+| `busy reading the log: try again in a moment` | The service's main loop held its lock for more than 5 s: it reads the rest of a log in one turn when the game exits, and the last log at start with no game. Only a log of hundreds of MB takes that long (not measured). |
+| `still reading the log: pick again in a moment` | `/api/view` only, while catching up (the row above). |
+
+`view` in an answer is the view the page will be shown after the change: the next message
+carries the change already, and normally `state.json` has it on disk before the answer goes
+out. The answer waits for that write (and for one already in flight), but the write is made
+outside the main loop's lock, so a slow save of `state.json` delays answers and never the loop or
+another change's turn under the lock. Rarer writes still run under the lock (`unmapped.json` when
+something new is first seen, a session summary): a change can wait behind one (2.7 s behind a
+mocked 3 s write, the review's second round), and past 5 s it gets the "busy" 503.
+
+**A 200 does not always mean on disk.** It means the change was made: it is kept in memory and
+in the next message, and it is written when a save next succeeds. Three cases where it is not on
+disk yet when the answer goes out:
+
+- **While the service catches up on a large log**, after its first read: the board is rebuilt,
+  the message sent and the file saved once it has caught up (or with the next half-read message
+  2 s later), so the answer's `view` can be the one before.
+- **When saves of `state.json` fail** (the file held by another program, a full disk), the
+  change's own write included: the answer is 200 all the same, and the loop tries the save again
+  every 10 s (`state_save_seconds`) until one succeeds; a change made while saves are failing
+  does not try a write of its own.
+- **While `state.json` cannot be read yet** (held without sharing, a folder in its place, or
+  damaged and not yet moved aside): it is never saved over unread. The change is in the next
+  message and is recorded (the last 100 changes), then applied, in order, on top of what the file
+  holds once it can be read, and saved.
+
+**Errors.** Every error answer is `{"error": "<reason>"}`:
+
+| Status | When |
+| --- | --- |
+| 400 | A bad target; a body cut short, not JSON, nested too deeply, not an object; a field missing, unknown or out of range (the reason names it); a timer label with no visible character. |
+| 403 | A wrong or doubled `Host`; a `Sec-Fetch-Site` from another site; a wrong, doubled or (on a change) missing `Origin`; the token missing, doubled or wrong. |
+| 404 | No such path (a request path is only looked up in a fixed table: no file outside it can be reached). |
+| 405 | A method the path does not take (`HEAD` included). |
+| 411 | No `Content-Length`, or one that is not ASCII digits. |
+| 413 | A body over 64 KB. |
+| 415 | No `Content-Type: application/json`, or two of them. |
+| 431 | A request head over 16 KB or 40 header lines. |
+| 503 | Busy or not ready: 16 requests at once; 4 pages on the stream; `/api/state` before the first message; on a changing route, the four reasons in the table above (before the first read, shutting down, the lock held over 5 s, a pick while catching up). Try again. |
+| 500 | A fault in the handler (logged). |
+
+**From the page.** `window.scdash.post(path, body)` sends a changing request with the token and
+resolves to the parsed JSON answer **whatever the status**: check `answer.ok` (or
+`answer.error`), not whether the promise was fulfilled. It rejects only when no answer came (the
+service is gone; the stream's banner shows that too).
+
+**The content policy** sent with the page: `default-src 'none'; script-src 'self'; style-src
+'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none';
+frame-ancestors 'none'`. So the page may load `/rig/*.png` and fetch `/rig/rig.json` from the
+server itself, and nothing from anywhere else; no inline script or `style` attribute (set a meter
+with `element.style.setProperty("--v", fill)`). Proved in headless Edge on 2026-11-28: both
+images loaded, `rig.json` fetched, and an image and a fetch from another origin were blocked
+with a policy violation each.
+
+**The rig files** are the ones in `web/rig/` when the service started: `rig.json`, and each
+image named in lower-case ASCII letters, digits and underscores with `.png`, a plain file of at
+most 1 MB (64 images at most). A plain file is not a junction, a symbolic link or any other
+reparse point, and has a single name: a hard link is not served either, at the start or at a
+request. A file changed under the same name is served fresh at once; a new or renamed image is
+served only after the service is restarted (`stop`, then `start`).
