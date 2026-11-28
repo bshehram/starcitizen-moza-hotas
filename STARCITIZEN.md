@@ -111,6 +111,11 @@ at `LIVE\user\client\0\controls\mappings`.
   projects. If someone's tool would do a job, it has to be open source and we build or run it
   from source ourselves; a project with no license doesn't count as open source. Otherwise we
   build our own.
+- **Subagents: Opus 5.5 by default, Fable 5.2 for advanced design and research.** Run every
+  subagent at xhigh effort. Opus 5.5 is the general workhorse and does the implementation:
+  building, fixing, checking. Start a subagent on Fable 5.2 when the task is advanced design or
+  research, such as laying out a dashboard page or a deep dive into community tools or the
+  game's data. Choose per task, by what the task needs.
 - **The repo is public; memory is not.** Account details, the game plan link, and PC details
   beyond what the bindings need (the rig and its USB wiring are already in `CLAUDE.md`) stay in
   memory. Keep my name, email and machine details out of web requests as well.
@@ -139,7 +144,7 @@ Go ahead with these without asking:
 - installing ordinary dev tools such as pip packages (tell me what you installed);
 - searching the web, reading public pages, and fetching game data from the sources memory lists
   as scriptable;
-- starting subagents.
+- starting subagents (the *Subagents* line above says on which model).
 
 Ask me before these:
 

@@ -254,8 +254,10 @@ Claude's memory. Checked that evening **[seen]**:
 ### How the build is run
 
 The user asked for it to be orchestrated (2026-11-27): one session plans and reviews, and
-subagents do the work, every one of them Opus 5.5 at the highest effort setting but one
-("xhigh"), each in a context of its own.
+subagents do the work, each in a context of its own and each at the highest effort setting but
+one ("xhigh"). **Which model (the user, 2026-11-28):** Opus 5.5 by default, as the workhorse for
+building, fixing and checking; Fable 5.2 where the task is advanced design or research, such as
+laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
 
 - **One stage, one builder.** Its brief names the files it owns, the rules that are easy to
   break, a "done when" that can fail, and the shape of its report. It never commits.
