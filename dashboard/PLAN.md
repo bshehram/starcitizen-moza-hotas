@@ -481,8 +481,17 @@ evening, see "The first recording" below].**
   - **Against the quirks below:** `vtol` did **not** always read deployed here: it went
     through `DEPLOYED`, `RETRACTING`, `RETRACTED` and `DEPLOYING`, in a ship that has VTOL.
     `quantum_fuel` never appeared, which fits "always 0". Altitude read 3.4e38 in space, as
-    reported. Coupled stayed on throughout (`enabled` and `active` both), so which of the two
-    means decoupled is still open: the user has to flip it once during a recording.
+    reported. Coupled stayed on throughout (`enabled` and `active` both).
+  - **Decoupled and VTOL, settled in a second recording [seen 2026-11-27, 6:03 PM, the user
+    flipping both on request].** When the ship is decoupled, `ifcs_coupled.enabled` and
+    `ifcs_coupled.active` both stop being sent, within a tenth of a second of each other, and
+    both come back together when it is coupled again (seen twice each way). So the dispute
+    between other tools over which of the two means decoupled does not matter in this build:
+    either works, and absent means decoupled. `vtol` followed the switch truthfully:
+    `RETRACTED`, `DEPLOYING` for two seconds, `DEPLOYED`, then `RETRACTING` for two seconds and
+    `RETRACTED`. One thing to ask the user before leaning on it: coupled came back one second
+    after VTOL finished deploying, and went off again one second after it began retracting.
+    Either the user pressed it then, or the game couples the ship by itself while VTOL is out.
   - Nothing in it gives a position, a location name, a shield or hull value, or a quantum
     state, as the layout said.
 - **Quirks other tools recorded on the live build [ref: Starglance's `docs/FIELDS.md`, CSR's
