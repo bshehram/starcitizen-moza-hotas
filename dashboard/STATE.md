@@ -35,9 +35,9 @@ is at most 300 characters (`board.MAX_TEXT`; longer ones end in "…"). Every li
 
 The service sends it as `board`, beside the stage 2 message parts (`service`, `clock`, `flags`,
 `state`): the last section, "The message and the endpoints", has the whole message and the four
-changes the page can ask for. The page then takes its alerts from `board.alerts` only: they already
-hold the preflight, downed and hangar alerts the stage 2 page builds by itself, so drop those.
-`state.alerts`, `state.timers`, `state.plan` and `state.view` stay empty.
+changes the page can ask for. The page (`web/app.js`, since 2026-11-28) takes its alerts from
+`board.alerts` only: they hold the preflight, downed and hangar alerts the stage 2 page built by
+itself. `state.alerts`, `state.timers`, `state.plan` and `state.view` stay empty.
 
 ## Conventions
 
@@ -91,7 +91,8 @@ does, and a change of context, a restart of the service or the end of the sessio
 It stays until the user picks Live. Alerts and timers are built as on any view, and `view.auto`
 says what the rules would show, so the page can offer the way back. Its model is
 `{"view": "reference", "mode": "mining", "auto": "mining"}`: the cards themselves are a static
-file the page loads; `mode` is the tab to open them on.
+file the page loads; `mode` is the tab to open them on. That file (`/rig/rig.json`, schema 2, and
+the eight images it names) is described field by field in [`RIG.md`](RIG.md).
 
 The rules, first that fits (`scdash/rules.py`, `RULES`): no game running → `idle`; starting or at
 the main menu → `preflight`; downed or dead → `combat` when a combat contract is active (the
@@ -182,7 +183,7 @@ them one place. A quick timer drops out of the list 30 minutes after it is due.
 | Key | Notes |
 | --- | --- |
 | `loaded` | Whether a plan is in use (the last good copy counts). |
-| `notice` | A short text when something is wrong, such as `"plan.json is not valid JSON (line 3); showing the last good copy (updated Nov 26, 5:30 PM)"`, `"plan.json cannot be read now (PermissionError)"` (tried again on the next refresh) or `"there is no plan.json yet"`; null when all is well. Show it small. Its time is in the computer's zone, not `tz`. |
+| `notice` | A short text when something is wrong, such as `"plan.json: left out because they do not fit the shape: current_run (not a run id), 1 text (cut to length), 1 key (not in the plan's shape), 1 entry in legs, 2 numbers (out of range or not a number), 1 time (not readable), 1 value (a status, kind, view or id the shape does not allow)"` (every value left out or changed on the way is counted, by kind; a key the shape does not have, a misspelled one and `run` given beside `runs` count as keys, an empty location code and a `schema` other than 1 count too, and a key that starts with `_` is a comment), `"plan.json is not valid JSON (line 3); showing the last good copy (updated Nov 26, 5:30 PM)"`, `"plan.json cannot be read now (PermissionError)"` (tried again on the next refresh) or `"there is no plan.json yet"`; null when all is well. Show it small. Its time is in the computer's zone, not `tz`. |
 | `updated`, `updated_text` | The plan's own `updated` time, or null. |
 | `run`, `run_kind` | The current run's name and kind, or null. |
 
@@ -562,21 +563,77 @@ amount.
   ones, then the oldest; the newest is never dropped.
 - **Other players' names.** A name is cleaned of control and bidi characters before it is
   stored. Up to 1,000 are kept; past that the oldest 500 are forgotten, but only after every
-  text the state and the reader's feed still hold has had them replaced by "another player"
-  (with one pattern of all the names, so a handle is replaced whole). A forgotten name met later
-  in a text that teaches nothing is still hidden in output while it is among the last 50,000
-  forgotten (kept as 8-byte hashes, 0.8 MB at most; only handle-shaped names, letters, digits,
-  `_` and `-`). A name met again is learned again.
-- **Law and comms notices with a name in them** (the game's shapes are listed in
-  `scdash/law.py`). The state words each without the other party's name: "Crime committed:
-  Trespassing against someone", "Attacked: another player committed Assault against you",
-  "Victim: someone". A crime's name is shown only when it is made of the words of the game's
-  crime names, else "a crime". A notice that reads like one of these but fits no known shape is
-  shown as "A law notice the dashboard does not show (it may name a player)" or "A comms notice
-  …". A word from these notices is learned as a name only when it can be a handle (letters,
-  digits, `_`, `-`, 3 or more) and is no word of a place, jurisdiction, maker, ship, commodity,
-  shop or contract giver in the reference tables, nor of a short stoplist ("the", "your",
-  "player", "security"…): a victim of more than one word is never learned.
+  text the state still holds has had them replaced by "another player", with one pattern of all
+  the names, so a handle is replaced whole (names that differ only in case, or in letters the
+  pattern takes as equal such as a long s and an s, share the pattern, so a kept "Bob_Q" never
+  cuts a kept "bob_q-Smith" in two). The reader's lines lose them too: the lines waiting for
+  `take_lines()` at once, its list of every line (`timeline`) when the list is next read. When a
+  new session starts in the same file (the game emptied it, or a session line inside it), the
+  old session's lines still held by the reader are scrubbed with the old session's names before
+  its state is replaced. A forgotten name met later in a text that teaches nothing is still
+  hidden in output while it is among the last 50,000 forgotten (kept as 8-byte hashes, 0.8 MB at
+  most), when it is made of the characters a handle can have (letters, digits, `_` and `-`, a
+  `-` anywhere, leading, trailing or doubled included). That lookup runs only after more than
+  1,000 names were met, costs a time linear in the text, and makes at most 8 lookups per `-`
+  part plus 64 for a run (`state.HIDE_BUDGET`); a run that would need more is replaced whole from
+  that point. A part makes at most one lookup per number of `-` parts the names held have, so
+  that happens only when they have more than 8 different numbers of parts, which takes a name of
+  9 parts or more. A name met again is learned again.
+- **Notices and contracts that can name a player** (the game's shapes are listed in
+  `scdash/law.py`: the law, comms, parties and groups, the party and friend toasts, money sent
+  between players, service beacons and their contracts, player bounties; none of them but the
+  ship channel's is seen in a log). The state words each known shape without the other party's
+  name: "Crime committed: Trespassing against someone", "Attacked: another player committed
+  Battery (First Degree) against you", "Victim: someone", "Another player has joined the party
+  or group", "A party member disconnected", "Another player wants to send you money", "Your
+  service provider has arrived", "A rescue beacon from another player", "Another player
+  accepted your rescue beacon", "Friend Request: another player". A known shape is never taken
+  for a tutorial tip, so it is always a feed line.
+  - **Contracts.** A service beacon's objectives name the player who set it, and a player
+    bounty's title and objectives name the player hunted. In such a contract (known by its kind,
+    its marker names or its title, `law.player_contract()`) an objective of a known shape is
+    worded without the name and the name is learned: a beacon's in its own words ("Rescue the
+    player who set the beacon", "Escort the player who set the beacon until the contract is
+    completed"), a player bounty's as "the target" ("Locate the target", "Neutralize the
+    target"). An objective of any other shape reads "An objective the dashboard does not show
+    (it may name a player)" and is counted in `withheld`, unless it is one of the game's own
+    nameless objectives ("Stay at Current Location."). A player bounty's title reads "Apprehend
+    Suspect: another player" or "Escapee Bounty Assignment: another player". The player
+    contracts are the service beacons (kind "service beacon", their mission titles, the markers
+    ReviveBeacon, BeaconContractGenerator, ServiceBeacon…) and the player bounties of generator
+    NorthRock_PVP (template PVP_KillPlayerBounty, their titles, the Bounty Hunters Guild's
+    Suspect Apprehension and Fugitive Recovery certifications among them); the Guild's other
+    certifications and bounties have NPC targets and are not. In a contract the log has not
+    placed (no title, no marker: one accepted in an earlier launch), an objective of a known
+    shape whose slot could be a handle reads "… the target" and nothing is learned; when the
+    contract is placed later, its objectives are worded again from their text as read: as a
+    player contract's, or as written for any other kind. In a contract of another kind nothing
+    changes.
+  - A crime's name is shown only when it is made of the words of the game's crime names, else
+    "a crime".
+  - A notice of one of these families in a shape no pattern reads is never shown as written: it
+    reads as its family's neutral text, "A law notice the dashboard does not show (it may name a
+    player)", "A comms notice …", "A party or group notice …", "A money transfer notice …" or
+    "A service beacon notice …", and is counted in the state's `session.withheld` (the
+    summary's `withheld`): above zero, the game logs a shape the dashboard should learn. Every
+    text under a known toast title is of the title's family. A tip-shaped one ("Topic: a long
+    sentence", whose topic carries the family's cue) is never shown, as every tip, and is counted
+    apart in `session.withheld_tips` (the summary's `withheld_tips`).
+  - A notice whose whole text is one word that can be a handle reads "A one-word notice the
+    dashboard does not show (it may be a player's name)" and is counted in `withheld` (the
+    game's `hud_law_InfractionWarning` is "%ls", and what it holds is not known).
+  - The game's own texts of these families that name nobody ("You have left the party.",
+    "Party Disbanded: Leader Disbanded Party", "Your Rescue Beacon has been accepted. Assistance
+    is on the way.") are shown as they are and not counted: `law.NAMELESS_TEXTS` holds 81 of
+    them under 87 `global.ini` keys.
+  - A word is learned as a name only from a name slot of a recognized shape, when it can be a
+    handle (letters, digits, `_`, `-`, 3 to 60, at least one letter) and is no word of a place,
+    jurisdiction, maker, ship, commodity, shop or contract giver in the reference tables, no
+    plural of one ("Drakes"), and not on a short stoplist ("the", "your", "player", "security",
+    "officer", "captain", "turret"…): a victim of more than one word is never learned. A word the
+    parser can only guess at (a shape it does not read) must also be no word of the game's
+    notices (`scdash/notice_words.txt`, 3,189 words read from `global.ini`: "Share",
+    "Contract", "Beacon", "Request").
 
 Known limits, not fixed:
 
@@ -584,7 +641,19 @@ Known limits, not fixed:
   (a killer, a channel owner), has that word replaced in other texts too: "MIC-L2 Long Forest"
   can read "MIC-L2 another player Forest". The scrubber errs toward hiding. From law and comms
   notices such a word is never learned.
-- A one-word NPC victim that is no game word may be learned as a name, with the same effect.
+- A one-word NPC victim that is no game word, no plural of one and no role on the stoplist may
+  be learned as a name, with the same effect.
+- A forgotten name that is not made of handle characters (a killer's name with a space, a dot
+  or an accent) is taken out of every text held when it is forgotten, but not out of a text met
+  later. Real handles are made of handle characters.
+- Two names that overlap in one text ("Bob-Smith" and "Smith-Jones" in "Bob-Smith-Jones") are
+  replaced as far as the first goes: "another player-Jones" (the pattern replaces the longest
+  name at the leftmost place, as a word would be).
+- A notice of a family with no cue the parser knows (an invented "<name> Hurston", "<name>'s
+  Hangar") is shown as written: the families are only as complete as the game text read.
+- The shapes of the objectives a player bounty uses are not in the game's text: the generic
+  bounty objectives ("Locate <target>", "Neutralize <target>", "Locate and neutralize
+  <target>") are assumed, and any other objective of such a contract is withheld.
 - An alert counted from its event's time shows while `now` is before that time (a clock behind
   the log's); a reread still raises nothing old.
 
@@ -624,6 +693,12 @@ New keys, all scrubbed like the rest: `tally` (`destroyed`, `crippled`, `lost`, 
 `zone` gains `monitored_down` and `t`; `monitored_down` is reset on a return to the menu, a
 server join and a disconnect. An open quantum target is closed by a return to the menu, a
 disconnect, a server join and a respawn, so it no longer brings the Travel view back.
+`session` gains `withheld` and `withheld_tips` (the counts under "Limits" above). `server` is
+`{joined, count}`: when the last server was joined and how many were. The shard names (`shard`,
+`shards`), which say which servers the user was on, are in the private form only
+(`to_dict(private=True)`); the feed line reads "Joining a server", and the summary's `servers`
+(in `data/sessions/`) is the count. `timeline` still prints the shard names (a local console
+tool).
 
 ## The message and the endpoints
 
@@ -654,8 +729,23 @@ on `GET /api/state`:
 | `service` | `mode` (`live` or `replay`), `pid` and `started` (which instance sent it: the page reloads itself when they change, because a restarted service has a new token), `game_running`, `game_since`, `log_found`, `replay` (null live; in a replay `{"source", "speed", "from", "to", "done"}`), `terminal` (the terminal region is laid out). |
 | `clock` | The page's "now" is `virtual + (Date.now() - real) * rate`: the system clock live (`rate` 1, `real` and `virtual` 0), the replay's clock in a replay (`rate` 0 once the replay is over). `session_end`: milliseconds, once the game is not running, else null. |
 | `flags` | Facts that need the clock and are not in the board: `hangar_stuck`. |
-| `state` | `State.to_dict(private=False)`: the stage 2 state, with the stage 3 additions above. |
+| `state` | `State.to_dict(private=False)`: the stage 2 state, with the stage 3 additions above. The page reads two parts of it, below. |
 | `board` | The payload this file describes, **never null**. If `board.build` itself raised (it is documented never to), or returned something JSON cannot hold, it is the failed payload's shape, with the same keys as any other: an empty Now view, `view.rule` `"error"`, `strip` null, `timers` and `alerts` empty, and `problems` `["service: <exception type>"]`; the service builds it again a minute later, not before. |
+
+**What the page reads from `state`** (everything else it draws comes from `board`):
+
+- `state.feed`: the session's last 50 feed lines (`config.FEED_LEN`), oldest first, each
+  `{"id", "rev", "t", "session", "offset", "kind", "level", "text"}`. `id` is unique in the
+  session and stable across rereads; `rev` goes up when a line already sent changes (a jump's
+  line gets its route and fuel a moment later): replace the line drawn under that `id`. `t` is
+  ISO 8601 UTC with milliseconds; `level` is `alert`, `major` or `minor` (the page leaves minor
+  lines out); `kind` is the event's kind, which picks the line's icon; `text` is scrubbed like
+  every other text.
+- `state.preflight`: `{"ok", "text", "order", "missing"}`. `ok` is true (the AB6 and the MTQ are
+  both listed), false (one is missing) or null (no joystick lines yet); `order` is `"usual"`,
+  `"differs"` (both there in another order: a pass, shown as a quiet "other order") or null;
+  `missing` lists the missing devices' names. The strip's Pass or Fail comes from `ok`; the red
+  alert and the Preflight view come from `board`.
 
 When a message is sent:
 
@@ -697,7 +787,7 @@ JSON object with exactly the listed fields (an unknown or a missing one is a 400
 | `GET /rig/rig.json` | - | The rig reference's data (`application/json`), written by `tools/regen_cards.py`. |
 | `GET /rig/<name>.png` | - | A diagram, for each view's `image` in `rig.json`. Take the names from `rig.json`; do not write them into the page. |
 | `GET /api/health` | - | `{"program": "scdash", "pid", "started"}` and nothing else. |
-| `GET /api/status` | - | The instance's figures (what `scdash.py status --json` prints under `status`), with `session` `{id, game, last_event, events, unreadable, withheld}` (`withheld`: notices of a shape that may name a player, not read), `board` `{view, auto, rule, why, picked, builds, next_change, problems, problem_list}`, `plan` `{path, loaded, notice, updated, run}`, `user` `{read, quick_timers, pick}` and `reference_tables`. Every path in it (`data_dir`, `python`, `log.path`, `plan.path`) shows the user's profile folder as `%USERPROFILE%`, which keeps the Windows user name out. |
+| `GET /api/status` | - | The instance's figures (what `scdash.py status --json` prints under `status`), with `session` `{id, game, last_event, events, unreadable, withheld, withheld_tips}` (`withheld`: notices and objectives of a shape that may name a player, not read; `withheld_tips`: tip-shaped ones, never shown), `board` `{view, auto, rule, why, picked, builds, next_change, problems, problem_list}`, `plan` `{path, loaded, notice, updated, run}`, `user` `{read, quick_timers, pick}` and `reference_tables`. Every path in it (`data_dir`, `python`, `log.path`, `plan.path`) shows the user's profile folder as `%USERPROFILE%`, which keeps the Windows user name out. |
 | `GET /api/state` | - | The last message, or 503 `{"error": "no state yet"}` before the first one. |
 | `GET /api/stream` | - | The event stream above. |
 | `POST /api/view` | `{"view": "<name>"}`, one of `now`, `travel`, `mining`, `salvage`, `combat`, `cargo`, `mission`, `refinery`, `selling`, `preflight`, `idle`, `reference` | `{"ok": true, "view": {"name", "auto", "picked"}}`. Any other name is a 400 that lists the twelve. **503** `{"error": "still reading the log: pick again in a moment"}` while the service is catching up on a large log: a pick is kept under the context it was made in, and on a half-read state it would be dropped at once. |
@@ -757,8 +847,11 @@ disk yet when the answer goes out:
 
 **From the page.** `window.scdash.post(path, body)` sends a changing request with the token and
 resolves to the parsed JSON answer **whatever the status**: check `answer.ok` (or
-`answer.error`), not whether the promise was fulfilled. It rejects only when no answer came (the
-service is gone; the stream's banner shows that too).
+`answer.error`), not whether the promise was fulfilled. It rejects only when no answer came
+within 8 s (`REQUEST_SECONDS` in `app.js`; the service may be gone, and the stream's banner shows
+that too) or the answer was not JSON. The page's own changes use `request()`, the call under it,
+which resolves to `{status, answer}` so that a refusal can be worded by its status (503, 403,
+400).
 
 **The content policy** sent with the page: `default-src 'none'; script-src 'self'; style-src
 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none';

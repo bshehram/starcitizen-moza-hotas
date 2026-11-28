@@ -4,23 +4,40 @@ A small local dashboard for a second monitor: it will read Star Citizen's own lo
 game runs and show the current location, the next step of the plan, the numbers needed for the job
 in hand, timers and alerts. It only reads files. It never touches the game.
 
-**What exists now: the log reader (stage 1 of the plan) and the background service with a first
-page (stage 2).** The log reader prints a short, readable account of a session in your local time:
-the joystick check (are both the AB6 base and the MTQ throttle connected? a different order in the
-list is only a note), where you went,
-ships, quantum jumps, contracts, refinery orders, trades, deaths, and how the session ended. The
-service follows the game's log while you play and serves a page at http://127.0.0.1:47826/: the
-time, the session's length, the game's state, the joystick check as a clear pass or fail, where
-you are, your ship, alerts, and the latest events. `open` shows that page in a window of its own
-(see "The dashboard's own window" below); any browser tab at that address works too.
+**What exists now: the log reader (stage 1 of the plan), the background service (stage 2) and the
+page with its views and the rig reference (stage 3).** The log reader prints a short, readable
+account of a session in your local time: the joystick check (are both the AB6 base and the MTQ
+throttle connected? a different order in the list is only a note), where you went, ships, quantum
+jumps, contracts, refinery orders, trades, deaths, and how the session ended. The service follows
+the game's log while you play, works out which view fits the moment, the alerts and timers, and
+what your plan file says, and serves the page at http://127.0.0.1:47826/. `open` shows that page in
+a window of its own (see "The dashboard's own window" below); any browser tab at that address
+works too. Starting by itself at sign-in, and opening the window by itself when the game starts,
+come in a later stage.
 
-**Also built, but not on the page yet: the logic behind the views (stage 3).** The service already
-works out which view fits the moment (mining, travel, preflight and the rest), the alerts and
-timers, and what your plan file says, and sends it all to the page; the page will draw it in the
-next part of stage 3. It also serves the rig reference's data and diagrams, and takes four changes
-from the page: pick a view by hand, go back to the live choice, add a quick timer, remove one.
-Starting by itself at sign-in, and opening the window by itself when the game starts, come in a
-later stage.
+**What the page shows.** Across the top, the status strip: the time, the game's state, the joystick
+check as a clear pass or fail, the session's length, where you are and your ship. Under it, one
+view at a time, chosen by the dashboard from what the game's log says and from the plan: Preflight
+at the main menu (red when the stick base or the throttle is missing), Travel during a quantum
+jump, Mining, Salvage, Combat, Cargo or Mission by the contract, the run's leg or the ship,
+Refinery and Selling at the plan's places, Now otherwise, and Idle when no game runs. Alerts run
+across the top of the view (at most three, the rest counted on one line); timers are inside the
+views; the latest events are at the bottom.
+
+**With the mouse, at the desk.** The cells at the right end of the status strip: *Live* (the
+dashboard chooses), the menu button, and *Rig reference*. The menu picks a view by hand (it stays
+until the situation changes, or until *Back to Live*), and adds or removes a quick timer (type a
+name if you like, then a duration). A click the service could not take is said at the bottom
+right. Nothing needs the keyboard, and the page never takes focus by itself.
+
+**Rig reference.** *Rig reference* opens the MOZA stick and throttle: eight pages (grip front, grip
+side, base; keypad, dials, levers, right module, left module) and Find. Each page is the
+manufacturer's diagram, its buttons numbered, beside the list of what each control does. Point at
+a row to see its button ringed on the diagram, or the other way round; click either to see the
+control's job in every mode. The mode filter (All, Flight, Mining, Salvage) opens on the mode the
+dashboard thinks you are in: under Mining or Salvage the controls that change job are cyan and the
+ones that do nothing there are gray. Find lists every control; type a button number or a word to
+narrow it. The reference stays open until you click *Live*.
 
 Run these from the repo's root folder (Python 3, nothing to install):
 
@@ -29,7 +46,7 @@ python dashboard/scdash.py timeline                           # the current Game
 python dashboard/scdash.py timeline "26 Nov 26 (15 11 12)"    # an older session, by part of its name
 python dashboard/scdash.py timeline --list --since 2026-11-26 # the sessions since a date
 python dashboard/scdash.py timeline --json                    # the same as data
-python -m unittest discover -s dashboard/tests                # the tests (about three minutes)
+python -m unittest discover -s dashboard/tests                # the tests (about five minutes)
 ```
 
 The service:

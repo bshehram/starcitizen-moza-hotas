@@ -1,16 +1,19 @@
 # `dashboard/` — working notes for Claude
 
-**Stages 1 and 2 exist, and stage 3 up to the page** ([`PLAN.md`](PLAN.md) §12): stage 1 reads
-`Game.log` and turns it into events, a state and a printed timeline; stage 2 is the background
-service, its local web server and a first page (the status strip, alerts and the event feed in
-design direction B, with a "Now" placeholder where stage 3's views go). **Stage 3's logic** (events
+**Stages 1, 2 and 3 exist** ([`PLAN.md`](PLAN.md) §12; stage 3's open points are at the end of
+"The page (stage 3)" below): stage 1 reads `Game.log` and turns it into events, a state and a
+printed timeline; stage 2 is the background service, its local web server and a first page (the
+status strip, alerts and the event feed in design direction B). **Stage 3's logic** (events
 for the other activities, the plan loader, alerts, timers, the view rules and a model per view,
 behind `board.build`) **is wired into the service** since 2026-11-28: the service builds the board
 from the state, `data/plan.json` and the user block, sends it as `board` in every message, takes
 four changes from the page (pick a view, back to Live, add and remove a quick timer), records
 unmapped contracts, and serves the rig reference's files from `web/rig/` ("Stage 3 in the
 service" below; the message and the endpoints are in [`STATE.md`](STATE.md)'s last section).
-**The page still has no views:** it draws stage 2's strip and feed and ignores `board`.
+**The page draws the views** since 2026-11-28: every view the board can name, in both
+orientations, the alerts from `board.alerts`, the timers inside the views, the hand pick and the
+way back to Live, quick timers, and the "Live / Rig reference" switcher with the rig reference
+section ("The page (stage 3)" below).
 **Stage 4's window half exists** since 2026-11-28: `open` shows the page in Edge's app mode (and
 starts the service first if needed), and `shortcut` writes a `.lnk` that runs it through
 `pythonw` for the taskbar ("Stage 4: the window" below). There is no autostart (the logon task)
@@ -40,29 +43,30 @@ Three rules that hold for everything in this folder:
 | `scdash/server.py` | The web server: `Server` (its file table `files`: the page's three `FILES` plus `rig_files()`, built once; registered routes), the request guard (`READ`, `CHANGE`, `PRIVATE`), `Hub` (one event stream, with its own cap), `json_text()` / `encodable()` / `scrub()` (JSON that always encodes and parses; `scrub` and `_finite` stop at `MAX_DEPTH` = 64 levels, deeper becomes null, so neither can raise `RecursionError`), `json_depth_over()` (a depth check without recursion, for values read from a file), `_plain()` (no junction, link or other reparse point, and a file with a single name), `error_key()` / `remember()` (a repeating fault logged once). |
 | `scdash/service.py` | The service: `Service` (life cycle, main loop, data files; stage 3: the plan look, the board, the four changing routes, the user block and its late merge, the saves as snapshots, unmapped contracts), `user_block_from_file()` (the block as stored, bounded), `apply_user_op()`, `visible()` (a label's test), `shown_path()` (paths in `status`), clocks and the replay feeder, and the helpers the commands use to talk to an instance (`instance_info`, `probe_health`, `launch_background`). |
 | `scdash/telemetry*.py` | Stage 6's telemetry reader, written by another agent. Not wired into the service. |
-| `web/` | The page: `index.html`, `app.js`, `style.css`. No framework, nothing from outside. |
+| `web/` | The page: `index.html` (the regions, the icon sprite, the switcher and the desk panel), `app.js` (the stream, the one-second timer, the strip, the alerts, one renderer per view in `RENDERERS`, the fit, the rig reference section, the desk panel, `request()` / `window.scdash.post()`), `style.css` (the design system, every view's arrangement and the rig section's). No framework, nothing from outside. |
 | `config.example.json` | Every setting with its default and an explanation; copied to `data/config.json` to change one. |
 | `scdash/tail.py` | `Follower`: each poll opens the log, compares its first line, reads past the saved offset in pieces of at most 1 MB, closes it. Holds a partial last line; cuts lines over 64 KB. Part adapted from CSR. |
 | `scdash/records.py` | Line to `Record`: fixed-width time, level part, tag; joins continuation pieces; the one cheap table lookup that drops most lines. Part adapted from CSR. |
 | `scdash/events.py` | Record to typed event, one kind per marker; the key table; `EventParser`; `session_id()`. Several line patterns and the notice cleaning adapted from CSR. |
 | `scdash/state.py` | Events to state (`State.apply`, `build_state`), `clock_facts(state, now)`. Part adapted from CSR. |
 | `scdash/names.py` | `LocationNames`: display names from `reference/locations.json` (owned by another agent), raw code when unknown. |
-| `reference/` | Generic game data, generated by `reference/build_reference.py` from the installed game's files (`--check` says whether it is current; a run takes about a minute and peaks near 520 MB, so not while the game runs). `<name>.json` is output only, `<name>.hand.json` is the only place anything is typed. Tables: `locations` (codes, names, positions), `resources`, `ores`, `refineries` (yields, and `places` with a refinery), `controls` (per operator mode, from the card tables), `ships` (classes as the log prints them, cargo, the fleet's jobs), `contracts` (kind, view and on-foot or in-ship per contract; **`_meta.lookup` is the order a reader must follow**), `shops` (kind, and a place only when the name is unique to one). Prices are built too but live in the git-ignored `data/reference/prices.json`; only `--fetch` goes online. Loaded sizes after `json.load`: ships 1.1 MB, contracts 2.3 MB (1.2 MB slimmed), shops 0.3 MB, prices 1.0 MB. `scdash/refdata.py` loads the second-round tables, each when first needed. |
+| `reference/` | Generic game data, generated by `reference/build_reference.py` from the installed game's files (`--check` says whether it is current; a run takes about a minute and peaks near 520 MB). `<name>.json` is output only, `<name>.hand.json` is the only place anything is typed. Tables: `locations` (codes, names, positions), `resources`, `ores`, `refineries` (yields, and `places` with a refinery), `controls` (per operator mode, from the card tables), `ships` (classes as the log prints them, cargo, the fleet's jobs), `contracts` (kind, view and on-foot or in-ship per contract; **`_meta.lookup` is the order a reader must follow**), `shops` (kind, and a place only when the name is unique to one). Prices are built too but live in the git-ignored `data/reference/prices.json`; only `--fetch` goes online. Loaded sizes after `json.load`: ships 1.1 MB, contracts 2.3 MB (1.2 MB slimmed), shops 0.3 MB, prices 1.0 MB. `scdash/refdata.py` loads the second-round tables, each when first needed. |
 | `SURVEY.md` | What salvage, hauling, combat and missions leave in the log, with how each item is known, and the checks to run on new sessions. Stage 3's events come from it. |
 | `scdash/refdata.py` | `RefData`: loaders for the second-round reference tables, each read when first needed and kept slim (contracts by the lookup order in `_meta.lookup`, ships, shops, resources, controls, ores, refineries, and prices when the git-ignored file exists). About 2.5 MB in all. |
-| `scdash/law.py` | The shapes of the law and comms notices that can name a player (read from the game's own text), the game's crime names, and the rule for what may be learned as a handle: handle-shaped, not a word of the game, not on a short stoplist. |
+| `scdash/law.py` | The shapes of the notices and contracts that can name a player (law, comms, party and group, the party and friend toasts, money transfers, service beacons and their objectives, player bounties), read from the game's own text and marked seen or not; the game's crime names; the game's nameless texts of these families (`NAMELESS_TEXTS`, keyed by `global.ini` key); which contracts name a player (`player_contract()`: "beacon", "bounty", False or None when nothing is known) and how their titles and objectives are worded (`PLAYER_TITLES`, `PLAYER_OBJECTIVES`, `NEUTRAL_OBJECTIVES`); and the rules for what may be learned as a handle: `learnable()` for a name slot (handle-shaped, `HANDLE_CHARS`, which the scrubber's lookup of forgotten names uses too; not a word of the game or a plural of one; not on a short stoplist), `guessable()` for a guess (also no word of the game's notices). The parser's patterns are `events.NAMED_NOTICES` (worded without the name), `events.TOAST_TITLES` (every title's family) and `events.FAMILIES` (an unknown shape: the family's neutral text, counted). |
+| `scdash/notice_words.txt` | The words of the game's notice texts (3,189, from `global.ini` of 4.10.3, lower case): a word only guessed to be a name is never learned when it is one of them (`law.NOTICE_WORDS`). Regenerate after a patch from the notice keys its header names. |
 | `scdash/plan.py` | `PlanStore(path).refresh()` and `normalize()`: `data/plan.json` read with bounds on everything, the last good copy kept, and a short notice that counts what was left out. `clean_user()` for the user block. `plan.example.json` has one run of each kind. |
 | `scdash/rules.py` | The view rules as a table (`RULES`, first fit wins), the hand pick and the context that keeps or drops it, and the "reference" pick, which nothing drops. |
 | `scdash/alerts.py` | Alerts (held while their condition holds, or timed from their event's own time) and timers (the plan's and the user's quick ones; a completion notice clears the earliest refinery timer it can belong to). |
 | `scdash/views.py` | One ready-to-draw model per view, already worded and in display units. |
 | `scdash/board.py` | **Stage 3's entry point:** `board.build(state, plans, user, now, game_running, tz=None)` returns the chosen view and why, its model, the strip, alerts, timers, the plan notice and the unmapped contracts. Pure, no clock, scrubbed, every text bounded; a part that fails is left empty and named in `problems`. `pick()`, `add_quick_timer()` and `remove_quick_timer()` make what the service saves in the user block. **[`STATE.md`](STATE.md) describes the payload exactly, with what is unverified:** the page is built from it. Called by the service (`Service._update_board`). |
-| `web/rig/` | The rig reference section's data and diagram images, written by `../tools/regen_cards.py` (root [`../CLAUDE.md`](../CLAUDE.md) §8.5). `tests/test_rig.py` fails until they are regenerated after a card change. Served under `/rig/` by the folder's own contents (`server.rig_files()`): **a new or renamed image needs a restart of the service**. Not shown by the page yet. |
+| `web/rig/` | The rig reference section's data and diagram images, written by `../tools/regen_cards.py` (root [`../CLAUDE.md`](../CLAUDE.md) §8.5): `rig.json` (schema 2; every field is described in [`RIG.md`](RIG.md)) and eight PNGs named after their views (`grip_front`, `grip_side`, `base`, `keypad`, `dials`, `levers`, `right_module`, `left_module`). `tests/test_rig.py` fails until they are regenerated after a card change. Served under `/rig/` by the folder's own contents (`server.rig_files()`): **a new or renamed image needs a restart of the service**. Read by the page's rig reference section, which fetches `rig.json` when it is first opened and an image when its page is drawn. |
 | `scdash/words.py` | Local time, durations, money, ship class names, `fit` and `compatible` (channel name against class; Mk forms normalized), `clean_text`/`clean_all` (control and bidi characters out). |
 | `scdash/summary.py` | `build_summary(state, complete, last_line_t)`: the compact session record for `data/sessions/`. No player names. |
 | `scdash/pipeline.py` | `LogReader`: follower -> records -> events -> state. What the stage 2 service drives. `read_whole()`. |
 | `scdash/timeline.py` | The `timeline` text and JSON, and the session list (`--list`). |
 | `THIRD_PARTY_NOTICES` | CSR's MIT license and what was adapted where. `tests/test_credit.py` keeps it honest: a file with a "From CSR" mark must be listed, and a listed file must carry the copyright line. |
-| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`); stage 4's window is `test_open.py` (a stand-in browser behind a `.cmd` records its command line; no real browser is started). |
+| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`); stage 4's window is `test_open.py` (a stand-in browser behind a `.cmd` records its command line; no real browser is started). Stage 3's page is `test_page_static.py` (the three files read as text: a renderer for every view, the content policy, no markup from text, the 18 px floor through the stylesheet's tokens), `test_page_browser.py` (headless Edge over the DevTools protocol on a real instance: every view draws, no computed type under 18 px in any view either way up with the terminal region on and off, markup in a plan stays text, the hand pick, Live, a quick timer and the rig switcher with real pointer events, a refused change shown, the red screen and alert for a missing stick base; its `Edge`, `Scene` and `shift_log` are what the capture scripts use) and `test_page_rig.py` (the rig reference in the browser: fetched only when opened, all 96 rows under each filter against the reading rule written again in Python, pointer, filter and Find, the 18 px floor across pages, filters and the four shapes). The two browser files skip without Edge (`SCDASH_EDGE` names it). |
 
 `scdash.py` sits beside the package folder `scdash/`. With `dashboard/` on `sys.path`, `import
 scdash` finds the package because a package directory wins over a module file of the same name;
@@ -84,7 +88,8 @@ python dashboard/scdash.py timeline --list --since 2026-11-26   # sessions: loca
 its first line looks like a session's. `tests/test_reference.py` belongs to the agent that builds
 `reference/`.
 
-The suite takes about 3 min (520 tests in 182 s on 2026-11-28, with the game running). Stage 1's part is about 10 s
+The suite is 696 tests and takes about 5 min with the browser tests (seen 2026-11-28, with the
+game running); `-p "test_page*.py"` runs the page's 22 alone. Stage 1's part is about 10 s
 (the 100 MB flood test, which `SCDASH_FLOOD_MB` makes smaller, and the privacy test, which learns
 names and ids from the newest local logs for up to 4 s); stage 2's process tests start and stop
 real background instances (`test_cli.py` about 65 s, `test_replay.py` about 17 s, stage 4's
@@ -122,11 +127,13 @@ runs on the replay's clock.
 - `LogReader(path, names, opener=open_shared)`:
   - `.poll(budget=None)` once a second returns `'missing'`, `'waiting'`, `'idle'` or `'read'`.
   - `.state` is the current `State`.
-  - `.take_lines()` gives the feed lines new or changed since the last call, each once.
-    **They are the lines as read, other players' names included: never send them to the page,
-    write them to a file or log them as they are.** The service uses the call only as a signal
-    that something changed; the page's feed comes from `State.to_dict(private=False)`, which is
-    scrubbed (stage 3 review).
+  - `.take_lines()` gives the feed lines new or changed since the last call, each once, scrubbed
+    as `to_dict(private=False)` scrubs (other players' names read "another player", the
+    handle "you"), as copies. About 13 µs a line with 1,000 names held, 40 µs after a
+    forgetting pass (the builder's measurement, 2026-11-28). Lines of a session that ended in
+    the same file are scrubbed with that session's names before its state is replaced. The
+    service uses the call only as a signal that something changed; the page's feed comes from
+    `State.to_dict(private=False)`.
   - `.take_finished()` gives summaries of sessions that ended because a new one began in the
     same file (to write to `data/sessions/`).
   - `.summary(complete)` is the current session's summary. A session that simply stops (a game
@@ -147,6 +154,19 @@ runs on the replay's clock.
   control character or a bidi control (U+202A-202E, U+2066-2069, U+200E/200F/061C):
   `words.clean_text` takes them out where text leaves the state, so nothing in the log can steer a
   console or reorder the page's words.
+- `LogReader.all_lines` (only with `keep_events=True`, for `timeline` and the tests) is a
+  property: names forgotten since it was last read are taken out of it when it is read, in one
+  pass, instead of at every forgetting pass. Its lines of the current session are as read
+  (`timeline` scrubs each one it prints); lines of a session that ended are scrubbed when the
+  session ends.
+- `session.withheld` in `to_dict()` (and `withheld` in the summary) counts notices and contract
+  objectives of a family that can name a player (law, comms, party, money transfer, beacon, a
+  beacon's or a player bounty's objectives) in a shape the parser does not read, and one-word
+  notices that can be a handle; each was shown as a neutral text. `session.withheld_tips` (and
+  `withheld_tips`) counts the tip-shaped ones, which are never shown. `status --json` carries
+  both; its text form prints `withheld` when it is above zero.
+- `to_dict()`'s `server` is `{joined, count}`; `to_dict(private=True)` adds `shard` and
+  `shards`.
 - `State.unmapped()`: location codes with no name, for `data/unmapped.json`.
 - `clock_facts(state, now)`: everything that needs "now" (session length, time in the world,
   hangar queue waited and stuck). The state itself never reads the clock; a test walks the source
@@ -163,8 +183,8 @@ runs on the replay's clock.
   `Connected joystick` lines, in any order: a different order is a note, not an alert. The
   keyboard, MTQ, AB6 order worked on 2026-11-27 by the user's report, reason unconfirmed. It fails
   red only when either device is missing, as in the twelve AB6-missing launches in logbackups. The
-  page builds the alert's title and instruction from `missing` (stick base, throttle, or both) and
-  shows a different order as "PASS other order" in the strip.
+  board builds the red alert and the Preflight view from it; the page's strip shows Pass or Fail
+  from `ok`, with a quiet "other order" when `order` is "differs".
 - Stage 3 slots: `state.plan`, `state.timers`, `state.alerts`, `state.view` exist and are empty.
 
 Every event is a frozen dataclass with `session` (the backup name the game gives the log) and
@@ -308,15 +328,11 @@ section below).
 
 **Where later stages hook in:**
 
-- Stage 3, the page: views in `web/app.js` `renderView()` (and the view region in `index.html`),
-  drawn from `board` alone ([`STATE.md`](STATE.md)); alerts from `board.alerts` only (drop the
-  page's own preflight, downed and hangar alerts); the switcher and the reference section, which
-  load `/rig/rig.json` and the images it names. Changes go through `window.scdash.post()`, which
-  resolves to the JSON answer for errors too. The service side of stage 3 is done (below): a new
-  changing endpoint goes in `Service._register()` behind `CHANGE` and through `_locked_change()`,
-which gives it the lock, the 503s and the save before the answer.
-  The page reloads itself when the payload's `service.pid` or `service.started` changes, so it
-  never posts with a dead token.
+- Stage 3, the page: built ("The page (stage 3)" below). A new view is a renderer in
+  `RENDERERS` in `web/app.js`; a new changing endpoint goes in `Service._register()` behind
+  `CHANGE` and through `_locked_change()`, which gives it the lock, the 503s and the save before
+  the answer. The page reloads itself when the payload's `service.pid` or `service.started`
+  changes, so it never posts with a dead token.
 - Stage 4: `open` and `shortcut` exist ("Stage 4: the window" below). Still to come: the
   `install` and `uninstall` commands in `scdash.py`; `start` (and so `open`) through the task in
   `launch_background()`; `run.json` records `python` for the moved-interpreter check; the service
@@ -331,9 +347,9 @@ which gives it the lock, the 503s and the save before the answer.
 **The page** (direction B, "Avionics"; the chosen mockup is tracked in `design/avionics/`, and the
 working folder with all three directions and their captures is the git-ignored `data/design/`): the strip (time and date, state,
 joystick pass or fail with a quiet "other order" note, session, location, ship), alerts across the
-top of the view, a "Now" placeholder, the feed (major and alert lines, 4 in landscape and 6 in
-portrait; minor ones stay out, `SHOW_MINOR` in `app.js`), and the terminal region when the setting
-is on. Nothing below 18 px; texts that can come from the log carry `unicode-bidi: isolate`. One
+top of the view, the view region (a "Now" placeholder in stage 2, the views since stage 3), the
+feed (major and alert lines; how many depends on the view and the window, stage 3 below; minor
+ones stay out, `SHOW_MINOR` in `app.js`), and the terminal region when the setting is on. Nothing below 18 px; texts that can come from the log carry `unicode-bidi: isolate`. One
 event stream, one one-second timer, only changed text redrawn. When the stream has been gone 2 s,
 the red banner takes the strip's place (its figures are stale then) and the rest is dimmed; it
 covers nothing else.
@@ -401,8 +417,8 @@ with the real game running, and the window (stage 4).
   and checks at once sees no time pass (tests set `Service._next_probe = 0` instead).
 - **The page's Content-Security-Policy forbids inline `style` attributes.** The mockup's hidden
   icon sprite (`style="position:absolute"`) took a line of height and pushed the feed off the
-  bottom until it got a class. Its meters (`style="--v:.62"`) will need
-  `element.style.setProperty("--v", ...)` in stage 3, which the policy allows.
+  bottom until it got a class. Its meters (`style="--v:.62"`) are set with
+  `element.style.setProperty("--v", ...)` instead (stage 3's `meter()`), which the policy allows.
 - **Headless Edge:** `--virtual-time-budget` never finishes while an event stream is open. A plain
   `--screenshot` works, because the server sends the current state the moment the page connects.
   Add `--force-prefers-reduced-motion` to see an alert without its 160 ms fade (the stylesheet
@@ -624,8 +640,9 @@ flushing any count it holds, and flushes its count on a timer in `_run`.
 
 **`status`** gained `board` (view, auto, rule, why, picked, builds, next change, problems), `plan`
 (path, loaded, notice, updated, run), `user` (read, quick timers, pick), `reference_tables` and
-`session.withheld` (notices of a shape that may name a player, not read); the text form prints
-View, Plan, Notice and Problems, and the withheld count when it is not 0. Every path in it goes
+`session.withheld` (notices of a shape that may name a player, not read) and
+`session.withheld_tips` (tip-shaped ones, never shown); the text form prints View, Plan, Notice
+and Problems, and the withheld count when it is not 0. Every path in it goes
 through `shown_path()`, the user's profile folder written as `%USERPROFILE%`: the interpreter's
 full path carried the Windows user name (the review's privacy check). [seen 2026-11-28: `python`
 and `data_dir` both began with `%USERPROFILE%` on a temporary instance.]
@@ -652,14 +669,14 @@ not called); "after" is this tree. The scripts are in the git-ignored
 | Idle, no game for the instance, one page connected, 300 s (both at once) | 0.39 s CPU = 0.130% of one core; 24.4 -> 24.3 MB private | 0.25 s = 0.083%; 24.2 -> 24.1 MB | effectively zero; 30 MB |
 | Replay of the 5:20 PM session of 2026-11-27 (744 KB, 46 min) at 20x, one page, both at once | 0.46% of one core over 138 s; 23.8 MB at start, 25.1 peak | 0.59%; 24.5 MB at start, 26.8 peak, 26.0 at the end (the Mining view's tables loaded) | none set |
 | Replay of the 7:14 PM session of 2026-11-27 (687 KB, 55 min) at 20x, one page, beside another replay | - | 0.35% of one core over 167 s; 24.5 MB at start, 26.6 peak, 25.9 at the end | none set |
-| Every rig file (7, 89 KB) asked for 1,000 times, 7,000 requests in 28 s | - | 23.6 -> 23.9 MB, the same 5 s later; 9.2 s of CPU in all (1.3 ms a request) | must not grow |
+| Every rig file (the 7 of the first schema, 89 KB) asked for 1,000 times, 7,000 requests in 28 s | - | 23.6 -> 23.9 MB, the same 5 s later; 9.2 s of CPU in all (1.3 ms a request) | must not grow |
 | `board.build` on the 7:14 PM session's end state (`build_cost.py`) | - | first build 25 to 27 ms (loads the ships table), then 0.13 to 0.6 ms; with `plan.example.json` 0.4 to 0.6 ms. `to_dict` and its JSON, which every message has always paid, cost 1.3 to 2.7 ms | - |
 
 The board adds little: a build is cheaper than the state's own serialization, and it runs only
 when an input changed. The Mining view's first build loads the ores, refineries and controls
 tables (8 to 19 ms once, by the third session's builder; about 1 MB, the replay's 1.7 MB higher
-peak). Still to measure: a whole session with the game running and the real page drawing the
-views (stage 3's page, stage 5).
+peak). Still to measure: a whole session with the game running and the page drawing the views
+in the app window (stage 5); the page's own cost in headless Edge is under "The page (stage 3)".
 
 ### Replayed through the service (2026-11-28) [seen]
 
@@ -682,6 +699,168 @@ before the last message is read). Stage 3's "done when" also names Refinery, Com
 Salvage: no rule chose any of them in these sessions (no contract rule fired, and Refinery comes
 from a plan leg; the example plan's legs name other places), so those are judged on the built
 samples and on the user's next sessions.
+
+## The page (stage 3, 2026-11-28)
+
+Built from [`STATE.md`](STATE.md) alone, in the tracked mockup's look (`design/avionics/`), with
+nothing under 18 px, then reviewed (the page review) and fixed the same day. The renderers, the
+arrangements and the choices are all in `web/`; the scratch scripts that drove it (captures,
+replays, the probe, the cost measurement, the mutations) are in the git-ignored
+`data/handoff/session4/views/` and `views-rig/`, the captures in `data/design/views/`.
+
+**How a message is drawn** (`render()`). Each part is drawn through `guarded()`, which notes a
+fault once in the console and lets the others, the tick and the next message go on: the strip
+(from `board.strip`, with the joystick block from `state.preflight` as in stage 2), the switcher,
+the alerts (from `board.alerts` only), the feed, the plan notice, the view, the desk panel. A
+message that is not an object is ignored, a clock that is not usable keeps the last good one, and
+an unusable feed time shows a dash (`timeText()`).
+
+**How a view is drawn.** `RENDERERS[name](model, board)` returns a list of blocks,
+`B(key, classes, data, build)`; a block is rebuilt only when its data (as JSON) changed, the
+others are left alone. A builder registers the texts that count (countdowns from `ready_ms`,
+count-ups from `since_ms`, the hangar wait from an alert's `since_ms`) on its block; the
+one-second timer runs those and the strip's, and nothing else, and sets its next turn before it
+runs any of them. A model with `unavailable` draws the view's frame and a quiet line; a renderer
+that throws draws a "This view could not be drawn" pane, and the next message tries the view
+again. Every text from the log or the plan goes in as a text node (`h()` turns strings into text
+nodes, `t()` adds a one-, two- or three-line clamp and the whole text as the title), and
+everything inside the view, the panel and the pick bar has `unicode-bidi: isolate`.
+
+**The alerts.** At most `ALERTS_SHOWN` (3) are drawn, the most severe first: the first
+`FULL_ALERTS` (1) in full, the next as one line each, and past three the rest are a single
+"+N more" line naming their kinds. Each shows its time (`t_ms`) beside its kind. The Preflight
+view with a failure does not repeat the "Preflight failed" alert above itself
+(`HIDE_ALERT_THE_VIEW_SHOWS`).
+
+**The arrangements.** The page layout (strip, alerts, view, feed, terminal) is chosen by
+orientation as in stage 2. The view region is a size container named `view`, and its arrangement
+follows its own shape: *square* (terminal on, either way up; the mockup's), *wide* (aspect 1.7 or
+more: terminal off in landscape, three control columns, larger figures), *tall* (aspect 0.85 or
+less: terminal off in portrait, the view's type tokens a step larger, blocks one after another from
+the top, the controls straight after them), *narrow* (under 860 px: one column). The strip takes
+two rows in portrait and in landscape windows under 1500 px, three under 1000 px. A window of
+3000 x 1700 and more (a 4K screen at 100 %) is zoomed 1.5 as a whole: the same layout as 2560 x
+1300; every smaller window keeps its sizes. The feed is 3 lines in landscape on an activity view
+(`SHORT_FEED`), 4 on Now, 6 in portrait, 3 in a portrait window 1400 px high or less, and 1 under
+the rig reference (`RIG_FEED_LINES`).
+
+**The fit.** After each change and each resize of the view region (a `ResizeObserver`, never on
+the tick), `fit()` first steps a row of large figures (the Mining view's scan readings,
+`fitFigures()`) down together when one is wider than its column, never under 18 px. Then, while
+the region overflows, it drops the block with the highest `data-cut` (later ones first), then puts
+back, most important first, any dropped block the region has room for. The order, high to low: a
+control past the first six (7), the head's timer chip and the haul's "unverified" lines (6), notes
+and other contracts (5), reference panes and the keys line (4), the controls strip and the compact
+contract (3), the main pair of panes and objectives other than the current one (2). A downed
+Combat view drops its tally before its contract. What has no `data-cut` (the head, the hero, the
+current objective, a countdown) is never dropped; if a very small window still cannot hold it,
+the view scrolls (`is-over`) rather than cut a block in half. The rig reference is not fitted: it
+scrolls its own rows.
+
+**The switcher and the desk panel.** "Live" (pressed while the rules choose), a menu button, "Rig
+reference". The menu opens the desk panel: the eleven views to pick by hand (the one shown
+pressed, the rules' choice tagged "auto"), "Back to Live" when a view is picked, the quick timers
+with a remove button each (the list scrolls past 280 px, so the add buttons stay in sight), a
+name box and the 5 min to 2 h buttons. A view picked by hand puts a quiet bar above the alerts
+with the way back. Every change goes through `change()` and `request()` (the token header,
+`{status, answer}`), one at a time:
+
+- The clicked button is marked busy, and nothing changes on the page until a message carries the
+  change. A change that was taken keeps the controls busy until a message has been drawn, plus
+  `MOVED_MS` (450 ms), `CHANGE_HOLD_MS` (2.5 s) at most, so a second click lands on what the user
+  then sees.
+- The second click of a double click is ignored, and `notTaken()` drops a pointer click at the
+  place of the one before it within `MOVED_MS` of the list under it being redrawn (the timer
+  list and the reference rows). A click from the keyboard is always taken.
+- A refusal (503: the service is reading the log; 403: the page is out of date; 400: the
+  service's reason) or no answer within `REQUEST_SECONDS` (8 s) is said in a toast at the bottom
+  right for `TOAST_SECONDS` (7 s), and the controls are free again.
+
+`window.scdash.post()` is kept for later stages ([`STATE.md`](STATE.md), "From the page");
+`window.scdash.views` lists the renderers and `window.scdash.rig()` returns a copy of the rig
+section's counts and state, both for the tests and changing nothing.
+
+**Choices kept as constants at the top of `app.js`:** `FULL_ALERTS`, `ALERTS_SHOWN`,
+`TOAST_SECONDS`, `QUICK_MINUTES`, `QUICK_LABEL`, `MAX_OTHER_TIMERS`, `MAX_ORES`, `CTL_KEEP` (6),
+`HIDE_ALERT_THE_VIEW_SHOWS`, `REQUEST_SECONDS`, `CHANGE_HOLD_MS`, `MOVED_MS`, `SHORT_FEED`.
+
+**The rig reference** (`app.js`, after the views and before `RENDERERS`; schema in
+[`RIG.md`](RIG.md)). `vReference` returns one block whose node is made once and kept, so the
+page, the filter and the open row survive a trip to Live. `rigModel(json)` reads `rig.json`
+schema 2 with no guess (a file of another schema, or a failed fetch, shows a "Try again" button);
+`rigJob(row, filter, model)` is the schema's reading rule for a row's job under a filter.
+`rig.json` is fetched on the first open (`cache: "no-cache"`), an image when its page is drawn,
+and nothing in the section runs on the tick.
+
+- Eight pages, one per view of the file, and Find. A row and its number on the diagram light
+  each other on hover; a click opens the row (its job in every mode, each line with its own
+  mark).
+- The filter (All, Flight, Mining, Salvage) takes the live `view.mode` each time the reference
+  opens. Under Mining or Salvage a control that changes job is cyan, one that keeps it white, one
+  that does nothing there gray; under Flight nothing is cyan and a missile or scan job carries its
+  mode's name.
+- Find opens on what the filter changes (under Flight the missile and scan jobs, nothing first
+  under All), then everything else; a number matches button numbers, words
+  are tried as a phrase first, then each word anywhere in a row's texts.
+- The diagram keeps a floor (the largest of `RIG_ART_MIN`, the view's `scale_18`, and the scale
+  at which the closest two numbers keep `RIG_DISC_GAP` apart); the rows beside it may take up to
+  `RIG_ROWS_GROW` (160 px) from it when they would scroll. Under 1500 px the head takes two rows;
+  under 860 px the diagram sits above the rows and the section scrolls.
+- The section's taste choices are the 17 `RIG_*` constants at its head, each commented.
+
+### Measured (the page, 2026-11-28) [seen]
+
+By the page's builder: headless Edge (`--headless=new`, a profile of its own) showing the page of
+a real instance that follows `samples/run_a.log` moved to now (a countdown and the clock ticking,
+the stream connected), 60 s, the whole Edge process tree read from Windows' process table before
+and after (`data/handoff/session4/views/measure_idle.py`), with the game running on the PC and
+other agents at work:
+
+| View | CPU | Private working set, whole tree | Budget (PLAN §9) |
+| --- | --- | --- | --- |
+| Now | 0.41 s = 0.63% of one core | 132 MB (9 processes; 302 MB private bytes) | 250 MB |
+| Mining | 0.59 s = 0.93% of one core | 133 MB | 250 MB |
+
+The page review's own run (one tab, 60 s, game running): Now 133 MB and 0.8 to 1.6% of a core;
+the rig reference 137 MB and 0.07%. All of these were taken before the review's fix round. Headless is
+not the app window: the window's figures (stage 4) are still to take. The page loads three files
+and nothing else until the reference is opened.
+
+### Replayed with the page open (2026-11-28) [seen]
+
+By the page's builder: `scdash.py replay` with headless Edge on its page, the views read from the
+page's own DOM in order (`views/replay_page.py`):
+
+| Log | The views the page drew |
+| --- | --- |
+| logbackups, 5:20 PM of 2026-11-27, `--plan dashboard/plan.example.json`, 20x | preflight, now, mining, travel, mining, idle (the example plan's legs are elsewhere: no Refinery) |
+| `samples/run_a.log` with a plan written for it (`views/run_a_plan.json`), 30x | preflight, now, selling, travel, mining, travel, refinery, travel, cargo, idle |
+| `samples/built_bounty.log` [built] | preflight, now, combat (the red "Attacked" alert), idle |
+| `samples/built_hauling.log` [built] | preflight, now, cargo, travel, cargo, idle |
+| `samples/built_onfoot.log` [built] | preflight, now, combat (on foot), idle |
+| `samples/built_unknown.log` [built] | preflight, now, mission, idle |
+| `samples/preflight_fail.log` | preflight (the red screen), idle |
+
+### Open points (2026-11-28)
+
+- **Not done after the page review:** Mission picked by hand at 1920x950, with the terminal and
+  an alert, loses its "go next" pane; portrait with the terminal off and the 2560x1300 tab leave
+  much of the view empty (half of it on Mining); the largest type is not yet on what is acted on
+  (Combat's tally outweighs its objective, Now can lead with a timer hours out); Combat's "not
+  yet confirmed" legend shows after the only marked rows were cut; a view picked by hand cuts
+  objectives without saying how many. 26 of the review's 35 mutations are still caught by no page
+  test.
+- **A stream that goes quiet without an error** (a hung service) raises no banner: the keepalive
+  is an event-stream comment, which the page cannot see. It needs a real keepalive event from the
+  service, after which the page could raise the banner when none arrives for, say, 40 s.
+- **The rig reference** has not been shown to the user in both orientations (PLAN §4 item 18).
+  Grip front scrolls with the terminal on (by about 1 to 3 rows in Flight, more in Mining and
+  Salvage: the screen wording is longer than the mockup's), and small tabs (1280x720, 820x1000)
+  draw the diagram at 0.6x to 0.76x.
+- **Not drawn from the payload** [read in `app.js`]: `strip.where.icon`, `strip.ship.icon`,
+  `service.log_found`, `mining.spot_known`; `view.why` is only the desk panel's tooltip.
+- **Not checked:** the real panel, the app window, a real mouse, Salvage with real data (no log of
+  a salvage session exists: it is seen only as a hand pick), the 4K tab by eye.
 
 ## Stage 4: the window (`open`, `shortcut`), 2026-11-28
 
@@ -795,7 +974,9 @@ browsers' documented behavior, not tried in a tab yet]:
   avoids the freeze.
 - **The viewport is smaller than the screen** by the browser's own bars (about 130 px of
   1080), and the user's extensions run in the page and can read it, token included (PLAN §9).
-  The views stage should capture its screens at a tab's size too.
+  The page's builders captured it at tab sizes too (1920x950, 2560x1300, 1280x720, 820x1000 and
+  a 4K tab, headless), and a window of 3000x1700 or more is zoomed 1.5 as a whole ("The page
+  (stage 3)" below).
 
 ## Measured (stage 1, game not running, 2026-11-27)
 
@@ -808,6 +989,11 @@ browsers' documented behavior, not tried in a tab yet]:
   2.4 MB more. Bare Python was 8.6 MB.
 - Random-piece reading equals one pass on all 69 logs of 2026-11 (pieces from 1 to 200,000
   bytes).
+- The name scrubber, by the stage 3 fix rounds' builders (2026-11-28, game running, PC loaded by
+  other agents): after a forgetting pass, scrubbing a 2,048-character text of hyphen parts costs
+  at most about 4 ms with crafted names of 49 part counts, and 0.12 s at 65,536 characters
+  (1.6 s for 2,000 characters before the fixes); `timeline` of a log of 20,000 names takes as
+  long as the service's read of it (about 1.2 s, 3.8 s before in the same conditions).
 
 ## What the logs showed that PLAN.md did not say
 
