@@ -1,436 +1,478 @@
 # Side-screen dashboard: implementation plan
 
-**Status: being built, stage by stage. On `main`, built and reviewed: the reference tables, the
-log reader (stage 1), the service with its server and first page (stage 2), the telemetry
-reader, and the logic behind stage 3's page. Next: wire that logic into the service, then build
-the views and the rig reference section.** Written 2026-11-26, reviewed 2026-11-27 against the
-user's logs and this PC (corrections are marked **[seen 2026-11-27]**), and built in two
-sessions that day, the second after a Windows reinstall. Start with the section below: it says
-what exists, what is unfinished, and what is left, in order.
+**Status: being built, stage by stage. On `main`, built and reviewed: the reference tables,
+stage 1 (the log reader), stage 2 (the service and its server), stage 3 (the logic behind the
+page, its wiring into the service, and the page with every live view and the rig reference) and
+the telemetry reader. Built and checked, not yet reviewed: the first slice of stage 4, the
+dashboard's own window. Designed and not built: a base-color theme and a bound / not-bound view
+of the game's actions. Next: those two, a settings pop-up, the rest of stage 4, the Claude
+terminal, a flown session, the telemetry wiring, the docs.** Written 2026-11-26, reviewed
+2026-11-27 against the user's logs and this PC (corrections are marked **[seen 2026-11-27]**),
+and built in four sessions on 2026-11-27 and 2026-11-28, the second after a Windows reinstall.
+Start with the section below: it says what exists, what is open and what to do next, in order.
 
 ## Where the build stands
 
-*Rewritten at the end of the second build session, 2026-11-27, about 8:45 PM, when the user shut
-down for the night. This is what a new session reads first, so keep it current as stages land.
-Every log of the user's from before that evening is gone (see "What the Windows reinstall
-changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
-re-run.*
+*Rewritten at 11:40 AM on 2026-11-28 (the clock was read), at the close of the fourth build
+session, as one account of the repo at `808ba63`, the commit before this text's own, with a
+clean tree. A new session reads this first. Keep it true by correcting the part a new fact
+touches; `git log` has the order in which things happened. Where it is not plain how a fact is
+known, it is marked: **[seen]** with what was looked at, "by the lead's report" for something
+the fourth session's lead saw and this text could not check again, and the user's own words in
+quotes.*
 
-### The fourth session, 2026-11-28, from 6:00 AM
+### In short
 
-*Rewritten at 7:13 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The
-user has been in the game since 6:25 AM with the dashboard open in a browser tab. The first
-wave of builders is back, and their three pieces sit together, uncommitted, in the main tree
-while a reviewer attacks each one on a frozen copy. The table of the pause further down says
-what each piece was; this block says where each one is now. Rewrite both into the sections
-under them as the pieces are committed.*
+- **On `main`, built and reviewed by a second agent:** stages 1 to 3 whole (the log reader, the
+  service, the logic, the page with every live view and the rig reference section), the
+  reference tables and the telemetry reader. **Built and checked by the lead, not yet
+  reviewed:** the first slice of stage 4, `open` and `shortcut`.
+- **Designed, not built:** the base-color theme and the bound / not-bound actions view. **Asked
+  for, not designed:** a settings pop-up. All three are the user's requests of 2026-11-28.
+- **Not started:** the rest of stage 4 (the logon task; the window opening and closing with the
+  game), stage 4b (the Claude terminal), stage 6's second half (the telemetry wiring) and
+  stage 7 (docs and routines). Stage 5 is a flown session and the user's verdict.
+- **Written, not loaded in the game:** two binding changes in `MOZA.xml` (the wing swap, and
+  pin on a tap of the COM hat press). The rig reference already shows them, marked unverified.
+- **The suite passes on `808ba63`:** 713 tests in 362 s, none skipped, with the game closed and
+  the live service running **[seen: run at 11:28 AM for this text]**. The guard's own 105 tests
+  pass too (`python tools/test_scbot.py`, 7 s).
+- **The live service runs from the repo itself** since 11:24 AM, on port 47826 **[seen at
+  11:28 AM in the process list: `pythonw dashboard/scdash.py run --background` with the repo's
+  `dashboard/data`]**. It runs the code on disk: stage 3's page, in stage 4's window. The user
+  opens it with the "SC Dashboard" shortcut (one in `dashboard/`, one on the Desktop).
+- **Nothing is uncommitted and nothing is parked.** The tree is clean, `main` is the only
+  branch here and on the remote, and the main tree is the only worktree **[seen at 11:28 AM]**.
+- **Start at "The work queue" below, with item 1.**
 
-| Piece | State at 7:13 AM | Notes and scripts |
-| --- | --- | --- |
-| 1. The wiring (stage 3 into the service) | **ON `main` as `ba81853` (9:19 AM): two reviews, a fix round, the reviewer's confirmation on the commit candidate (`review-wiring/REPORT_R2.md`), then its small asks (a byte-order mark is not damage, numbered damaged copies, the first read counted as done at once, a bound on the save at a stop) and the docs made true by a second builder (`wiring/FIXROUND2.md`); 584 tests on an export of exactly its files. Still stale in `CLAUDE.md` here: the `web/rig/` row (schema 2, eight images, `RIG.md`).** History: fix round done in code and tests (8:20 AM), by its builder's report: every finding A to K and the privacy items; all four routes gained 503 answers (before the first read, and once a stop is asked) and `/api/timers/add` a 400 for a label with nothing visible. The builder stopped at 72% of its context; a fresh builder is correcting the docs and running the reviewer's mutation set, and the reviewer is confirming the fixes on the commit candidate (`review-wiring-r2/tree`; notes in `wiring/FIXROUND.md`).** Earlier: reviewed, fit to commit after a fix round. The guard on the four new routes, a hostile page in real Edge, strict JSON everywhere, the late merge of a held `state.json`, the rig file table and the budgets all held. To fix first: a deeply nested user block in `state.json` wipes it and aborts the first read; `unmapped.json` is overwritten after one failed read; the final save at shutdown runs without the lock. Also: a slow disk stalls the loop (the save is under the lock), a change is accepted before the first read, hard links in `web/rig/` are served, nine doc inaccuracies, and 16 mutations no test catches (the lock removed from page changes among them). Report: `review-wiring/REPORT.md`. The reviewer also noted, from earlier stages: the shard name is in the page's message, and `/api/status` shows the interpreter's path with the Windows user name in it. Before the review: The builder's report: every item done, 520 tests passing twice, 20 mutations caught, the content-policy proof passed, five real replays match. Orchestrator: privacy scan clean, the whole suite passed (520, 185 s, game running). One fix made by the orchestrator afterward: the server no longer warns at every start about the dot-file in `web/rig/` (with a test). Frozen copy: the session scratch folder, `review-wiring/tree`. | `data/handoff/session4/wiring/`, `review-wiring/` |
-| 2. The fix round for stage 3's first half | **ON `main` as `3ea7dc7` (9:45 AM): rounds 4 and 5, three reviews (`review-3a-r5/REPORT.md` is the last: fit to commit), then its one fix (no name learned from an objective of a contract the log never placed) and nine tests; 652 tests on an export of exactly its files. Owed: its doc text (`fix-3a/DOC_TEXT.md`) into `STATE.md` and `CLAUDE.md`, and the live service restarted on it.** History: reviewed (round 4), the eight fixes held but it was not fit to commit; round 5 went to a fresh builder. New findings: objective titles of service-beacon contracts carry the initiator's handle and reach the page, `state.json` and the summaries (shapes read from the game's text, never seen in a log); a known toast title with a bare name is shown raw; ten mutations survive the whole suite (the fail-closed budget flipped to fail-open among them); 58 nameless game texts are withheld; one real game text teaches a false name ("Share"). Round 5 also takes the shard name out of the state's public form. Report: `review-3a-r4/REPORT.md`; notes: `fix-3a-r5/`. Before the review: The builder's report: all eight findings fixed, 43 mutations caught, 488 tests in its copy. Applied to the main tree at 7:12 AM. Doc text it wants in `STATE.md` and `CLAUDE.md` is in its `DOC_TEXT.md`, to go in after the wiring is committed. | `data/handoff/session4/fix-3a/`, `review-3a-r4/` |
-| 3. Part B of the rig data | **ON `main` as `0e7bd17` (8:21 AM), after two reviews and two fix rounds.** Left for a fresh builder, from the second review (`review-rig-b/REPORT_R2.md`, the last builder's note `rig-b/HANDOFF_R3.md`): the schema's own file `dashboard/RIG.md` (the data still cites a section of `STATE.md` that does not exist), the word guards made advisory, the whole-sentence check, the code hash taken over the parsed code, and two doc lines for maintainers. History: The reviewer read all 109 marks against the art on contact sheets (all correct), checked every mode cell against `MOZA.xml` and every status in context, and found the outputs deterministic and the cards byte-identical. To fix: one screen wording that claims a hold the game's label contradicts (js1 2, missiles; it becomes root `CLAUDE.md` section 6 item 28), the quantum cells (unknown, not live in combat), a refused run that still rewrote the folder, no retry on a held file, and test gaps (wording against the bound action, the printed cards, mark names, hand edits). Report: `review-rig-b/REPORT.md`. Before the review: `rig.json` schema 2 (96 rows, per-row modes, statuses with their source sentence, groups, mark coordinates), eight cropped views with the sample readings painted out, a real test (40 mutations), the cards unchanged. Applied to the main tree at 7:07 AM. Its schema text for `STATE.md` is `RIG_SCHEMA.md`. | `data/handoff/session4/rig-b/`, `review-rig-b/` |
-| 4. The rig mockup | **Done at about 6:40 AM:** 56 captures in `data/design/rig/shots/`, `NOTES.md` rewritten from what was seen. The page draws its own numbers over the art's marks. **Put to the user, not yet answered:** the captures and five questions; the orchestrator's recommendations are being built as defaults. Not proven: no real pointer has touched it, and it has not been seen on the 15.6 inch panel. | `data/design/rig/NOTES.md` |
-| 5. The views (stage 3's page) | **Milestone 1, the live views, is built (8:17 AM), uncommitted and not yet reviewed:** every view in four layouts, alerts from the board only, the hand pick, quick timers and the switcher with real pointer events, 14 page tests; captures in `data/design/views/` (the orchestrator looked at Mining, Now in portrait and the failed preflight: clean; portrait leaves a blank band under short views). Its builder stopped at 67% of its context and left `views/HANDOFF.md` and `views/DOCS.md`. **Milestone 2, the rig reference section, is with a fresh builder since 8:21 AM** (`views-rig/`). One review of the whole page follows. | `data/handoff/session4/views/`, captures in `data/design/views/` |
+### What exists on `main`
 
-**The combined tree** (wiring, rig data and fix round together, the page at its committed
-version) passed the whole suite on a frozen copy at 7:16 AM: 554 tests, 199 s, one expected
-skip, the game running (`data/handoff/session4/orchestrator_suite_integrated.txt`).
+Every row was built by one agent, checked by the lead, attacked by a second agent on a frozen
+copy and fixed before its commit, unless the last column says otherwise.
 
-**Queued from the rig review, not part of its fix round:** the `generator` and `inputs` hashes
-in the reference tables' `_meta` are taken over raw bytes, so `reference/build_reference.py
---check` disagrees between a CRLF and an LF checkout of the same commit (seen with
-`controls.json`). Hash over line-ending-normalized bytes, then regenerate every table once
-(a full run: about a minute and 520 MB, offline).
-
-**Commit order, as the reviews pass:** the wiring first (its files include this folder's
-`CLAUDE.md`, `STATE.md` and `README.md`); then the fix round with its doc text; then the rig
-data with its schema text and the `web/rig/` row; then the views. Each is staged by its own
-file list and tested on an export of exactly what is staged.
-
-- **How the two copies came back.** Each worktree builder left its changes uncommitted and
-  wrote them as `changes.patch` into its notes folder; the orchestrator applied each to the
-  main tree with `git apply`. The builders' files do not overlap. Two things learned: `git
-  apply` under `core.autocrlf` wrote `rig.json` with CRLF (the generator was run again to put
-  it right), and a test file run by path instead of through `discover` cannot import its
-  helper. `.claude/` is git-ignored. Both worktrees (under `.claude/worktrees/`) are still
-  there: a fix round for piece 2 or 3 can go on in its worktree or in the main tree.
-- **Two things changed against the pause's list.** The server is to serve whatever images
-  `web/rig/` holds (a strict name pattern, the table built once at start), so that Part B can
-  rename and add images without touching `server.py`. And the lone surrogate is fixed on both
-  sides: taken out where text enters (`words.clean_text`, `plan._text`, the fix round) and made
-  harmless where it is encoded (the service, the wiring).
-- **Docs the worktree builders may not touch** (`CLAUDE.md` and `STATE.md` in this folder
-  belong to the wiring builder for now): each reports the exact text it wants, and the
-  orchestrator puts it in after the merge. The rig data's schema arrives as
-  `data/handoff/session4/rig-b/RIG_SCHEMA.md`, to go into `STATE.md`.
-- **The live service was restarted at 9:20 AM on `ba81853`** (the wiring), again from an export of `main` in the session's scratch folder (`live-ba81853`), because the main tree holds unreviewed work. It loaded the user's `data/plan.json` and built the board with no problems (`status`: view idle, plan loaded). The page it serves is still stage 2's until the page is committed. Earlier: **the live service is running again, on the committed code** (started 6:13 AM, when the
-  user said they would play and use the page by alt-tabbing to it). The working tree's
-  `service.py` is half-finished, so it runs from an export of `main`'s head in the session's
-  scratch folder (`git checkout-index --prefix=<scratch>/live-head/ -a`, then `scdash.py start
-  --data <repo>/dashboard/data --live <LIVE>` from there). It is stage 2's page: the strip and
-  the feed. When the wiring is committed: `stop`, then `start` from the repo.
-- **The user's decision of this morning: nothing waits for the side monitor** (§15). It
-  arrives 2026-11-29. Stage 4 is built and tested on the main screen first.
-- **A trap in the tooling:** the Agent tool's own worktree isolation refuses this repo (it
-  compares the path with a lower-case `c:` against git's upper-case `C:`), but it leaves the
-  worktrees it made, and they are sound. Start the builder without isolation and give it the
-  worktree's path. Remove the worktrees and their branches when their patches are on `main`
-  (`git worktree unlock`, `git worktree remove`, `git branch -D`).
-
-### The third session, 2026-11-28: paused at 5:46 AM for a shutdown
-
-*The user stopped the session to install memory (an extra 32 GB, by their word). Every agent
-was told to stop at a safe point and write a handoff note; all five have stopped. Nothing is
-lost, but three pieces are half done. A new session picks each one up from the note named
-below. Fold this block into the sections under it as each piece lands, then delete it.*
-
-**Where everything is.** `data/handoff/session3/` (git-ignored, on this disk) holds one folder
-per agent with its note and scripts. The unfinished wiring is also on the branch
-`wip-dashboard` (`ade771b`, on top of `1b0d305`). The session's scratch folder under `%TEMP%`
-held the frozen copies; they are only exports of `b399f18` and can be made again.
-
-| Piece | State | Pick it up from |
-| --- | --- | --- |
-| Card wording corrected against `MOZA.xml` and the game's catalog | **Done, on `main`** (`1b0d305`): checked by the orchestrator (profile check unchanged, the XML differs in comments only, both cards looked at), not by a second agent. | - |
-| Stage 3's first half, third fix round ("Left to do" step 1) | **Reviewed.** The four claims hold for the cases the docs name, but the tests miss five ways of breaking the fixes, and the review found eight new faults. **No fix round started.** | `session3/review-3a-r3/REPORT.md` |
-| The rig reference data (`34c482d`) | **Reviewed.** Complete and in the right views; the status marks, the mode information and the test are not good enough. Part A of the fix round (card wording) is the commit above. **Part B, the data itself, is not started.** | `session3/review-rig/REPORT.md`, `session3/rig-fix/HANDOFF.md` |
-| Stage 3 wired into the service ("Left to do" step 2) | **Half done, uncommitted, in the working tree:** `scdash/service.py`, `server.py`, `config.py`, `scdash.py`, `tests/test_server.py`, `test_replay.py` and the new `tests/test_wiring.py`. All nine items of the brief are built; 29 new tests pass on their own. **Not done:** a run of the whole suite on the result, `dashboard/CLAUDE.md`, the new last section of `STATE.md` (the message and the four endpoints), the `README.md` line for `replay --plan`, the measurements, the real-session replays, and the headless proof that the page's content policy loads the rig images. | `session3/wiring/HANDOFF.md` |
-| The rig reference section's design ("Left to do" step 3) | **Mockup written, never opened in a browser, no captures.** The design is settled in outline: nine pages (eight pieces of hardware, each a diagram with its rows, plus Find), a mode filter (All, Flight, Mining, Salvage), the switcher at the top right of the strip. | `data/design/rig/NOTES.md` |
-| The user's own `data/plan.json` ("Left to do" step 4) | **Written** from the game plan page; nothing skipped by `plan.normalize`; the board builds from it. The memory note `game-plan-artifact` has the `plan.json` step. | - |
-
-**Next, in this order:**
-
-1. **Finish the wiring.** Read its note, run the whole suite, then the docs, the measurements
-   and the replays its note lists; then a reviewer (the note says what to attack first), then
-   commit. One finding of the stage 3 review belongs here: a lone surrogate (the code point
-   U+D800 written as a JSON escape) in `plan.json` or in a quick timer's label reaches the
-   service's JSON encoder and raises.
-2. **A fix round for stage 3's first half,** from the review's report. Most severe first: the
-   forgotten-name lookup is cubic in a text's hyphen-joined parts (one 2,000-character text
-   takes 1.76 s once more than 1,000 names have been met); comms and notification shapes that
-   `law.py` does not list are shown raw with the name in them; names that differ only in case
-   cut a handle in two; a handle with a leading, trailing or doubled hyphen is not hidden once
-   forgotten; and tests for the five fixes that nothing checks today.
-3. **Part B of the rig data,** with the review's findings 1 to 7 and the designer's ten
-   requests in `data/design/rig/NOTES.md` together (crops as views, the sample readings
-   painted out, a home for every axis row, coordinates per button, fuller wording for the
-   variants, where-it-is hints for the stick rows, trial as a status and not as text). Add a
-   test that checks the card tables against `MOZA.xml`: every joystick input the profile binds
-   has a card row, and every row not marked unbound names an input the profile binds.
-4. **Render the rig mockup,** fix what the first look shows, capture it in the four window
-   shapes, and show the user. The designer's open questions for them are at the end of its
-   notes (the feed while the reference is open, missile in the filter, coordinates per button).
-5. Then the views ("Left to do" step 3) on top of the committed wiring.
-
-**For the user, from this session:**
-
-- In Scan mode, press the stick's lower hat up and say whether the scan cone gets wider or
-  narrower (root [`../CLAUDE.md`](../CLAUDE.md) §6 item 26). The cards now use the game's own
-  wording and claim no direction.
-- The first run chosen as current in `data/plan.json` is "Tungsten home" (collect at MIC-L2,
-  haul to New Babbage), then Run B. That order was the orchestrator's call.
-
-**Also changed this session:** the session brief is `SCBOT.md` (it was `STARCITIZEN.md`), and
-it now says which model a subagent runs on ("How the build is run" below). The new memory is
-confirmed (above), and the "while the game runs" limits below are loosened to match.
-
-**The live service is still stopped.** Start it only once the wiring is committed: started
-now, it would run half-finished code against the real data folder.
-
-The suite passed on `b399f18` that morning (467 tests, 141 s), and again in the reviewer's
-frozen copy. It has **not** been run on the tree as it stands.
-
-### The short version
-
-- **On `main`, built and reviewed:** the reference tables, the log reader (stage 1), the
-  service, its hardened server and the first page (stage 2), the telemetry reader, the survey of
-  what each activity leaves in the log, and the logic behind stage 3's page.
-- **Also on `main`, checked but not yet attacked by a second agent:** the rig reference's data
-  and diagram images, and the last small fix round of stage 3's first half.
-- **Next, in order:** have a reviewer re-run that fix round; wire stage 3 into the service;
-  build the views and the rig reference section on the page; then the user's own `plan.json`,
-  autostart and the window, the Claude terminal, a flown session, the telemetry wiring, and the
-  docs.
-- **Nothing is uncommitted.** The working tree was clean when the session ended. "Unfinished
-  work" below names what is on `main` but still owed a review or a small fix.
-
-### Built, reviewed and on `main`
-
-| Part | What exists | Commits | How it was checked |
+| Part | What exists | Commits | How it was checked, and what is not proven |
 | --- | --- | --- | --- |
-| Reference tables, first round (§10) | `reference/`: 3,415 location codes for 1,517 places, all 207 commodity ids, 39 ores with scan readings and quality figures, refinery yields for 20 stations; the generator `build_reference.py`. | `c4e537c` | Every location code and commodity id in the November logs resolved; `--check` passes; figures match memory. |
-| Reference tables, second round | Positions for 463 places, the controls per operator mode, ships, contract kinds, shops and the places with a refinery. Prices are built too, into the git-ignored `data/reference/`. The table further down has the counts and caveats. | `a391e66`, `0da1a24` | 41 reference tests, also on a clean export; `--check` passes. A generator run takes a minute and 520 MB, so not while the game runs. |
-| Stage 1: log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 old logs parsed with no error (377 MB in about a second, memory flat). Reviewed twice: privacy clean, byte-at-a-time feeding gives the same state. |
-| Stage 2: service, server, first page | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`, `web/`. `run`, `start`, `stop`, `status [--json]`, `replay <log>`. The page shows the status strip, the joystick check and the event feed in the chosen look, both orientations. | `c2d203d`, `40553f9`, `1ca537b` | Reviewed four times in all. The last review confirmed every fix by running it: 101 raw request variants and a hostile page in a real browser got nothing past the guard, a front end now reads each request's head before it takes a worker, nothing is written through a link, and an instance nothing could talk to exits. 372 tests on a clean export. About 22 MB and 0.06% of one core idle. |
-| The launch check with the service (§8) | The service followed two real launches on 2026-11-27. | `0af8188` | First launch on the fresh install: no `Game.log` at all, then a new session from offset 0. Second launch: the log emptied in place under the same file id, and the backup appeared at the old session's full size. No error. |
-| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`. | `56aca44`, `58e9c16` | 97 tests against a fake stream; reviewed twice. **Run against the real stream on 2026-11-27:** two recordings, 7,209 and 2,733 messages, none undecodable (§3, "The first recording"). Not wired into the service, the state or the page. |
+| Reference tables (§10) | `reference/`: location codes and positions, commodities, ores, refineries, ships, contract kinds, shops, the controls per operator mode, and the generator `build_reference.py`. Prices are built into the git-ignored `data/reference/`. | `c4e537c`, `a391e66`, `0da1a24`, `9e548cf` | `--check` passes and 42 reference tests. The hashes in each table's `_meta` ignore line endings since `9e548cf`. The caveats a reader needs are in "Reference data" below. |
+| Stage 1: the log reader | `scdash/tail.py`, `records.py`, `events.py`, `state.py`, `pipeline.py`, `summary.py`, `timeline.py`, `names.py`, `words.py`. `python dashboard/scdash.py timeline [log] [--json] [--list --since <date>]`. | `b1c1f4f`, `7448bdb`, `bbb7fe6` | All 409 logs that existed before the reinstall parsed with no error (377 MB in about a second, memory flat). Reviewed twice. |
+| Stage 2: the service and its server | `scdash/service.py`, `server.py`, `config.py`, `winutil.py`. `run`, `start`, `stop`, `status [--json]`, `replay <log>`. | `c2d203d`, `40553f9`, `1ca537b`, `0af8188` | Reviewed four times: 101 raw request variants and a hostile page in a real browser got nothing past the request guard. It followed two real game launches on 2026-11-27 without disturbing the log's rotation (§8). |
+| Stage 3: the logic behind the page | `scdash/refdata.py`, `law.py` with `notice_words.txt`, `plan.py`, `rules.py`, `alerts.py`, `views.py`, `board.py`; one entry point, `board.build(state, plans, user, now, game_running)`; `plan.example.json`; [`STATE.md`](STATE.md). | `f094c6c`, `3ea7dc7` | Five review rounds. The last two were about other players' names, which must not reach the page, `state.json` or the summaries: the fifth review found it fit to commit, and all 41 mutations of its last round are caught. **Not proven:** every beacon, bounty, party, transfer and crime notice shape is the game's own text and has never been seen in a real log. |
+| Stage 3: the logic wired into the service | The board in every message; the user's quick timers and hand pick kept in `state.json`; four changing endpoints behind the request guard (pick a view, back to Live, add and remove a quick timer); `unmapped.json`; the rig files served from `web/rig/`; `replay --plan`. | `ba81853` | Two reviews and two fix rounds; the confirming round ran 106 mutations. What was measured and replayed is in [`CLAUDE.md`](CLAUDE.md), "Stage 3 in the service". |
+| Stage 3: the page | `web/index.html`, `app.js`, `style.css`: Now, Travel, Mining, Salvage, Combat (in a ship, downed, on foot), Cargo, Mission, Refinery, Selling, Preflight and Idle, each in landscape and portrait with the terminal's region on and off; alerts from the board only (three shown, then "+N more"); the hand pick and the way back to Live; quick timers; the "Live / Rig reference" switcher; the rig reference section (eight pages and Find, a filter by operator mode); a keepalive event on the stream, so a service that goes silent shows as offline after 33 s. | `dd150d2`, `6fa5dd9` | One review of the whole page: 73 hostile strings ran nothing, and 7,200 messages left memory flat. Then a fix round, and a second round for the review's lower tier, after which 33 of 33 mutations are caught. Headless Edge: about 133 MB and under 2% of one core. **Not proven:** nothing was seen on the 15.6 inch panel, and Salvage only as a hand pick. More in "Left open" below. |
+| Rig reference data (§4 item 18) | `tools/regen_cards.py` also writes `web/rig/`: `rig.json`, schema 2 (96 rows in 8 views, each with its job per operator mode, a status with the sentence it rests on, and the place of its number on the art) and eight diagram images; [`RIG.md`](RIG.md) describes every field; `tests/test_rig.py`. | `34c482d`, `1b0d305`, `0e7bd17`, `9e548cf` | Two reviews and two fix rounds: all 109 marks were read against the art, and the printed cards come out byte for byte the same. Today 12 rows are marked flown and 21 unverified **[seen in `rig.json`]**. |
+| Stage 4, first slice: the window | `scdash.py open` (the page in Edge's app mode with a profile of its own, below normal priority; it starts the service first if needed) and `shortcut` (`SC Dashboard.lnk`, git-ignored); `scdash/window.py`; `scdash.ico`. | `b551f9e` | 22 tests; checked by the lead. **No second agent has attacked it** (the notes hold only the builder's, whose mutation checks are "by reasoning, not run"). The user saw the window on the main screen that day: no tabs or address bar, at the intended size (their screenshot, by the lead's report). Nothing about a second display is tested. |
+| Telemetry reader (stage 6, first half) | `scdash/telemetry.py`, `telemetry_h2.py`, `telemetry_proto.py`, `telemetry_readings.py`. | `56aca44`, `58e9c16` | 97 tests against a fake stream; reviewed twice; run against the real stream on 2026-11-27 (two recordings, none undecodable: §3, "The first recording"). **Not wired into the service, the state or the page.** |
 | The survey | [`SURVEY.md`](SURVEY.md): what salvage, hauling, combat and missions leave in the log, each item marked seen, game text or second-hand, with 16 checks for new sessions. | `bc4108f` | Rebuilt without the old logs, from this plan's record, the game's files and five other tools' parsers. |
-| The look (§11) | Direction B, "Avionics", in `design/avionics/` (`index.html`, `style.css`; every screen by `#name` on the address). | `7c23588` | The user picked it from captures of every screen in both orientations. |
-| Stage 3, first half: the logic behind the page | `scdash/refdata.py`, `law.py`, `plan.py`, `rules.py`, `alerts.py`, `views.py`, `board.py`, with changes to `events.py`, `state.py`, `names.py`, `words.py`, `summary.py` and `timeline.py`; `plan.example.json`; [`STATE.md`](STATE.md). One entry point, `board.build(state, plans, user, now, game_running)`. | `f094c6c` | 467 tests. Reviewed twice: sixteen fixes confirmed by running, the worst a log line that had stalled the reader for 157 s. Replayed on the user's three real sessions of 2026-11-27 with no plan loaded: Preflight at launch, Now in the game world, Mining on boarding the Golem, Travel on each jump, Mining on arrival at ARC-L4, Idle after the quit. **A third, smaller fix round is in the commit and has not been re-run by the reviewer** ("Unfinished work" below). Not called by the service yet. |
-| Rig reference data (§4 item 18) | `tools/regen_cards.py` also writes `web/rig/`: `rig.json` (96 card rows in 8 views since `1b0d305`; 93 in 7 when first built) and six diagram images in the page's colors; `tests/test_rig.py`. Root [`../CLAUDE.md`](../CLAUDE.md) §8.5. | `34c482d` | The cards come out unchanged; the test fails until the files are regenerated after a card change; the generator reproduces its output byte for byte. Checked by the orchestrator, not yet attacked by a second agent. Not served or shown yet. |
+| The look (§11) | Direction B, "Avionics", tracked in `design/avionics/` (every screen by `#name` on the address). | `7c23588` | The user picked it from captures of every screen in both orientations. |
+| The working docs | [`CLAUDE.md`](CLAUDE.md) (the code as it is, measurements, open points), [`STATE.md`](STATE.md) (the message and the endpoints), [`RIG.md`](RIG.md), [`README.md`](README.md). | `fe1ecbc`, and with each stage | Merged from the builders' notes; where a note and the code disagreed, the code won. A few lines went stale again with `6fa5dd9` ("Left open" below). |
+| Two designs, not built | [`design/theme/THEME.md`](design/theme/THEME.md) (§4 item 19) and [`design/actions/ACTIONS.md`](design/actions/ACTIONS.md) (§4 item 20), each the brief a Worker builds from. Their mockups and captures are git-ignored, in `data/design/theme/` and `data/design/actions/`. | `8b979b6`, `808ba63` | Each designer rendered and captured its mockup. **Neither design has been reviewed by a second Architect** (no review is in the notes). The user has seen the first captures of the actions view ("those images look ok") and none of the theme's. |
 
-The plan itself was corrected throughout from what the build and the reviews found: §3, §4, §8,
-§9, §10, §11, §12 and §15.
+Outside this folder, the same session also landed: the crew setup (`SCBOT.md`, `prompts/`,
+`tools/scbot.py`: `ba80836`, `d18daf2`; the prompts reviewed twice, the script three times in
+sandboxes) and three changes to the binding profile that the rig data follows (`7f95614` the
+wing swap, `3d94f3c` the shield faces confirmed in the Corsair, `312064a` the COM hat press;
+root [`../CLAUDE.md`](../CLAUDE.md) §6 items 26 to 30).
 
-### Unfinished work
+**Closed at the end of the fourth session:**
 
-**Nothing is uncommitted.** The working tree was clean when the session ended, and the branch
-`wip-dashboard`, which held snapshots of unfinished files during the session, was deleted once
-everything on it was on `main`. Three things are on `main` but not finished in this plan's
-sense (built, checked by the orchestrator, then attacked by a second agent):
+- The guard for the crew's limits was installed as the lead's last act, after this text was
+  written (queue item 1 confirms it).
+- The live service was stopped and started again from the repo (above). Until then it had run
+  from an export of `main`, because the tree held unfinished work.
+- The build's two worktrees, their local branches and the `wip-dashboard` snapshot branch were
+  removed at the close, with the user's OK.
+- Every entry of the session's hand-kept list of the user's requests and reports
+  (`data/handoff/session4/PENDING_FROM_USER.md`, git-ignored) is now either in the repo or in
+  the queue below. One is neither: the game plan page's Controls note may still describe the
+  old wing layout or call the shield faces a trial. Check it at the next page update.
 
-1. **Stage 3's first half, the third fix round** (in `f094c6c`). The reviewer's second pass
-   found four faults in the fixes. The builder fixed and tested all four, and the whole suite
-   passes, but the reviewer has not re-run them:
-   - *Names.* Law and ship-channel notices are redacted where they are read, so the kept text
-     never holds the other party's name. A word from them is learned as a handle only if it can
-     be one (letters, digits, `_`, `-`, three or more) and is not a word of the game or on a
-     short stoplist (`scdash/law.py`). Before, a crime against "Hurston Security" made the
-     jurisdiction read "another player Dynamics" for the rest of the session.
-   - *Forgetting.* Past 1,000 names the oldest 500 are forgotten; they are replaced in every
-     text still held, with one pattern built from forgotten and kept names so a handle is
-     always replaced whole, and they stay hidden in output afterwards (kept as small hashes).
-   - *The plan's notice* now counts values it left out (a number out of range, a `current_run`
-     that is not a run id).
-   - Tests: `tests/test_review3.py` (`Round2Test`), `tests/test_hostile.py`.
-   - The real shapes of the game's law and comms notices, read from `global.ini`, are in the
-     docstrings of `law.py`. The built sample `built_law.log` uses "Assault", which is not one
-     of the game's 47 crime names: replace it with a real one when the sample is next touched.
-2. **The rig reference data** (`34c482d`). Not attacked by a second agent. For the page's
-   builder: at twice their size the button numbers reach the page's 18-pixel floor and are a
-   little soft; MOZA's tiny engraved labels (A1 to A4, the detent marks) cannot be read at any
-   size; the art still shows the readings of MOZA's own screenshot ("Dial 65535"), as the
-   printed cards do. `mtq_axes` is a view with rows and no image.
-3. **Two small faults in the service's own log,** found by the last stage 2 review, to fix with
-   the next change to `service.py`:
-   - A save that fails every time logs a full traceback every 10 s, about 1 MB an hour, which
-     pushes the launch-check lines out of the 1 MB log within the hour. The repeat counter
-     never matches because each traceback names a new temporary file: compare by exception
-     type and source line.
-   - The front end's one-warning-a-minute limit can hold back a different fault's traceback
-     until the next fault or shutdown: log in full any fault that differs from the last one
-     logged, and flush the pending count on a timer.
+### The work queue, in order
 
-The reviewers' and builders' scripts from this session are in `data/handoff/review/`
-(git-ignored): the request-guard attacks, the front-end attacks, the hostile-line and privacy
-probes. They take a path to the tree; read them before writing new ones.
+These are the user's requests and the plan's remaining stages. Items 1 and 2 are done with the
+user before anything is built. Items 3 to 10 are pieces of work for a crew: each has an entry
+in the crew's own queue (`python tools/scbot.py queue list`; `queue show T001` prints one),
+added at the close of the fourth session, and the ids are given here. The queue says who has
+what; this plan says what is to be built.
 
-### Left to do, in this order
-
-1. **Have a reviewer re-run stage 3's first half, third round** (item 1 above), and fix what it
-   finds.
-2. **Stage 3, second half: wire it into the service.** In `service.py`, `server.py`,
-   `config.py` and `scdash.py`:
-   - `PlanStore(data/plan.json).refresh()` each loop or every 10 s; a true return marks the
-     state dirty.
-   - `board.build(...)` whenever the state is dirty or `now` has reached the last payload's
-     `next_change_ms`; sent as `board` in the page's message; its `problems` logged.
-   - The user block of `state.json` holds `timers` and `view`, made by `board.pick`,
-     `add_quick_timer` and `remove_quick_timer`. `view` is deleted when the payload says
-     `pick_dropped`; a "reference" pick never is. If `state.json` only becomes readable late,
-     merge it with what is in memory instead of overwriting.
-   - Four changing endpoints behind the `CHANGE` guard: pick a view, go back to Live, add a
-     quick timer, remove one.
-   - `unmapped_contracts` merged into `data/unmapped.json` under their own key.
-   - The fixed file list gains `rig/rig.json` and the six images in `web/rig/`, and the page's
-     content policy has to allow images from the server itself.
-   - `replay` drives the board too: stage 3's "done when" (§12) is judged on replays.
-   - The two logging faults above.
-   - Then a reviewer, then commit.
-3. **Stage 3, the views** in `web/`: Now, Travel, Mining, Salvage, Combat (in a ship and on
-   foot), Cargo, Mission, Refinery, Selling, Preflight and Idle, built on stage 2's page from
-   the tracked mockup and from [`STATE.md`](STATE.md) alone. Each is captured and looked at in
-   both orientations (§11); the rough spots the designer listed are in §11.
-   - `app.js` takes its alerts from `board.alerts` only and drops its own preflight, downed and
-     stuck-hangar alerts, or they show twice.
-   - **Plus the rig reference section and the Live / Rig reference switcher** (§4 item 18).
-     It has no mockup, so its layout is designed here, for landscape and portrait and with the
-     terminal on and off, and **shown to the user in both orientations** before it is called
-     done.
-   - Then a reviewer, then commit.
-4. **The user's own `data/plan.json`,** written from the game plan page and memory, and the
-   `plan.json` step added to the update routine in the memory note `game-plan-artifact` (§16).
-5. **Stage 4: autostart and the window.** `install`, `uninstall`, `open`. The user said yes to
-   Claude registering the logon task (§15). **It no longer waits for the side monitor** (the
-   user, 2026-11-28, §15). With one display, `open` puts the window on the main screen at the
-   side monitor's pixel size (1920x1080 or 1080x1920), and the user alt-tabs to it. The checks
-   that need a second screen (placement, full screen, focus while the game is in front on the
-   other screen) are repeated when it is connected.
-6. **Stage 4b: the Claude terminal** (§4, §8, §12). Claude Code is installed as its own
-   program since the reinstall (`claude` is on PATH). Put the token decision in §8 to the user
-   first. The guard it needs is in `server.py`, and `app.js` has the reader for it.
-7. **Stage 5: a flown session** with the dashboard running, and the user's verdict.
-8. **Stage 6, second half: wire the telemetry reader in** (its own entry point into the state,
-   the strip's ship readouts, the seat event). Two recordings of the real stream are in
-   `data/telemetry/`, and §3 ("The first recording") has what they showed, including that a
-   zero or false value is simply not sent. Still to compare with the cockpit by the user.
-9. **Stage 7: docs and routines** (§16), including the complete "set up on a fresh Windows
-   install" section in `README.md`, which still describes stage 2 only. Add Easy Anti-Cheat to
-   it as a thing the game may need after a reinstall.
-
-**The service is not running.** It was stopped when the session ended, and nothing starts it
-by itself until stage 4. Start it at the top of a session with
-`python dashboard/scdash.py start`; it then runs the code that is on disk.
-
-**As the user plays,** work through the 16 checks at the end of [`SURVEY.md`](SURVEY.md): each
-names the log line that would turn a built, unverified shape into a seen one.
+1. **With the user, first: confirm the guard, then walk its first-install checklist.**
+   - The guard was installed at the end of the fourth session: confirm with
+     `python tools/scbot.py check` (every line should say PASS). A session started after the
+     install is named in its first reply (SCBOT-1 and so on). One that sees no such notice
+     keeps the rules by hand ([`../SCBOT.md`](../SCBOT.md), "Until the guard is installed").
+   - Then the twelve steps in `prompts/SCBOT-README.md`, "After the install: the first-install
+     checklist". None of the guard had run inside Claude Code when it was written, and the
+     steps turn "documented" into "seen". Record what was seen in that file's "What is tested,
+     and what is only documented".
+   - **The way out if a hook ever blocks everything:** `python tools/scbot.py uninstall`, from
+     a plain terminal in the repo root.
+   - With the install, automatic compaction is off in every project of the user's, and the
+     guard runs only in this one.
+2. **With the user: the bindings are written, not loaded.**
+   - `MOZA.xml` holds two changes the game has not seen: the AB6 wings swapped (`7f95614`: the
+     power-assignment taps on the left wing, js1 49 to 51, and the power toggles on the right,
+     js1 53 to 55) and the COM hat press as pin on a tap, with the decoupled toggle off the rig
+     (`312064a`).
+   - The user loads the profile in the game (Keybindings, Load, or `pp_rebindkeys MOZA.xml` in
+     the console) and quits. Then `python tools/validate_actionmaps.py`: expect no mismatch, no
+     input difference and no leftover. Before the load it reports eight input differences,
+     which is expected. Each of the two new clears should come out `OK` or `NOT-IN-EXPORT`;
+     which of the two is not known yet (root [`../CLAUDE.md`](../CLAUDE.md) §6 item 30, §10.3).
+   - Then their flight report for the six swapped wing buttons and for the tap on js2 57. The
+     status marks follow it: `STATUS` in `tools/regen_cards.py`, then the cards, `web/rig/`,
+     `reference/controls.hand.json` and root `CLAUDE.md` §4 and §6.
+3. **Build the base-color theme** (§4 item 19, §11; the brief is
+   [`design/theme/THEME.md`](design/theme/THEME.md)).
+   - The user: "can we use that as the 'mother' color for the dashboard? can we make it so we
+     have a singular setting that accepts the RGB 0,0,0 format just like the moza cockpit".
+     One setting, `theme.base` in `data/config.json`, default `0,0,255`. The service derives
+     the page's color tokens from it, and red, amber and green never move.
+   - **Recommended first: a second Architect's review of the design** (`T017`). None is in the
+     notes, and the design marks one thing as not verified: the diagram drawn as a mask through
+     the real server's request guard.
+   - **Stage A, the build** (`T001`, a Worker): everything in THEME.md's file table, its tests
+     and its "done when". It can be built before the two open questions are answered ("Questions
+     waiting for the user" below). Then a review, then the commit.
+   - **THEME.md's stage B** (the same setting as a field on the desk panel) is overtaken by
+     item 5: the user asked for the setting in a settings pop-up. THEME.md still lists it as an
+     open question; correct it there when the pop-up is designed.
+   - Not proven: nothing is built, the mockup is landscape only, and it has not been seen
+     beside the lit rig.
+4. **Build the bound / not-bound actions view** (§4 item 20; the brief is
+   [`design/actions/ACTIONS.md`](design/actions/ACTIONS.md)).
+   - The user: "which bindings we do have bound and which ones exist that we have not bound
+     (like ESP and Decoupled, etc) ... pull the available bindings from existing game files so
+     its always updated with the latest patch". Their three answers are in (§15): the service
+     refreshes the list by itself at its own start-up, every named action is in scope (769
+     rows), and the view lives inside Find.
+   - **Recommended first: a review of the design** (`T018`). It was rewritten in one pass to
+     the three answers, and 66 of its mockup's 76 captures were made but never looked at.
+   - **Three stages, one Worker after another,** each reviewed before its commit: A, the
+     builder and `python tools/gamedata.py actions` (`T002`); B, the service's start-up step
+     (`T003`); C, the page (`T004`). ACTIONS.md §12 has the three briefs.
+   - Stage A shares no file with the theme's build, so the two can run side by side. Stages B
+     and C share `service.py`, `config.py`, `app.js` and `style.css` with it and go after it.
+5. **A settings pop-up behind a small gear icon** (asked for, not designed).
+   - The user, 2026-11-28, about 11:03 AM: "id like a small gear icon for a settings pop up
+     modal and the settings i think we can put there that i can configure from the UI is
+     putting in the 0,0,255 color code 'base' for example for the theme to use (while keeping
+     our existing alert colors the same across the themes) and also a setting for portrait or
+     landscape mode and maybe even a light/dark/system mode as well".
+   - So it holds the theme's base color, portrait or landscape, and perhaps light / dark /
+     system. That answers THEME.md's first question: yes, the base color is set from the page.
+   - **An Architect's design first** (`T005`): a design file with stage briefs, a mockup, and
+     captures in both orientations with the terminal on and off. It takes over THEME.md's
+     stage B and its rules for the one write to `config.json`, and it can start beside the
+     theme's build. Then a second Architect's review, the user's answers, and the build
+     (`T006`).
+   - Two decisions in it are the user's ("Questions waiting for the user" below): how a
+     portrait or landscape setting combines with today's rule that the page follows the shape
+     of its window (§11), and whether light / dark / system is wanted.
+6. **The rest of stage 4** (§12 stage 4 with §6, §8, §11 and §15; [`CLAUDE.md`](CLAUDE.md),
+   "Stage 4: the window").
+   - **A review of the first slice** (`T019`), best before more is built on it.
+   - **The logon task and the window's life** (`T007`): `install` and `uninstall` (today both
+     print "comes in stage 4" and exit with 2 **[seen in `scdash.py`]**), the service opening
+     the window when the game starts, and closing, a few minutes after the game exits, only a
+     window it opened itself. The user agreed on 2026-11-27 that Claude registers the task once
+     it is built and tested, tells them, and shows them `uninstall` (§15). The plan has the
+     "done when" but no file list: write the stage brief first.
+   - `window.FRAME` = (16, 39) is the builder's guess at Edge's window frame: check
+     `innerWidth` and `innerHeight` with F12 in the real window.
+   - **Every second-display check, once the side monitor is connected** (expected 2026-11-29;
+     `T008`): placement, full screen in both orientations, a rotation made while the window is
+     open, focus while the game is in front, the window's real memory, what still goes online.
+     The PC had one display, 3840x2160, at 11:28 AM **[seen]**.
+7. **Stage 4b: the Claude terminal in the page** (§4 item 17, §8, §11, §12; `T009`, blocked on
+   the question below).
+   - Not started. The user asked about it again on 2026-11-28 (by the lead's report).
+   - **Before any building, put §8's token decision to the user with a recommendation:** three
+     options in rising order of effort, at "To decide with the user before 4b is built".
+   - Also wanted first: the user's check, on the ground, of whether the game still takes stick
+     and throttle input while another window has the keyboard (§11, §14).
+   - It is probably more than one Worker's context **[verify]**: split the service side
+     (`terminal.py`, the pseudo-console calls, the stream and its guard) from the page side
+     (xterm.js and the panel in both layouts) when the briefs are written. The request guard
+     for it is in `server.py` and the page has the reader for its stream, both from stage 2.
+8. **Stage 5: a flown session with the dashboard, and the user's verdict** (§12).
+   - First figures at the pace of real play, by the lead's report from the user's sessions of
+     2026-11-28: the service at 26 MB and about a second of CPU in 14 minutes with the game
+     running, and the views switching to Travel and Mining by themselves.
+   - Still owed: the session's summary compared with Claude's own reading of the same log,
+     what the user wants changed, and one look at how much memory is free with the game
+     running on 64 GB ("How the build is run" below).
+   - As chances come, the 16 checks at the end of [`SURVEY.md`](SURVEY.md): a hauling contract,
+     a salvage contract, a bounty, and a contract allowed to fail. Each names the log line
+     that turns a built, unverified shape into a seen one.
+9. **Stage 6, second half, then stage 7.**
+   - **The telemetry reader wired in** (`T010`; §12 stage 6, §3 "The first recording", §4 items
+     14 to 16): its own entry point into the state, the strip's ship readouts, the seat event.
+     Two recordings of the real stream are in `data/telemetry/`. A zero or false value is
+     simply not sent. Write the stage brief first. The user still has to compare the readouts
+     with the cockpit.
+   - **Docs and routines** (`T011`; §16), last: the "set up on a fresh Windows install" section
+     of `README.md` made complete (the section exists; add what stages 4 to 6 change outside
+     the repo, and Easy Anti-Cheat as a thing the game may need after a reinstall).
+10. **What reviews and builders left open:** the lists in "Left open" below. `T012` the service
+    and the page, `T013` the rig reference's rough spots (an Architect's pass, best after the
+    side monitor is connected), `T014` the reference tables, the card tool and the tests,
+    `T015` the guard's two low findings, `T016` a trim of `SCBOT.md` (blocked: only if the
+    user says yes). They are small: hand each to the stage that next touches its file where
+    that is simpler.
 
 ### Only the user can do these
 
-- Connect the side monitor when it arrives (expected 2026-11-29), and try it in both
-  orientations. Nothing waits for it any more (§15): until then the dashboard is used on the
-  main screen.
-- On the ground, check whether the game still takes stick and throttle input while another
-  window has the keyboard (§11, §14). It matters for the Claude terminal.
-- Look at the rig reference section's layout in both orientations when it exists, and say what
-  to change (§4 item 18).
-- Decide how far to harden the token before the Claude terminal is built (§8 has three options).
-- Fly a session with the dashboard running (stage 5).
-- For the checks in [`SURVEY.md`](SURVEY.md): a hauling contract, a salvage contract, a bounty,
-  and a contract allowed to fail, each in any session, so the built line shapes can be replaced
-  by real ones.
+In a ship or at the rig (root [`../CLAUDE.md`](../CLAUDE.md) has each item's history):
 
-### The second round of reference data, table by table
+- Load `MOZA.xml` and quit (queue item 2), then report on the six swapped wing buttons and on
+  pin with a tap of the COM hat press.
+- In Scan mode, press the stick's lower hat up and say whether the scan cone gets wider or
+  narrower (root §6 item 26).
+- In Missile mode with a target locked, hold the launch button and say whether anything
+  differs from a tap (root §6 item 28).
+- Flight reports still missing, by the lead's list: strafe on the mini-stick and the COM hat's
+  target cycling (root §6 item 20), the salvage bank on the right hat with fire left and right
+  on A2 and A3, the tractor trial on the Golem OX, the jettison hold on A1, the docking tap on
+  "AP", and the shield faces on the crewed ships (whether the pilot seat owns them on the
+  Liberator, the Perseus and the Ironclad Assault).
+- On the ground, whether the game still takes stick and throttle input while another window
+  has the keyboard. It decides how the Claude terminal may be used in flight.
 
-All seven are done. Everything committed is read from the game's own files.
+For the dashboard:
 
-| Table | State | What the next agent needs to know |
-| --- | --- | --- |
-| Positions | 463 places in `locations.json` carry `pos`, in meters in their system's own coordinates. All 8 route distances held in memory match to 0.1 Gm (New Babbage to ARC-L4 is 32.7). | - |
-| Controls per mode | `controls.json`, 5 modes. The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as [`../CLAUDE.md`](../CLAUDE.md) has it; the wording is read from `tools/regen_cards.py` without running it, and a test fails when a card label it names is renamed. | - |
-| Ships | `ships.json`: 1,099 vehicle classes keyed as the log prints them, with name, maker, crew, role and cargo in SCU. `ships.hand.json` holds the fleet's jobs: Golem mining, Salvation salvage, Golem OX cargo, M80 combat, every other ship none. | Cargo is counted in 1.25 m grid cells. Many ships carry their grid outside the default loadout, in a vehicle definition this build stores encrypted; there the cargo comes from the one cargo-grid record named for the class (`cargo_how` says which) **[verify]**. All 11 fleet ships resolve, and their cargo matches [`../CLAUDE.md`](../CLAUDE.md) §11.1 (the Golem OX is 64). 226 classes have several grids named for them and are left without a figure. |
-| Contract kinds | `contracts.json`: 2,343 contracts from the game's contract generator records (101 generators), each with a kind, a view and, for combat, whether it is on foot or in a ship (623 in a ship, 211 on foot, 54 not settled); 603 exact titles, 100 title patterns, and fallback rules in `contracts.hand.json`. | **The lookup order is in the file's `_meta.lookup`, and readers must follow it** (`refdata.contract()` does): the contract name (a trailing `_<n>` is a sub-contract index), then the generator when all its contracts agree, then the title, then the rules, then "mission" and the unmapped list. SCMDB was a local cross-check only (its license text is contradictory, so none of its rows is committed): all but 9 of its 4.10.3 contracts resolve, and of the 337 new in the 5.0 test build the rules place all but 18. The Bounty Hunters Guild's generators are in this build already, all combat. Unverified: that a legacy contract prints its generator's name in the marker line. |
-| Shops | `shops.json`: 310 shop names from the game's object containers, with a kind. | 200 names belong to one place; **110 are shared across a chain** (`SCShop_Admin_lt_base_g` is at 29 places, the refinery desk at 16), so for those the place is the last inventory location in the log. |
-| Refining | `refineries.json` gained `places`: the 29 places with a refinery. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text; nothing was invented. Levski has the shop but not the amenity. |
-| Prices | `data/reference/prices.json`, git-ignored: 124 commodities, 2,597 dated rows from 135 terminals. | Built from UEX's tables saved on 2026-11-27. The generator goes online only with `--fetch`, never with `--check`; tests prove both. Prices stay local because they age by the day. `refineries.json` carries UEX yield rows in git, and the user decided on 2026-11-27 that they stay (§15). |
+- Connect the side monitor when it arrives (expected 2026-11-29) and try it in both
+  orientations. Nothing waits for it (§15), but nothing has been seen on it either.
+- Look at the rig reference in portrait, and at the theme's captures (`data/design/theme/`,
+  `index.html` lists them): they have seen neither.
+- Fly a session with the dashboard running and say what to change (stage 5).
+- Compare the telemetry readouts with the cockpit, once stage 6 shows them.
 
-`data/handoff/` (git-ignored; it survives a reinstall only through the kit's backup of this
-folder) holds the first, partial survey, the saved downloads, the design capture scripts, the
-telemetry recordings' summaries and scripts (`telemetry/`), and the orchestrator's two helpers:
-`privscan2.py` (searches the files git would publish for the user's handle, ids, addresses,
-profile paths and e-mail addresses, learned from the local logs) and `wip_snapshot.ps1` (pushes
-a snapshot of unfinished files to the branch `wip-dashboard` after that scan).
+### Questions waiting for the user
 
-### What the Windows reinstall changed (2026-11-27)
+Each is put with AskUserQuestion, recommendation first. "Mine" marks a recommendation of the
+Architect who wrote this section: it is reasoning, not a decision **[verify]**.
 
-The user wiped the PC and reinstalled Windows 11 and the game on the afternoon of 2026-11-27.
-Their system-refresh kit (theirs, outside this repo) restored the tools, this folder and
-Claude's memory. Checked that evening **[seen]**:
+| # | Question | Recommendation, and whose | The other way, and what it costs | What waits on it |
+| --- | --- | --- | --- | --- |
+| 1 | Do reviews go to the Architect by default, or stay with Workers? | **The Architect** (the review of the prompts, 2026-11-28): the user's description of that role names review. The prompts already say so, and they have not objected. | Workers again, as on every stage before 2026-11-28: one paragraph in `SCBOT.md` ("Who reviews") and one bullet in each role prompt. | Nothing. Until answered, a review goes to an Architect. |
+| 2 | Should a typed `/compact` be blocked as well? | **No, keep it** (the same review). After the install, compaction is off in the user's other projects too, where no guard runs, and there a typed `/compact` is the way out of a full session. | Blocked: "no compacting" holds without exception in this project, and a session at its line can only close. | Nothing. |
+| 3 | Should js1 56 (shields to max, a hold) move to the left wing with the other power-assignment buttons? Asked on 2026-11-28, not answered. | None recorded. The left wing is full (49 to 51 the three increases, 52 the reset), so 56 would trade places with one of them, most likely the reset (the layout: root `CLAUDE.md` §6 item 29). | Staying: the hold sits under the three power toggles on the right wing. | Nothing. A yes is a binding change like root §6 item 29, with the cards and the rig data. |
+| 4 | Theme: on a rig lit near a status color (green, red, orange, yellow), what is the accent? | **The rig's own hue, pale** (the designer): the page stays one color family and the accent cannot be read as a status. | The look's cyan on those rigs: emphasis as strong as on blue, but two colors where the request was for one. With the pale accent, emphasis is weaker on red, orange and yellow rigs. | Nothing for stage A, which is built to the recommendation. Show the captures with the question. |
+| 5 | Theme: is it right that the default look turns from cyan to blue? | **Yes** (the designer's decision, open to change): with the default base `0,0,255` the cyan accent the look was chosen with gives way to the rig's blue, and the ground barely changes. It is what the request asks for. | Keeping cyan by default: the page does not match the rig's lights until the user sets a base. A base with no color keeps the cyan on a gray ground. | Stage A's default. |
+| 6 | Settings: how does a portrait or landscape setting combine with the rule that the page follows the shape of its window? | **Mine:** three choices, "Follow the window" (the default, today's rule), "Landscape" and "Portrait". For the design to test with captures. | A forced layout in a window of the other shape has to scale or scroll. Once the service opens the window itself (stage 4), the same setting could also choose the window's shape on the main screen (`open --portrait` exists). | The settings design (`T005`). |
+| 7 | Settings: is a light / dark / system choice wanted? Their word was "maybe". | **Mine:** not in the first version. THEME.md keeps a light theme out of the base color on purpose ("how light each part of the page is belongs to the design"), so a light mode is a second look to design and capture, not a switch. | Yes: a design pass of its own and twice the captures and contrast checks. | The settings design (`T005`). |
+| 8 | Terminal: how far to harden the token before stage 4b is built? | None recorded yet: §8 lists (a) the token only for the window the service opens, (b) the terminal's connections only from the browser the service started, (c) the data folder's files moved or locked to the user. Read §8 whole and bring a recommendation. | §8 gives each option's cost, in rising order of effort. | Stage 4b (`T009`). |
+| 9 | Rig reference: the five layout questions put to them at about 6:40 AM on 2026-11-28 with the mockup's captures (unchanged rows gray or white, Find's text box, the feed while the reference is open, missile in the filter, unbound controls on the drawings). No answer is in the notes. | The designer's five recommendations (`data/design/rig/NOTES.md`, "For the user to decide"). The built section follows them except in two places its builder chose otherwise (`data/handoff/session4/views-rig/NOTES.md`, "Decisions to confirm"). | - | The rig reference's design pass (`T013`). |
+| 10 | Shield faces: which seat were they in when the faces worked in the Corsair? Asked, not answered; the docs assume the pilot seat. | - | - | Nothing. |
+| 11 | `SCBOT.md` grew from 255 to about 490 lines with the crew rules. Do they want an Architect to trim it? | An offer, not a recommendation. Nothing of theirs may be lost; the prompts' review audited that once. | - | `T016`. |
 
-- **Came back:** the repo at the same path with a clean tree, Claude's memory for this project,
-  `dashboard/data/handoff/` and `dashboard/data/design/`, Python 3.12.10 with `pythonw`,
-  `zstandard` and Pillow, Git and the GitHub CLI (signed in, HTTPS), Edge, and Claude Code as a
-  program of its own (the kit installs it with winget; `claude` is on PATH). The game is the
-  same build, 4.10.201.48085. The whole suite passes: 319 tests, 3 skipped (the privacy tests,
-  until the game has written a log).
-- **Gone for good: every old game log.** `LIVE\logbackups\` came back empty and there was no
-  `Game.log`: the kit backs up this folder and Claude's files, not the game's. The old drive
-  was wiped. So:
-  - The 409 logs behind every **[seen]** count in §3, in [`CLAUDE.md`](CLAUDE.md) and in the
-    measurements are no longer on disk. Those figures stand as a record; they cannot be
-    re-run.
-  - The only real log lines left are the sanitized samples in `tests/samples/`. A new marker
-    can only be learned from a session the user plays from now on, from the game's own files,
-    or second-hand from other tools' parsers.
-  - The survey over all the logs could not be finished as planned; [`SURVEY.md`](SURVEY.md) was
-    rebuilt without them.
-  - The orchestrator's privacy scan and `tests/test_privacy.py` learn the user's handle and
-    ids from local logs, so they are blind to those until the first new session. Until then
-    the scan knows only the Windows user and PC names.
-- **Gone, and expected:** the game's saved profile (`Profiles\default`), the screenshots, the
-  service's own files in `dashboard/data/` (it never had a plan or session records worth
-  keeping), and the first session's scratch folder (the reviewers' scripts, the clone of CSR:
-  re-clone `archelium/csr` at commit `ba6dad0` when its code has to be compared again).
-- **Put back by hand:**
-  - *Easy Anti-Cheat.* The game refused to start ("Easy Anti-Cheat is not installed"): the
-    launcher had tried its anti-cheat step before the game files were downloaded and never
-    tried again. Fixed with the game's own signed installer, run elevated with the user's OK:
-    `LIVE\EasyAntiCheat\EasyAntiCheat_EOS_Setup.exe install <productid>`, the id being the
-    `productid` in `Settings.json` beside it. Exit code 0, and the service is then registered.
-    Not the dashboard's doing, but the next reinstall will meet it again.
-  - *The telemetry variable.* `GRPC_CLIENT_SERVER_ENABLED=true` for the user, set again at
-    5:10 PM with `setx` (the user's standing decision, §15). The launcher was restarted before
-    the first launch, and **the stream was registered for the first time on this PC** in that
-    session (below).
-- **The first session on the new install began at 5:20 PM** **[seen, while it was still
-  running]**:
-  - The game started, so Easy Anti-Cheat is in order. Joysticks: AB6 first, MTQ second, the
-    keyboard third. The user loaded `MOZA.xml`, and the game's saved profile, written at 5:26 PM
-    with the game still running, matches it exactly (`validate_actionmaps.py`: 127 OK, nothing
-    different, nothing left over).
-  - `Game.log` shows `[Env Var  ] GRPC_CLIENT_SERVER_ENABLED=true`, then `Service
-    'sc.game.telemetry.v1.GameTelemetryService' registered` and
-    `[sc.game.telemetry.v1.GameTelemetryService]: 127.0.0.1:2942 [Insecure]`, eight seconds
-    after the log began. So the launcher variable does switch the stream on in build
-    4.10.201.48085. A first recording with the reader's `capture()` was started at about
-    5:33 PM, with the user in the game world.
-  - **The launch check with the service, first half.** The service had been
-    started at 5:09 PM with no `Game.log` on disk at all. It saw the game process at 5:20:04,
-    found no log, and five seconds later began the new session at offset 0 from the first line
-    the game wrote. Ten minutes in: 29 events, 21.8 MB, one second of CPU in all, no error.
-    What a first launch cannot show is the rotation, because there was no older log to move
-    into `logbackups`. The second launch, at 6:13 PM with the service still running, settled
-    that (§8).
-- **Still true:** the repo must sit at this path
-  (`...\StarCitizen\LIVE\user\client\0\controls\mappings`), or Claude's memory for the project
-  does not reconnect. No logon task has ever been registered.
-- `dashboard/data/handoff/` (git-ignored) holds what both sessions kept outside git: see the
-  end of "The second round of reference data" above.
-- **Three sessions were played that evening** (5:20, 6:13 and 7:14 PM). Their logs are the
-  only real logs on this PC now: `Game.log` and two files in `logbackups`. The user's backup
-  kit saves the game logs from now on.
+Decisions builders made on the way, open to change and not yet shown to the user as such:
+`FAR_TIMER_HOURS` = 3 (on Now, a countdown further out steps back and the next step leads);
+Combat with a contract puts the contract above the tally; three alerts shown, the first in
+full; the page counts the service as gone after two keepalive intervals plus 3 s; for the
+window, a browser tab does not count as the window, "already open" from the shortcut is a
+message box and does not bring the window forward, and the icon is the dashboard's own
+([`CLAUDE.md`](CLAUDE.md), "The page" and "Stage 4: the window").
+
+### Left open by reviews and builders
+
+Collected from the notes of the fourth session (`data/handoff/session4/<piece>/`, git-ignored:
+each folder's `NOTES.md`, `FIXROUND.md`, `HANDOFF.md` or `REPORT.md`) and `.claude/scbot/`
+(the crew setup's reviews). None of it blocked a commit.
+
+**The service and the logic** (`T012`):
+
+- **A hung main loop whose web server still answers still looks live.** The keepalives come
+  from each page's own thread in the server, so only a stream with nothing on it is seen as
+  gone (`page-followup/NOTES.md` §4).
+- **The cargo view sends no next step.** `views.cargo_view` has no `next` **[seen]**; the page
+  already reads one. Suggested by the page's builder: the leg's `do`, as `salvage_view` sends
+  it, and one row in `STATE.md`.
+- Rare disk writes still run under the main lock (`unmapped.json`, a session summary,
+  `run.json`, a damaged file's rename): none was measured. A change in flight at the moment of
+  a stop is saved, but its client may see a dropped connection (read in the code, not seen).
+- Documented limits of the name hiding: an overlapping pair of names still reads "another
+  player-Jones"; duplicate keys in `plan.json` are not counted; in a contract against a player,
+  every objective outside the known tables is withheld (it fails closed, by design).
+- `timeline`, the local console tool, still prints shard names, by decision.
+
+**The page** (`T012`):
+
+- **Never seen:** the 15.6 inch panel; the Salvage view with real data (no log of a salvage
+  session exists); the 4K tab by eye.
+- A view picked by hand cuts objectives without saying how many it cut.
+- Fields `STATE.md` promises that the page does not draw: `strip.where.icon`,
+  `strip.ship.icon`, `service.log_found`, `mining.spot_known`; `view.why` is only a tooltip.
+  Draw them or take them out of the message.
+- Fixed but not looked at again: nine quick timers in the panel (the list now scrolls at
+  280 px), a change that is never answered (an 8 s limit now), the reference's captures after
+  the diagrams' largest scale went to 2. Two of the review's mutations were not run again
+  (`rig-mark-dropped`, `rig-fetch-on-load`), and a lost reconnect timer is covered by no test.
+- **Doc text still owed** (`page-followup/DOCS.md` has it ready): `CLAUDE.md` in this folder
+  still calls the keepalive a comment line (about line 325) and its "Open points" list items
+  that `6fa5dd9` closed; so do `config.example.json` (`_keepalive_seconds`) and a comment in
+  `scdash/config.py`. Two comments in `web/app.js` name "RIG_SCHEMA" where the schema is now
+  [`RIG.md`](RIG.md).
+
+**The rig reference** (`T013`):
+
+- The grip-front page scrolls with the terminal on (by about three rows in landscape under
+  Flight, more under Mining and Salvage): the screen wording is longer than the mockup's.
+- The Levers page is crowded by 13 dim numbers of unbound controls. The right module's boxes
+  for 49, 50 and 51 sit close together. Base is drawn small in the near-square shapes.
+- Text inside the art is raster and under 18 px (A1 to A4, the knob's 1 to 5, "Slider" and
+  "Dial"), and the caption under a drawing ("Left Module") is in the image itself. Diagrams
+  drawn at twice their size are soft.
+- Small plain browser tabs (1280x720, 820x1000) draw the diagram at 0.6 to 0.76 of its size.
+- No real mouse has been on it beyond the user's own use, which found one overlap in the
+  section's head (fixed in `6fa5dd9`, with a test). No page test pins a row's content.
+
+**The window** (`T019`, `T007`): no review yet; `window.FRAME` is a guess; nothing about a
+second display is tested (queue item 6).
+
+**Tools and reference** (`T014`, `T015`):
+
+- **Any edit of `tools/regen_cards.py`, a comment included, moves the `inputs` hash of every
+  reference table,** because the whole file is hashed. No test fails on a stale hash; only
+  `reference/build_reference.py --check` says so. Until that is narrowed or tested: after
+  every change to the card tool, run `build_reference.py` and commit the tables with it.
+- `regen_cards.read_catalog()` skips a catalog row whose text holds a pipe. None does today.
+- The comment on `config.MAX_RIG_FILE_BYTES` says `rig.json` is 12 KB; it is about 89 KB
+  **[seen]**. ACTIONS.md gives the correction to its stage B.
+- A narrow race in `tests/test_cli.py`, named by the fourth session's lead; the notes do not
+  describe it, so find it first.
+- The rig data's code hash agrees across Python versions by construction only: Python 3.12 is
+  the one version it was run on.
+- **The guard's two low findings** (`.claude/scbot/review-guard/REPORT_R3.md`): one odd
+  reading in each of three transcripts raises a model its table gives 200,000 tokens to one
+  million for good (no model used here is one); and at its cap, one Edit call that fails makes
+  any file readable. Neither blocked the install.
+
+**Housekeeping:**
+
+- **A stray test instance of the service was still running at 11:40 AM [seen in the process
+  list].** A `pythonw` started at 7:40 AM by a mutation run of the logic's review, from
+  `data/handoff/session4/review-3a-r4/mut2/`, on a port of its own (50975) with a data folder
+  under `%TEMP%`. It touches nothing of the live service. A restart of the PC ends it;
+  otherwise end that one process, with the user's OK, and take care not to end the live
+  service, whose command line names the repo's own `dashboard/scdash.py`.
+- The game plan page's Controls note (above, "Closed at the end of the fourth session").
+
+### Reference data: what a reader must know
+
+Everything committed is read from the game's own files, except the UEX yield rows named below.
+
+| Table | The caveat |
+| --- | --- |
+| All of them | A generator run takes about 80 s and 520 MB. It goes online only with `--fetch`, never with `--check`. `_meta.inputs` covers every hand file and the whole of `tools/regen_cards.py` ("Left open" above). |
+| Contract kinds | **The lookup order is in the file's `_meta.lookup`, and readers must follow it** (`refdata.contract()` does): the contract name, then the generator when all its contracts agree, then the title, then the rules, then "mission" and the unmapped list. Unverified: that a legacy contract prints its generator's name in the marker line. |
+| Ships | Cargo is counted in 1.25 m grid cells. Many ships carry their grid outside the default loadout, in a vehicle definition this build stores encrypted; there the cargo comes from the one cargo-grid record named for the class (`cargo_how` says which) **[verify]**. All 11 fleet ships resolve. 226 classes have several grids named for them and carry no figure. |
+| Shops | Of 310 shop names, 110 are shared across a chain, so for those the place is the last inventory location in the log. |
+| Refining | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text; nothing was invented. Levski has the shop but not the amenity. `refineries.json` carries UEX yield rows in git, and the user decided on 2026-11-27 that they stay (§15). |
+| Prices | `data/reference/prices.json`, git-ignored because prices age by the day: built from UEX's tables saved on 2026-11-27. A copied snapshot file gets a new date, and `--check` then says the prices would change. |
+| Controls per mode | The choice of controls is in `controls.hand.json`, each marked flown, unverified or trial as root [`../CLAUDE.md`](../CLAUDE.md) has it. The wording is read from `tools/regen_cards.py` without running it. |
+
+### What the Windows reinstall of 2026-11-27 still means
+
+The user wiped the PC and reinstalled Windows 11 and the game on 2026-11-27. Their
+system-refresh kit (theirs, outside this repo) restored the tools, this folder and Claude's
+memory. What still matters:
+
+- **Every game log from before that evening is gone for good.** The 409 logs behind the
+  **[seen]** counts in §3, in [`CLAUDE.md`](CLAUDE.md) and in the measurements cannot be read
+  again: those figures stand as a record. The only real logs on this PC are from sessions
+  played since (six when the logic was last reviewed, on 2026-11-28), and the kit backs the
+  game's logs up from now on. A new marker can be learned only from a session the user plays,
+  from the game's own files, or second-hand from other tools' parsers.
+- **The privacy scan and `tests/test_privacy.py` learn the user's handle and ids from the
+  local logs.** On a PC with no logs they know only the Windows user and PC names.
+- **Easy Anti-Cheat has to be installed by hand after a reinstall.** The game refused to start
+  until its own signed installer was run elevated, with the user's OK:
+  `LIVE\EasyAntiCheat\EasyAntiCheat_EOS_Setup.exe install <productid>`, the id being the
+  `productid` in `Settings.json` beside it.
+- **The telemetry variable** `GRPC_CLIENT_SERVER_ENABLED=true` is set for the user with `setx`
+  (their standing decision, §15) and has to be set again after a reinstall. With it, the log
+  shows the stream registered on `127.0.0.1:2942` **[seen 2026-11-27]**.
+- **The repo must sit at this path** (`...\StarCitizen\LIVE\user\client\0\controls\mappings`),
+  or Claude's memory for the project does not reconnect.
+- **`dashboard/data/` is git-ignored and survives a reinstall only through the kit's backup of
+  this folder:** the user's `plan.json`, the session records, the mockups and captures in
+  `data/design/`, and every note in `data/handoff/`.
+- **No logon task has ever been registered** (stage 4 builds it). Nothing starts the service
+  by itself: `python dashboard/scdash.py start`, or the shortcut.
+- CSR's code, when it has to be compared again: clone `archelium/csr` at commit `ba6dad0`.
 
 ### How the build is run
 
-The user asked for it to be orchestrated (2026-11-27): one session plans and reviews, and
-subagents do the work, each in a context of its own and each at the highest effort setting but
-one ("xhigh"). **Which model (the user, 2026-11-28):** Opus 5.5 by default, as the workhorse for
-building, fixing and checking; Fable 5.2 where the task is advanced design or research, such as
-laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
+The user asked for it to be orchestrated (2026-11-27): one session leads, and a crew of
+sub-agents does the work, each in a context of its own. **The crew's rules are no longer
+restated here.** They are in [`../SCBOT.md`](../SCBOT.md) ("Running a crew", "Context budget",
+"Other sessions", "Leaving things for the next session"), in the two role prompts
+([`../prompts/SCBOT-ARCHITECT.md`](../prompts/SCBOT-ARCHITECT.md) and
+[`../prompts/SCBOT-WORKER.md`](../prompts/SCBOT-WORKER.md)), and, for the guard and the queue,
+in `prompts/SCBOT-README.md`: which model does what, six at once, no nested sub-agents, a
+crew member's line at 80% of its context and a lead's at 90%, short reports, questions through
+the lead. What follows is what is particular to this build, and the traps it has met.
 
-- **One stage, one builder.** Its brief names the files it owns, the rules that are easy to
-  break, a "done when" that can fail, and the shape of its report. It never commits.
-- **The orchestrator checks first:** the tests, the stage's own check, and the privacy scan
-  over exactly the files about to be committed.
-- **Then a second agent tries to break it,** given the code and the plan but not the builder's
-  conclusions. Every review so far found real faults the tests had missed: code taken from CSR
-  without credit, a reader that one bad line stalled for good, a flood that held a core at
-  100%, a test helper that could end a stranger's process.
-- **Fixes go back to the builder, the reviewer confirms them by running, and only then is it
-  committed:** one commit per stage or fix round, pushed at once.
-- **Agents work side by side only on files that do not overlap,** and a commit made while
-  another agent's unfinished files sit in the tree is first tested on a clean checkout
-  (`git checkout-index --prefix=<scratch>/ -a` exports exactly what is staged).
-- **A reviewer gets a frozen copy when a builder is editing the tree.** The same export, made
-  from the staged files. A fix made in such a copy is carried back file by file, after
-  checking that the tree's versions have not changed in the meantime.
-- **Unfinished work is snapshotted to a branch while agents run.** The user asked that
-  nothing be lost (2026-11-27). `data/handoff/wip_snapshot.ps1` builds a commit from the
-  working tree with a temporary index, leaving the tree and the real index alone, and pushes
-  it to `wip-dashboard` only after the privacy scan finds nothing. Delete the branch once
-  everything on it is on `main`.
-- **Context limits (the user's rule, 2026-11-28).** No session compacts. A sub-agent stops at
-  80% of its context and hands off on a clean boundary; the orchestrator goes "pending
-  closing" at 90%: no new work, no new sub-agents, it waits for the running ones to finish,
-  then closes. At most six sub-agents run at once, and none starts its own. Until the
-  enforcing hooks are installed (`prompts/SCBOT-README.md`, `tools/scbot.py`, written this
-  session and under review), it is done by hand:
-  - `python dashboard/data/handoff/session4/crew_meter.py` prints the context of the session
-    and of every sub-agent, read from their transcripts (both models ran past 560k and 880k
-    tokens here, so the window is taken as 1M). Seen at about 8:15 AM on 2026-11-28: three builders
-    at 66%, 70% and 88% after two or three rounds each. Check before resuming an agent, and
-    give a fix round to a fresh builder when the old one is past about 60%.
-  - `crew_meter.py save <agent id> <file>` writes an agent's final report to the notes folder
-    straight from its transcript. A sub-agent cannot save its own report file, and retyping
-    one costs the orchestrator its context twice.
-  - Ask every agent for a short final report (a few hundred words) with the detail in its
-    notes folder.
-- **While the game runs:** with 32 GB the PC sat at about 96% of its memory then, so the rule
-  was `SCDASH_FLOOD_MB=5` for the suite, never the reference generator (520 MB), and one
-  headless browser at a time. With 64 GB (since 2026-11-28) those limits are dropped. Not yet
-  seen: how much memory is free with the game running on 64 GB. Look once at the first flown
-  session, and bring the limits back if it is tight after all.
+- **One piece, one fresh builder, then the lead's checks, then a reviewer that tries to break
+  it, then the fix round, the reviewer's confirmation by running, and one commit, pushed at
+  once.** Every review so far found real faults the tests had missed: code taken from another
+  project without credit, a reader that one bad line stalled for good, a state file wiped by
+  one deeply nested block, another player's name reaching the page through a rescue beacon's
+  objective, a hook that would have frozen every session.
+- **A fix round goes to a fresh builder once the old one is past about 60% of its context.**
+  Seen on 2026-11-28: three builders at 66%, 70% and 88% after two or three rounds each.
+- **The lead tests exactly what it is about to commit.** Stage the files by path, then
+  `git checkout-index --prefix=<scratch>/ -a` exports the staged tree to a scratch folder
+  outside the repo, and the suite runs there. A reviewer gets the same kind of frozen copy,
+  so the builder can go on working in the tree. A fix made in a copy is carried back file by
+  file, after checking that the tree's versions have not changed meanwhile.
+- **The privacy scan before every push** is `python dashboard/data/handoff/privscan2.py <repo
+  root> [subfolder ...]`, a local helper that is not tracked. It searches the files git would
+  publish for the user's handle, ids, addresses, profile paths and e-mail addresses, learned
+  from the local logs, and exits with 1 on any hit **[seen in the script]**, so a commit chained
+  after it with `&&` stops. Twice, before it did that, a chained commit went through with a
+  hit. Run on an export or a worktree, it needs `PRIVSCAN_LIVE` set to the game's `LIVE`
+  folder, or it learns no names and is blind. It found nothing in the tree with this text in
+  it (162 files, at 11:41 AM on 2026-11-28).
+- **Unfinished work is snapshotted while agents run** (the user asked that nothing be lost).
+  `dashboard/data/handoff/wip_snapshot.ps1` builds a commit from the working tree with a
+  temporary index, leaving the tree and the real index alone, and pushes it to a branch named
+  `wip-dashboard`, only after the scan finds nothing. That branch does not exist now. Delete it
+  again each time everything on it is on `main`.
+- **Agents work side by side only on files that do not overlap.** For two builders on one
+  file set, each gets a git worktree. The Agent tool's own worktree isolation refuses this repo
+  (it compares the path with a lower-case `c:` against git's upper-case `C:`), but it leaves
+  the worktrees it made, and they are sound: start the builder without isolation and give it
+  the worktree's path. The builder leaves its work uncommitted and writes `changes.patch` into
+  its notes folder; the lead applies it with `git apply`. Under `core.autocrlf` that once wrote
+  `rig.json` with the wrong line endings (run the generator again). A worktree holds its own
+  copy of `MOZA.xml`; under a folder whose name starts with a dot the game did not list it
+  (seen once: root [`../CLAUDE.md`](../CLAUDE.md) §6 item 27). Remove worktrees and their
+  branches once their patches are on `main`.
+- **The live service runs the code that is on disk.** While the tree holds an unfinished
+  `service.py`, run it from an export of `main` in a scratch folder (`scdash.py start --data
+  <repo>/dashboard/data --live <LIVE>` from there), and `stop`, then `start` from the repo once
+  the work is committed. New code needs that restart; the open page reloads itself.
+- **The suite uses temporary folders and free ports and never touches port 47826 or the live
+  data folder,** so it can run while the user plays. Run it through `discover` (`python -m
+  unittest discover -s dashboard/tests`): a test file run by its path cannot import its
+  helper. It takes about six minutes.
+- **While the game runs.** With 32 GB the PC sat at about 96% of its memory in play, and the
+  rule was a small flood test, never the reference generator, and one headless browser at a
+  time. With 64 GB (four 16 GB modules, seen by the lead on 2026-11-28) those limits are
+  dropped. Not yet seen: how much memory is free with the game running. Look once at the
+  first flown session, and bring the limits back if it is tight after all. Renders stay
+  headless: a visible window can take the focus from the game.
+- **Reports and meters.** Once the guard is installed, every final report is saved under
+  `.claude/scbot/reports/`, and `python tools/scbot.py meter` prints how full each context is.
+  Without it, `python dashboard/data/handoff/session4/crew_meter.py` prints the same from the
+  transcripts, and `crew_meter.py save <agent id> <file>` writes an agent's final report to a
+  file (a sub-agent may be refused when it writes its own report file).
+- **Earlier agents' scripts, to read before writing new ones:** `data/handoff/review/` (the
+  request-guard and front-end attacks, the hostile-line and privacy probes of stage 2),
+  `data/handoff/session3/` and `data/handoff/session4/` (per piece: capture scripts, mutation
+  runs, probes; `session4/views/cap.py` captures any view from a test instance).
+- **Read the clock before writing a time.** The fourth session wrote four times from memory
+  and had to correct each.
 - **The user's decisions are put to them as questions with a recommendation** and recorded in
   §15. A rule from the docs is not a fact until someone has seen it: the joystick-order check
   was built on one, raised a false alarm with the user in the pilot seat, and was corrected the
@@ -439,11 +481,11 @@ laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
 [`CLAUDE.md`](CLAUDE.md) in this folder has the working notes for the code that exists.
 
 This file is the brief for the Claude session that builds the dashboard. The user starts that
-session with `@SCBOT.md` and asks for the dashboard to be built from this plan. It says what
-to build, why each constraint exists, what is already known and what still has to be checked, and
-how to tell that each stage is done. It does not repeat the project's own rules: read
-[`../SCBOT.md`](../SCBOT.md) and [`../CLAUDE.md`](../CLAUDE.md) first, and follow them
-where this plan is silent.
+session with `@SCBOT.md` and asks it to continue on this plan. It says what to build, why each
+constraint exists, what is already known and what still has to be checked, and how to tell that
+each stage is done. It does not repeat the project's own rules: read
+[`../SCBOT.md`](../SCBOT.md) and [`../CLAUDE.md`](../CLAUDE.md) first, and follow them where
+this plan is silent.
 
 Each fact below carries how it is known, the same way the rest of the project does:
 
@@ -891,9 +933,11 @@ dashboard adds:
 
 14. **Ship state on the status strip.** Hydrogen fuel, speed, the aUEC balance, coupled or
     decoupled, landing gear, which systems are powered, and countermeasures left. Several of
-    these are things the rig switches with no light of its own: the AB6 wing power panel, the
-    decoupled toggle, the gear lever ([`../CLAUDE.md`](../CLAUDE.md) §4). VTOL is left off until a
-    build reports it truthfully (§3, quirks).
+    these are things the rig switches with no light of its own: the AB6 wing power panel and the
+    gear lever ([`../CLAUDE.md`](../CLAUDE.md) §4). The decoupled toggle came off the rig on
+    2026-11-28 (root §6 item 30) and is the keyboard's stock key now, so that readout shows a
+    state the stick no longer changes. VTOL is left off until a build reports it truthfully
+    (§3, quirks).
 15. **Taking the pilot seat.** The log only records leaving it. Read it from the ship block
     appearing in the stream, not from the stream's own seat event, which is unreliable (§3).
 16. **Whatever 5.0 adds that the views can use:** a named location, quantum destination and
@@ -1171,9 +1215,11 @@ job, so the panel can work on a Mac too, but that is not a goal.
 
 **The event stream on `http.server` [ref, §14].** Keep the server's default HTTP/1.0 responses:
 HTTP/1.1 would need an exact length on every response. Each connected page holds one thread. A
-closed page is only noticed when a write fails, so send a comment line every 15 seconds and catch
-the connection errors. Send a `retry:` value so the page reconnects quickly, and cap the number of
-connected pages: the browser allows six connections to one address.
+closed page is only noticed when a write fails, so send a keepalive every 15 seconds and catch
+the connection errors. It is an event the page hears (`event: keepalive`, since 2026-11-28),
+not a comment line, so that the page can tell a service that has gone silent from a quiet one.
+Send a `retry:` value so the page reconnects quickly, and cap the number of connected pages:
+the browser allows six connections to one address.
 
 ## 6. The service
 
@@ -1508,7 +1554,7 @@ Budgets to measure against, not promises. Record the measured figures in `dashbo
 | Reading a whole 5 MB log at startup | 1 second or less | About 0.04 seconds (120 MB a second). The 376 MB log took about 3 seconds. |
 | Dashboard window, whole browser process tree | 250 MB or less of *private working set*, the figure Task Manager shows as memory | Edge app window with its own profile, 1100x700: 11 processes, **108 MB** private working set, 292 MB committed, 0.6% of one core for an update a second. The summed working sets read 552 MB, because shared pages are counted in every process: don't use that figure. |
 | For comparison, a native window | none set | The same content drawn by Python's own `tkinter`: one process, **12 MB** private working set, 15 MB committed (§15) |
-| Telemetry reader, when the stream is on | 1% of one core or less, and no more than 5 MB added to the service | not built. One other tool's author reports about 59 MB and 1% of a core for a whole Node service doing this **[ref: SC Companion's README]**. |
+| Telemetry reader, when the stream is on | 1% of one core or less, and no more than 5 MB added to the service | Not measured: the reader is built (stage 6, first half) and not wired into the service. One other tool's author reports about 59 MB and 1% of a core for a whole Node service doing this **[ref: SC Companion's README]**. |
 | The Claude terminal: what it adds to the service and the window | 5 MB or less in the service; 40 MB or less in the window, with scrollback capped | not built |
 | The Claude Code process the terminal runs | None set: it is the user's choice to have it, and it is not the dashboard's own memory. Measure it and write it down. | About **200 MB** private working set each for the two Claude Code processes of a busy VS Code session (194 and 234 MB) **[seen 2026-11-27]**. A fresh one is not measured. |
 
@@ -1745,8 +1791,8 @@ files, all local, all bounded.
     - **No view names a color of its own.** A new view uses the tokens; a color literal outside
       the stylesheet's token block is a fault a test catches.
   - **The chosen mockup is tracked in `dashboard/design/avionics/`** (`index.html` and
-    `style.css`, invented data only), so it survives a fresh clone. Stage 2's page already uses
-    its design system; stage 3 builds the views from it.
+    `style.css`, invented data only), so it survives a fresh clone. The page uses its design
+    system, and stage 3 built the views from it.
   - The original working folder, with all three directions: `dashboard/data/design/b/` holds its
     `index.html` and `style.css`, with every screen reachable by a `#name` on the address, and
     `dashboard/data/design/shots/` holds the captures. The folder is git-ignored; the two
@@ -1836,6 +1882,10 @@ above the contract row.
 
 Commit and push after each stage that works, as the project always does. Each stage ends with a
 check that can actually fail.
+
+This list is each stage's specification and its check. Which stages are built is not kept
+here: "Where the build stands", at the top of this file, says so. On 2026-11-28 that was stages
+1 to 3, the first half of stage 6, and of stage 4 the `open` and `shortcut` commands.
 
 1. **Parser and state, no server.** `tail.py`, `events.py`, `state.py`, `timeline`, tests.
    *Done when:* `timeline` on the log of 2026-11-26 afternoon reproduces the write-up in memory
@@ -2129,13 +2179,29 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | --- | --- | --- |
 | The page's colors (§4 item 19, §11) | **One base color, set the way MOZA Cockpit sets an LED color, default `0,0,255`:** "can we use that as the 'mother' color for the dashboard? can we make it so we have a singular setting that accepts the RGB 0,0,0 format just like the moza cockpit ... if i change the moza rig to 0,255,0 ... we can change that in the dashboard too and it reflects that so sort of like a theme type thing". | The fixed colors of the look as chosen on 2026-11-27: the ink-blue ground stays (it is the blue rig's ground too), and its cyan accent gives way to the rig's blue. |
 
-Two questions on it are still to be put to the user, each with captures
-([`design/theme/THEME.md`](design/theme/THEME.md), "The user's decisions"):
+The design had two questions for the user
+([`design/theme/THEME.md`](design/theme/THEME.md), "The user's decisions"). The first is
+answered in substance, and the second is still to be put to them, with captures:
 
-| Question | Recommendation | The other way, and what it costs |
+| Question | Recommendation | The other way, and what it costs | Answer |
+| --- | --- | --- | --- |
+| The same setting as a field on the desk panel, as a second step? | **Yes:** type a color, see the page change, as in MOZA Cockpit. It writes the same key, so there is still one setting. | No: the color is changed in `config.json`, by hand or by asking Claude. Saying yes means the service writes one key of that file, which it only reads today. | **Yes to setting it from the page, in a settings pop-up** (the request below, about 11:03 AM). So the field goes in that pop-up and not on the desk panel, and THEME.md's stage B is taken over by the pop-up's design. |
+| On a rig near a status color (green, red, orange, yellow), what is the accent? | **The rig's own hue, pale,** so the page stays one color family and the accent cannot be read as a status. | A strong accent in the look's cyan on those rigs: emphasis as strong as on blue, but two colors on the page where the request was for one. With the pale accent, emphasis is weaker on red, orange and yellow rigs. | open |
+
+One more is to be put to them with the same captures: that the default look turns from the
+cyan accent it was chosen with to the rig's blue (the designer's decision, open to change).
+
+**Asked for by the user on 2026-11-28, at about 11:03 AM** (not designed; "Where the build
+stands", queue item 5):
+
+| Decision | Their answer | What was turned down |
 | --- | --- | --- |
-| The same setting as a field on the desk panel, as a second step? | **Yes:** type a color, see the page change, as in MOZA Cockpit. It writes the same key, so there is still one setting. | No: the color is changed in `config.json`, by hand or by asking Claude. Saying yes means the service writes one key of that file, which it only reads today. |
-| On a rig near a status color (green, red, orange, yellow), what is the accent? | **The rig's own hue, pale,** so the page stays one color family and the accent cannot be read as a status. | A strong accent in the look's cyan on those rigs: emphasis as strong as on blue, but two colors on the page where the request was for one. With the pale accent, emphasis is weaker on red, orange and yellow rigs. |
+| Settings on the page | **A pop-up behind a small gear icon:** "id like a small gear icon for a settings pop up modal and the settings i think we can put there that i can configure from the UI is putting in the 0,0,255 color code 'base' for example for the theme to use (while keeping our existing alert colors the same across the themes) and also a setting for portrait or landscape mode and maybe even a light/dark/system mode as well". | Settings only in `config.json`, which is all the page has today. |
+
+Two questions on it are still to be put to the user, with the design's captures: how a
+portrait or landscape setting combines with the decision of 2026-11-27 that the page picks its
+layout by the shape of its window (§11), and whether a light / dark / system choice is wanted
+(their "maybe").
 
 **Asked for by the user on 2026-11-28, at about 10:40 AM** (designed the same day; not built):
 
