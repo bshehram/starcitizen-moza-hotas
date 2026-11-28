@@ -32,11 +32,31 @@ terminal), §8 (the guards), §9 (measured figures), §11 (the two layouts and t
 
 ### In progress when the session stopped
 
-**The stage 2 follow-up: finished and committed, but not yet confirmed by the reviewer.** The
+**The stage 2 follow-up: confirmed by a reviewer on 2026-11-27 (evening). All five hold.** The
 second review of stage 2 asked for five small things, and the builder did all five before the
-session stopped. They passed the whole suite (317 tests) and the orchestrator's checks, but the
-independent reviewer did not get to re-run its reproductions against them. Have that done before
-stage 4b builds on the guard.
+first session stopped (`40553f9`). A fresh reviewer ran each one down in the second session:
+an audit hook around every command found no call that can open, signal or end a process; the
+tests end only what they started; a page reloads by itself onto a restarted service's token; the
+sweep removes only its own dead-writer files (a junction or hard link named like one loses the
+link, not its target); and 101 raw request variants, plus a foreign page in a real browser, got
+nothing past the guard.
+
+**That review also found new faults, and a fix round for them is with a builder** (started
+5:40 PM, not committed):
+
+- One failed save at start-up ends the service, which a scheduled relaunch would turn into a
+  crash loop.
+- A client with no token can cost a core and 10 MB with oversized request heads.
+- A foreign web page can hold all 16 connection slots with idle connections for as long as it
+  keeps at it; the service recovers afterwards.
+- A junction planted as `data/sessions` makes the service write outside `data/`.
+- `status` prints the session id from the log uncleaned, the shutdown reason reaches the
+  service's log raw, and a stale `run.json` can be impersonated by a program on the port.
+- **Not a fault to fix but a limit to state (§8): the token stops web pages, not programs on
+  this PC.** Any local client can fetch the page and read the token out of it. That is a design
+  decision for stage 4b, where the token guards a terminal.
+
+The five things the earlier follow-up did:
 
 - No handle is opened on any other process any more: the process list, names and start times
   come from one `NtQuerySystemInformation` call (2.6 ms a look, down from 4.8 ms), with the
@@ -982,6 +1002,26 @@ is fenced on every side.
   `Host` check and a matching `Origin`, like every changing request. Keystrokes are a changing
   request. If the token were known to another page it could type into Claude, which is why no
   endpoint hands the token out and why the server answers 127.0.0.1 only.
+- **What the token does and does not stop [seen in review, 2026-11-27].** It stops web pages:
+  a foreign page in the user's browser, tried every way the reviewer could think of, never got a
+  request past the guard and never saw the token. It does not stop a program running on this
+  PC. A plain local client fetched `GET /`, read the token out of the page and shut the service
+  down, and the `Sec-Fetch-Site` header the private stream requires is one a local program can
+  simply send. The data folder is no barrier either: it inherits the game folder's
+  permissions, under which every account on the PC can write it, `config.json` and the code
+  included.
+  - On a PC with one account, a program already running as the user can do everything the
+    terminal could without going near the dashboard, so this adds little there. What it does
+    add is reach for things that have a loopback socket but not the user's rights: a sandboxed
+    or low-integrity program, WSL 2 in mirrored networking mode, a container with host
+    networking.
+  - **To decide with the user before 4b is built,** in rising order of effort: (a) keep `GET /`
+    free of the token and give it only to the window the service opens itself (in the address's
+    fragment on the command line, or a one-time code exchanged for an `HttpOnly`,
+    `SameSite=Strict` cookie); (b) accept the terminal's connections only from the browser
+    process the service started (`GetExtendedTcpTable` names the owning process without opening
+    it); (c) move `run.json` and `config.json` to `%LOCALAPPDATA%`, or give `data/` a
+    user-only permission list.
 - **Still nothing toward the game.** The terminal sends no input to the game and reads nothing
   from it. Claude reads the log files the way it always has.
 - **No leftovers.** When the window closes, the service stops, or the user ends the panel, the
