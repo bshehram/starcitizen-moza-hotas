@@ -16,25 +16,39 @@ Every log of the user's from before that evening is gone (see "What the Windows 
 changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
 re-run.*
 
-### The fourth session, 2026-11-28, from 6:00 AM: four agents at work
+### The fourth session, 2026-11-28, from 6:00 AM
 
-*Written at 6:10 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The game
-is not running, the service is stopped, there is one display, and no game session has been
-played since the evening of 2026-11-27. The table of the pause below is still the state of
-each piece; this block says who has picked each one up. Rewrite both blocks into the sections
-under them as the pieces land.*
+*Rewritten at 7:15 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The
+user has been in the game since 6:25 AM with the dashboard open in a browser tab. The first
+wave of builders is back, and their three pieces sit together, uncommitted, in the main tree
+while a reviewer attacks each one on a frozen copy. The table of the pause further down says
+what each piece was; this block says where each one is now. Rewrite both into the sections
+under them as the pieces are committed.*
 
-| Piece (the numbers are "Next, in this order" below) | Agent | Where it works | Its notes |
-| --- | --- | --- | --- |
-| 1. Finish the wiring | Opus 5.5 | The main tree | `data/handoff/session4/wiring/` |
-| 2. The fix round for stage 3's first half | Opus 5.5 | A worktree, `.claude/worktrees/agent-a24fb15f36041def4` | `data/handoff/session4/fix-3a/` |
-| 3. Part B of the rig data | Opus 5.5 | A worktree, `.claude/worktrees/agent-a0f721a2dfac41b36` | `data/handoff/session4/rig-b/` |
-| 4. Render and capture the rig mockup | Fable 5.2 | `data/design/rig/` only | **Done at about 6:40 AM:** 56 captures of the final state in `data/design/rig/shots/`, `NOTES.md` rewritten from what was seen. The page now draws its own numbers over the art's discs, because the art's digits were too small; all pages share one arrangement per shape. The orchestrator looked at four captures (landscape and portrait default, the Salvage filter, the dials page): nothing clipped. **Put to the user, not yet answered:** the captures and the designer's five questions (`NOTES.md`, end). Not proven: no real pointer has touched it, and it has not been seen on the 15.6 inch panel. Its four further asks of the data went to the Part B builder. |
+| Piece | State at 7:15 AM | Notes and scripts |
+| --- | --- | --- |
+| 1. The wiring (stage 3 into the service) | **Built, checked by the orchestrator, with a reviewer.** The builder's report: every item done, 520 tests passing twice, 20 mutations caught, the content-policy proof passed, five real replays match. Orchestrator: privacy scan clean, the whole suite passed (520, 185 s, game running). One fix made by the orchestrator afterward: the server no longer warns at every start about the dot-file in `web/rig/` (with a test). Frozen copy: the session scratch folder, `review-wiring/tree`. | `data/handoff/session4/wiring/`, `review-wiring/` |
+| 2. The fix round for stage 3's first half | **Built, with a reviewer for the confirming run.** The builder's report: all eight findings fixed, 43 mutations caught, 488 tests in its copy. Applied to the main tree at 7:12 AM. Doc text it wants in `STATE.md` and `CLAUDE.md` is in its `DOC_TEXT.md`, to go in after the wiring is committed. | `data/handoff/session4/fix-3a/`, `review-3a-r4/` |
+| 3. Part B of the rig data | **Built, with a reviewer.** `rig.json` schema 2 (96 rows, per-row modes, statuses with their source sentence, groups, mark coordinates), eight cropped views with the sample readings painted out, a real test (40 mutations), the cards unchanged. Applied to the main tree at 7:07 AM. Its schema text for `STATE.md` is `RIG_SCHEMA.md`. | `data/handoff/session4/rig-b/`, `review-rig-b/` |
+| 4. The rig mockup | **Done at about 6:40 AM:** 56 captures in `data/design/rig/shots/`, `NOTES.md` rewritten from what was seen. The page draws its own numbers over the art's marks. **Put to the user, not yet answered:** the captures and five questions; the orchestrator's recommendations are being built as defaults. Not proven: no real pointer has touched it, and it has not been seen on the 15.6 inch panel. | `data/design/rig/NOTES.md` |
+| 5. The views (stage 3's page) | **Being built** by an Opus 5.5 builder in the main tree's `web/` since 7:10 AM, in two milestones: the live views first (it stops and reports), then the rig reference section from the mockup onto schema 2. | `data/handoff/session4/views/`, captures in `data/design/views/` |
 
-- **How the two copies come back.** Each worktree builder leaves its changes uncommitted and
-  writes them as `changes.patch` into its notes folder. The orchestrator applies a patch to the
-  main tree (`git apply`), runs the whole suite on the result, and only then sends a reviewer.
-  The three builders' files do not overlap. `.claude/` is git-ignored.
+**The combined tree** (wiring, rig data and fix round together, the page at its committed
+version) is being run through the whole suite on a frozen copy. Result:
+`data/handoff/session4/orchestrator_suite_integrated.txt`.
+
+**Commit order, as the reviews pass:** the wiring first (its files include this folder's
+`CLAUDE.md`, `STATE.md` and `README.md`); then the fix round with its doc text; then the rig
+data with its schema text and the `web/rig/` row; then the views. Each is staged by its own
+file list and tested on an export of exactly what is staged.
+
+- **How the two copies came back.** Each worktree builder left its changes uncommitted and
+  wrote them as `changes.patch` into its notes folder; the orchestrator applied each to the
+  main tree with `git apply`. The builders' files do not overlap. Two things learned: `git
+  apply` under `core.autocrlf` wrote `rig.json` with CRLF (the generator was run again to put
+  it right), and a test file run by path instead of through `discover` cannot import its
+  helper. `.claude/` is git-ignored. Both worktrees (under `.claude/worktrees/`) are still
+  there: a fix round for piece 2 or 3 can go on in its worktree or in the main tree.
 - **Two things changed against the pause's list.** The server is to serve whatever images
   `web/rig/` holds (a strict name pattern, the table built once at start), so that Part B can
   rename and add images without touching `server.py`. And the lone surrogate is fixed on both
