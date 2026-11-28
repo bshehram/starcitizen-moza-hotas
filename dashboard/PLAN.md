@@ -9,7 +9,10 @@ exists, what was in progress when the first build session stopped, and what is l
 ## Where the build stands
 
 *Written 2026-11-27 at the end of the first build session, just before the user reinstalled
-Windows. This is what a new session reads first, so keep it current as stages land.*
+Windows, and kept up from the second session, which began that evening on the fresh install.
+This is what a new session reads first, so keep it current as stages land. Read "What the
+Windows reinstall changed" below before relying on anything that needs the user's old logs:
+they are gone.*
 
 ### Built, reviewed and committed
 
@@ -61,14 +64,18 @@ committed passes its tests, and the generator's `--check` passes.
 | Refining | Not started. | The game's records hold no numeric cost or time for a method, only a speed and a yield grade with text such as "High Cost // Slightly Fast". Which stations have a refinery is the `Refinery` amenity in each star-map record. |
 | The survey of what salvage, combat and hauling leave in the log | **Partial.** The pass over all 409 logs was too slow and was stopped. | `data/handoff/activity_survey.md` has the record names, the approach and where each item stopped; `data/handoff/scripts/scan2.py` is the log pass, with the speed fix it needs written up in the survey. Found so far: contract lines tie a mission id to a generator and an internal name, and commodity buy and sell lines both print `cSCU`. Not found in any log so far: damage, missile warnings, kills on foot, cargo loaded or delivered, salvage amounts. The user's own kills in `<Vehicle Destroyed>` lines were not counted yet. |
 
-`data/handoff/` is git-ignored: it survives the reinstall only through the kit's backup of this
-folder. If it is gone, the downloads can be fetched again and the survey redone from the logs.
+`data/handoff/` is git-ignored. It survived the reinstall through the kit's backup of this
+folder. The logs it was surveying did not (see "What the Windows reinstall changed" below), so
+the survey is being rebuilt from what is left: what this plan already records as seen, the
+game's own files, and other open-source tools' parsers, each item marked with how it is known.
 
 ### Left to do, in this order
 
 1. **Finish the two items above:** have the stage 2 follow-up confirmed by a reviewer, and
    complete the reference tables (ships, prices, shops, contract kinds, refining) and the
-   survey. Stage 3 needs the survey, the ships and the contract kinds first.
+   survey. Stage 3 needs the survey, the ships and the contract kinds first. *All three were
+   handed to agents at 5:10 PM on 2026-11-27 (a reviewer, a reference builder, and a survey
+   rebuilt without the old logs); nothing of theirs is committed until it has been checked.*
 2. **The launch check with the service itself** (stage 2's last check): with the game closed run
    `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
    read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
@@ -106,27 +113,52 @@ folder. If it is gone, the downloads can be fetched again and the survey redone 
   when they are in the game, so the real stream can be recorded.
 - Fly a session with the dashboard running (stage 5).
 
-### After the Windows reinstall
+### What the Windows reinstall changed (2026-11-27)
 
-The user's system-refresh kit (theirs, outside this repo) restores the tools, this folder and
-Claude's memory. What the dashboard had outside the repo on 2026-11-27, and so has to be put
-back by hand:
+The user wiped the PC and reinstalled Windows 11 and the game on the afternoon of 2026-11-27.
+Their system-refresh kit (theirs, outside this repo) restored the tools, this folder and
+Claude's memory. Checked that evening **[seen]**:
 
-- **The telemetry variable.** `GRPC_CLIENT_SERVER_ENABLED=true` for the user (set 2026-11-27).
-  `README.md` has the command. Nothing else of the dashboard's was installed: no logon task was
-  ever registered and Claude Code was not installed as a program of its own.
-- **Nothing in a temporary folder survives.** The scratch folder of the first build session
-  held the reviewers' scripts, a clone of CSR (re-clone `archelium/csr` at commit `ba6dad0`
-  when its code has to be compared again) and the capture tools. What was worth keeping was
-  copied to `dashboard/data/handoff/` (git-ignored; it comes back only with the kit's backup of
-  this folder): the activity survey, the design capture scripts, and the orchestrator's privacy
-  scan (`privscan.py`), which searches the files git would publish for the user's handle, ids
-  and addresses learned from the local logs.
-- **The repo must come back at the same path** (`...\StarCitizen\LIVE\user\client\0\controls\
-  mappings`), or Claude's memory for this project does not reconnect.
-- First thing to run afterward: `python -m unittest discover -s dashboard/tests` from the
-  project root. It should pass as it did (the privacy tests skip until the game has written a
-  log).
+- **Came back:** the repo at the same path with a clean tree, Claude's memory for this project,
+  `dashboard/data/handoff/` and `dashboard/data/design/`, Python 3.12.10 with `pythonw`,
+  `zstandard` and Pillow, Git and the GitHub CLI (signed in, HTTPS), Edge, and Claude Code as a
+  program of its own (the kit installs it with winget; `claude` is on PATH). The game is the
+  same build, 4.10.201.48085. The whole suite passes: 319 tests, 3 skipped (the privacy tests,
+  until the game has written a log).
+- **Gone for good: every old game log.** `LIVE\logbackups\` came back empty and there was no
+  `Game.log`: the kit backs up this folder and Claude's files, not the game's. The old drive
+  was wiped. So:
+  - The 409 logs behind every **[seen]** count in §3, in [`CLAUDE.md`](CLAUDE.md) and in the
+    measurements are no longer on disk. Those figures stand as a record; they cannot be
+    re-run.
+  - The only real log lines left are the sanitized samples in `tests/samples/`. A new marker
+    can only be learned from a session the user plays from now on, from the game's own files,
+    or second-hand from other tools' parsers.
+  - The survey over all the logs (below) cannot be finished as planned.
+  - The orchestrator's privacy scan and `tests/test_privacy.py` learn the user's handle and
+    ids from local logs, so they are blind to those until the first new session. Until then
+    the scan knows only the Windows user and PC names.
+- **Gone, and expected:** the game's saved profile (`Profiles\default`), the screenshots, the
+  service's own files in `dashboard/data/` (it never had a plan or session records worth
+  keeping), and the first session's scratch folder (the reviewers' scripts, the clone of CSR:
+  re-clone `archelium/csr` at commit `ba6dad0` when its code has to be compared again).
+- **Put back by hand:**
+  - *Easy Anti-Cheat.* The game refused to start ("Easy Anti-Cheat is not installed"): the
+    launcher had tried its anti-cheat step before the game files were downloaded and never
+    tried again. Fixed with the game's own signed installer, run elevated with the user's OK:
+    `LIVE\EasyAntiCheat\EasyAntiCheat_EOS_Setup.exe install <productid>`, the id being the
+    `productid` in `Settings.json` beside it. Exit code 0, and the service is then registered.
+    Not the dashboard's doing, but the next reinstall will meet it again.
+  - *The telemetry variable.* `GRPC_CLIENT_SERVER_ENABLED=true` for the user, set again at
+    5:10 PM with `setx` (the user's standing decision, §15). The launcher was already running,
+    so it takes effect the next time the launcher is started. Still never seen working.
+- **Still true:** the repo must sit at this path
+  (`...\StarCitizen\LIVE\user\client\0\controls\mappings`), or Claude's memory for the project
+  does not reconnect. No logon task has ever been registered.
+- `dashboard/data/handoff/` (git-ignored) still holds what the first session kept: the partial
+  activity survey, the design capture scripts, the saved downloads, and the orchestrator's
+  privacy scan (`privscan.py`), which searches the files git would publish for the user's
+  handle, ids and addresses.
 
 ### How the build is run
 
