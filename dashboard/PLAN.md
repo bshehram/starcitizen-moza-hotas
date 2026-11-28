@@ -18,14 +18,14 @@ re-run.*
 
 ### The fourth session, 2026-11-28, from 6:00 AM
 
-*Rewritten at 7:15 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The
+*Rewritten at 7:13 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The
 user has been in the game since 6:25 AM with the dashboard open in a browser tab. The first
 wave of builders is back, and their three pieces sit together, uncommitted, in the main tree
 while a reviewer attacks each one on a frozen copy. The table of the pause further down says
 what each piece was; this block says where each one is now. Rewrite both into the sections
 under them as the pieces are committed.*
 
-| Piece | State at 7:15 AM | Notes and scripts |
+| Piece | State at 7:13 AM | Notes and scripts |
 | --- | --- | --- |
 | 1. The wiring (stage 3 into the service) | **Built, checked by the orchestrator, with a reviewer.** The builder's report: every item done, 520 tests passing twice, 20 mutations caught, the content-policy proof passed, five real replays match. Orchestrator: privacy scan clean, the whole suite passed (520, 185 s, game running). One fix made by the orchestrator afterward: the server no longer warns at every start about the dot-file in `web/rig/` (with a test). Frozen copy: the session scratch folder, `review-wiring/tree`. | `data/handoff/session4/wiring/`, `review-wiring/` |
 | 2. The fix round for stage 3's first half | **Built, with a reviewer for the confirming run.** The builder's report: all eight findings fixed, 43 mutations caught, 488 tests in its copy. Applied to the main tree at 7:12 AM. Doc text it wants in `STATE.md` and `CLAUDE.md` is in its `DOC_TEXT.md`, to go in after the wiring is committed. | `data/handoff/session4/fix-3a/`, `review-3a-r4/` |
