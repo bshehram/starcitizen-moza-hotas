@@ -10,6 +10,7 @@ across locations.json, ores.json, refineries.json and shops.json; ships, contrac
 prices against what the log samples print; and that the generator never goes online by itself.
 """
 import ast
+import hashlib
 import json
 import os
 import re
@@ -762,6 +763,26 @@ class HandAndGenerated(unittest.TestCase):
                 self.assertIn('%s.hand.json' % name, m['generated_by'])
                 self.assertIn('inputs', m)
                 self.assertRegex(m['inputs'], r'^[0-9a-f]{12}$')
+
+    def test_hashes_ignore_line_endings(self):
+        """_meta.generator and _meta.inputs are taken over the files' text with CRLF read as LF, so a
+        CRLF checkout (core.autocrlf) and an LF one of the same commit give the same hashes, and
+        --check the same answer. A change to the text still moves them."""
+        br = import_generator()
+        lf = (REF / 'build_reference.py').read_bytes().replace(b'\r\n', b'\n')
+        with tempfile.TemporaryDirectory() as d:
+            a, b = Path(d) / 'lf', Path(d) / 'crlf'
+            a.mkdir()
+            b.mkdir()
+            (a / 'gen.py').write_bytes(lf)
+            (b / 'gen.py').write_bytes(lf.replace(b'\n', b'\r\n'))
+            for p in (a / 'gen.py', b / 'gen.py'):
+                self.assertEqual(hashlib.sha256(br.text_bytes(p)).hexdigest()[:12], br.GENERATOR_HASH)
+            (a / 'snap.json').write_bytes(b'{\n "x": 1\n}\n')
+            (b / 'snap.json').write_bytes(b'{\r\n "x": 1\r\n}\r\n')
+            self.assertEqual(br.inputs_hash([a / 'snap.json']), br.inputs_hash([b / 'snap.json']))
+            (b / 'snap.json').write_bytes(b'{\r\n "x": 2\r\n}\r\n')
+            self.assertNotEqual(br.inputs_hash([a / 'snap.json']), br.inputs_hash([b / 'snap.json']))
 
     def test_generated_entries_come_from_the_game(self):
         """Only the hand file's keys may carry another source; the rest of each table is the game's."""

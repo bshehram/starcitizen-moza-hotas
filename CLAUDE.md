@@ -805,6 +805,8 @@ It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `M
 
 3. If the docs say something new about whether the binding works (flown, not yet tried, a trial), change its entry in `STATUS` in the same script, quoting the whole sentences of this file it rests on with the place each sits (`{'In': '§6 item 24', 'Text': '...'}`); and `dashboard/reference/controls.hand.json` if the activity strips show that control (the test makes the two agree). A sentence a status or `MAPS` quotes must stay unique in this file.
 4. Re-run the rebuild command (§8.1; the full one, so the cards follow), then `python -m unittest discover -s dashboard/tests -p "test_rig.py"`, and commit `dashboard/web/rig/` with the cards.
+5. **A row added or taken out** (or a label changed, which changes the row's id): change the pinned `ROW_IDS` in `dashboard/tests/test_rig.py` to the new list, on purpose. The test fails until you do.
+6. **After changing `RIG_ART` or `DISC_FINDER`** (or new art in `diagrams/`) the run refuses until the disc names are read again: `python tools/regen_cards.py --sheets <a folder outside the repo>`, read every tile, then paste the output of `python tools/regen_cards.py --fingerprints` over `FINGERPRINTS` (§8.5, *Number discs*).
 
 The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal `C_SALV`, **`Msl:`/notes** = gray `C_NOTE`. These encode the [operator-mode reuse](#5-operator-mode-reuse-mining--salvage) - one physical control doing a different job per mode.
 
@@ -815,7 +817,7 @@ The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal 
 ### 8.4 Layout knobs & gotchas (for whoever maintains the script)
 
 - **Per-card layout** lives in each `new_card({...})` call: `F` (global font scale - the narrow 40% table forces **1.18 / 1.15**), `CanvasW`/`CanvasH` (held at the 1.294 page ratio, rendered 2×), `Stack` (`X`, `W`, `Gap`, and `Rows` - the diagram bands, each `{'Imgs': [{'D', 'Frac', 'VA', 'Caption'}]}`), and `Cols` (the two table columns, each `{'X', 'W', 'Rows'}`). Want bigger diagrams? widen `Stack['W']` and shrink the columns / `F`.
-- **Rendering.** `render_png` runs the browser with an argument list (no shell quoting), passes the SVG as a `file://` URI (`Path.as_uri()` percent-encodes the spaces in `…\Program Files\…`), renders from a copy of the SVG in a temp folder and screenshots there; the SVG and PNG reach `cards/` only after every card and the rig files are made, each through a temporary file (every generated file is written that way, so a reader never sees half of one, and a failed run writes nothing). An isolated temp `--user-data-dir` keeps the headless run from colliding with a Chrome that's already open. Chrome writes "NNN bytes written…" to stderr even on success, so stderr is discarded and success is judged by the PNG existing.
+- **Rendering.** `render_png` runs the browser with an argument list (no shell quoting), passes the SVG as a `file://` URI (`Path.as_uri()` percent-encodes the spaces in `…\Program Files\…`), renders from a copy of the SVG in a temp folder and screenshots there; the SVG and PNG reach `cards/` only after every card and the rig files are made, each through a temporary file (every generated file is written that way, so a reader never sees half of one). A run a check refuses writes nothing; a write that still fails can leave a mixed set, which `test_rig.py` catches and a rerun repairs (§8.5). An isolated temp `--user-data-dir` keeps the headless run from colliding with a Chrome that's already open. Chrome writes "NNN bytes written…" to stderr even on success, so stderr is discarded and success is judged by the PNG existing.
 - **Fonts.** The SVG asks for *Segoe UI*, then *Arial*. On a Mac it renders in Arial, which runs slightly wider - look at the PNG for clipped table text after regenerating there.
 - **Rounding.** `rnd` / `r1` round half-to-even, the rule the original PowerShell (.NET `Math.Round`) used, so the port reproduces its geometry exactly. Verified 2026-11-23: the SVG markup matched the PowerShell output byte for byte apart from the embedded images, and the PNGs differed by at most 2/255 per pixel.
 - SVGs are written UTF-8 **without BOM**.
@@ -826,17 +828,20 @@ Since 2026-11-27 `python tools/regen_cards.py` also writes `dashboard/web/rig/`:
 diagram images for the dashboard's "Rig reference" section (the user asked for the cards inside
 the dashboard; [`dashboard/PLAN.md`](dashboard/PLAN.md) §4 item 18). Rebuilt on 2026-11-28 (schema 2)
 so the page can be built from fields alone. Every field is described in
-[`dashboard/STATE.md`](dashboard/STATE.md) ("The rig reference (rig.json)").
+[`dashboard/RIG.md`](dashboard/RIG.md).
 
 - **Made from:** the card tables and the literals after them in the script; the art in `diagrams/`;
   `MOZA.xml` (which actions sit on each input, in which actionmap); the action catalog in
   `reference/` (labels, stock activation modes, the stock joystick bindings left in place); and the
-  script's own rig code. A hash of each is in `rig.json`'s `_meta`; its `generated` date moves only
-  when one of them does.
-- **Made in memory, then written.** The run makes every rig file and both cards, checks them all,
-  and only then writes, each file through a temporary file in its folder, retried for about two
-  seconds while a reader holds the old one. When a check fails, nothing is written. Temporary files a
-  killed run left behind are swept at the next start.
+  script's own rig code, as Python parses it (a comment, a blank line or a docstring does not count).
+  A hash of each is in `rig.json`'s `_meta`; its `generated` date moves only when one of them does.
+- **Made in memory, then written.** The run makes every rig file and both cards and checks them all
+  first: a run a check refuses writes nothing. Then each file goes through a temporary file in its
+  folder, retried for about two seconds while a reader holds the old one; a file that already holds
+  the same thing is left alone (a PNG judged by its pixels, palette and chunk list, so a Pillow on
+  another zlib build does not rewrite unchanged images), and `rig.json` goes last. A write that still
+  fails (a file held for longer) can leave a mixed set: the test catches it, and a rerun repairs it.
+  Temporary files a killed run left behind are swept at the next start.
 - **`rig.json`:** 96 rows in card order, each with a stable id (`js1-12`), its buttons as numbers,
   its inputs, the one view it is on, the screen wording (`Screen`, `Where`, `Group`, variants), the
   card wording, its status, what it does in each operator mode, the `MOZA.xml` actions behind it,
@@ -855,9 +860,11 @@ so the page can be built from fields alone. Every field is described in
 - **Statuses** come from `STATUS` alone. Each entry quotes the whole sentences of this file it rests
   on and names where each sits (a section, a heading or a §6 item), with the date or build of a
   confirmation where the docs give one (`When`). The test checks that every quote occurs exactly once
-  here, in the place named, and (coarsely) that one quote uses a word of its status. **It cannot check
-  that a sentence means what the status claims:** when you change a status or rewrite a sentence it
-  quotes, read the two together. A row with no status is one the docs record neither a flight report
+  here, in the place named, as whole sentences: it starts where a sentence starts (not after a colon
+  or a mid-line dash) and ends where one ends. Whether a quote uses a word of its status
+  (`STATUS_WORDS`, and `MODE_WORDS` for `MAPS`) is advisory: the generator prints a warning, and
+  nothing fails. **Nothing can check that a sentence means what the status claims:** when you change
+  a status or rewrite a sentence it quotes, read the two together. A row with no status is one the docs record neither a flight report
   nor a doubt about. `controls.hand.json`'s statuses for the activity strips must agree, and the test
   says so.
 - **Eight PNGs**, named after their views: `grip_front`, `grip_side`, `base`, `keypad`, `dials`,
@@ -880,7 +887,9 @@ so the page can be built from fields alone. Every field is described in
   a card row was changed and only `--dashboard-only` was run. It checks the images themselves (each
   PNG decoded with the standard library and hashed), the disc names (fingerprints, and the order of
   the discs within each hat, rocker and encoder), and pins the list of row ids. With Pillow it builds
-  everything in memory and compares the committed files byte for byte. Run it with
+  everything in memory and compares the committed files: `rig.json` byte for byte, each PNG by its
+  pixels, palette and chunk list (another zlib build compresses the same image to other bytes).
+  Without Pillow that comparison is skipped, and the run prints what it did not check. Run it with
   `python -m unittest discover -s dashboard/tests -p "test_rig.py"`.
 - The page that shows them is being designed in `dashboard/data/design/rig/` (not built yet,
   2026-11-28).

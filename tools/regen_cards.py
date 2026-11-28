@@ -17,11 +17,13 @@ and, in the same run, the dashboard's rig reference, from the same tables and ar
 The dashboard files need no browser: `--dashboard-only` writes just those. They are made from this
 file, the art in diagrams/, MOZA.xml (which actions sit on each input, in which actionmap) and the
 action catalog in reference/ (each action's in-game label and stock activation mode). Every file -
-the rig's and the cards' - is made and checked in memory first, and only then written (each through
-a temporary file, retried while a reader holds the old one): when the card tables and MOZA.xml
-disagree, or a disc's name no longer matches the one verified by eye, the run stops and writes
-nothing. dashboard/tests/test_rig.py fails when any of those inputs changed and the files were not
-rewritten. The schema of rig.json is in dashboard/STATE.md ("The rig reference (rig.json)").
+the rig's and the cards' - is made and checked in memory first, and only then written: when the card
+tables and MOZA.xml disagree, or a disc's name no longer matches the one verified by eye, the run
+stops and writes nothing. Writing puts each file through a temporary file (retried for about two
+seconds while a reader holds the old one), leaves alone a file that already holds the same thing, and
+writes rig.json last. A write that still fails (a file held for longer) can leave a mixed set behind:
+dashboard/tests/test_rig.py catches it, and a rerun repairs it. The same test fails when any of those
+inputs changed and the files were not rewritten. The schema of rig.json is in dashboard/RIG.md.
 
 LAYOUT (60 / 40)
   The manufacturer diagrams are COMPOSITES - several views packed into one image
@@ -63,6 +65,7 @@ RUN (from the project root):
     python tools/regen_cards.py --fingerprints     # the FINGERPRINTS table for the names as they are now
 """
 
+import ast
 import base64
 import datetime
 import hashlib
@@ -934,15 +937,17 @@ STATUS = [
         {'In': '§11.1', 'Text': ('Fully covered and the only ship besides the Golem whose slider axis was confirmed '
                                 'in-ship (June 2026, Alpha 4.8).')}]},
 ]
-# Coarse guards the generator and test_rig.py apply (they do not read the sentences): one quote of a
-# STATUS entry must use a word of its status; for each mode a MAPS entry calls live, one of its quotes
-# must name that mode or say "always" / "every" / "all"; for each mode it calls dead, one must name
-# the mode or say "only".
+# Advisory word lists, for a person to read (word_warnings): the generator prints a warning, and
+# nothing fails, when no quote of a STATUS entry uses a word of its status, when an entry that is not
+# a trial quotes the word "trial", or when no quote of a MAPS entry names a mode it calls live (or
+# says "always" / "every" / "all") or dead (or says "only"). They do not read the sentences: a
+# sentence can use the word and mean something else, and an honest one can say it in other words.
+# They shape nothing in the rig files, so they are not in SOURCES.
 MODE_WORDS = {'combat': r'(?i)\b(combat|guns?|SCM)\b', 'missile': r'(?i)\bmissiles?\b', 'scan': r'(?i)\bscan(ning)?\b',
               'mining': r'(?i)\bmining\b', 'salvage': r'(?i)\bsalvage\b',
               'live': r'(?i)\b(always|every|all)\b', 'dead': r'(?i)\bonly\b'}
 STATUS_WORDS = {'flown': r'(?i)\b(confirmed|works|worked|reversed fine|goes in reverse|is good)\b',
-                'unverified': r'(?i)\b(not yet|never|unverified|not checked|not reported|reported nothing|none of)\b',
+                'unverified': r'(?i)\b(not yet|never|unverified|untested|not checked|not reported|reported nothing|none of)\b',
                 'trial': r'(?i)\btrial\b'}
 
 # The printed cards' diagram crops (x0, y0, x1, y1 in source pixels; the cards stack these six).
@@ -1079,7 +1084,7 @@ FINGERPRINTS = {
 }
 
 SOURCES = ['AB6', 'MHG_L', 'MHG_R', 'MTQ_L', 'MTQ_R', 'CARDS', 'MODES', 'LIVE_MODES', 'MAPS', 'STATUS',
-           'STATUS_WORDS', 'MODE_WORDS', 'CARD_ART', 'VIEWS', 'READINGS', 'DISCS', 'DISC_FINDER', 'RIG_ART', 'FINGERPRINTS']
+           'CARD_ART', 'VIEWS', 'READINGS', 'DISCS', 'DISC_FINDER', 'RIG_ART', 'FINGERPRINTS']
 RIG_SCHEMA = 2
 
 
@@ -1261,13 +1266,70 @@ def card_sources():
     return {n: g[n] for n in SOURCES}
 
 
+def canon(node):
+    """A stable text of parsed code, for the code hash: each node's type and fields, without positions,
+    docstrings or empty fields, and with the two forms only Python 3.8 writes (Index, ExtSlice)
+    unwrapped. So every Python from 3.8 gives the same text for the same code; ast.dump does not (3.13
+    leaves out the empty fields earlier versions print). test_rig.py has the same function."""
+    if isinstance(node, list):
+        return '[' + ', '.join(canon(x) for x in node) + ']'
+    if not isinstance(node, ast.AST):
+        return repr(node)
+    kind = type(node).__name__
+    if kind == 'Index':
+        return canon(node.value)
+    if kind == 'ExtSlice':
+        return 'Tuple(elts=%s, ctx=Load())' % canon(node.dims)
+    fields = []
+    for name, value in ast.iter_fields(node):
+        if name == 'body' and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and value \
+                and isinstance(value[0], ast.Expr) and isinstance(value[0].value, ast.Constant) \
+                and isinstance(value[0].value.value, str):
+            value = value[1:]                      # the docstring
+        if value is None or value == [] or name in ('kind', 'type_comment'):
+            continue
+        fields.append('%s=%s' % (name, canon(value)))
+    return '%s(%s)' % (kind, ', '.join(fields))
+
+
 def rig_code():
-    """The code that makes the rig files: this file's lines from the "dashboard rig reference" heading
-    to `def main`, as read with universal newlines (test_rig.py hashes the same)."""
-    lines = Path(__file__).read_text(encoding='utf-8').split('\n')
-    a = next(i for i, ln in enumerate(lines) if ln.startswith('# ====') and ln.endswith(' dashboard rig reference'))
-    b = next(i for i, ln in enumerate(lines) if ln.startswith('def main('))
-    return '\n'.join(lines[a:b])
+    """The code that makes the rig files, as Python reads it: canon() of `jnum` and of every statement
+    between the "dashboard rig reference" heading and `def main`. Comments, blank lines and docstrings
+    do not count, so only a change to the code itself moves _meta.hash.code (test_rig.py hashes the
+    same)."""
+    text = Path(__file__).read_text(encoding='utf-8')
+    lines = text.split('\n')
+    a = next(i for i, ln in enumerate(lines) if ln.startswith('# ====') and ln.endswith(' dashboard rig reference')) + 1
+    b = next(i for i, ln in enumerate(lines) if ln.startswith('def main(')) + 1
+    keep = [n for n in ast.parse(text).body
+            if a < n.lineno < b or (isinstance(n, ast.FunctionDef) and n.name == 'jnum')]
+    return '\n'.join(canon(n) for n in keep)
+
+
+def word_warnings():
+    """The advisory word checks (see STATUS_WORDS), as lines for a person to read. Nothing fails on
+    them; write_rig() and main() print them."""
+    out = []
+    for s in STATUS:
+        key = (s['Control'], s['Part'], s.get('Press'))
+        texts = [q.get('Text') or '' for q in s.get('Quote') or []]
+        words = STATUS_WORDS.get(s['Status'])
+        if words and not any(re.search(words, t) for t in texts):
+            out.append('STATUS %r: no quote uses a word of "%s"' % (key, s['Status']))
+        if s['Status'] != 'trial' and any(re.search(STATUS_WORDS['trial'], t) for t in texts):
+            out.append('STATUS %r is %s, but a quote says "trial"' % (key, s['Status']))
+    for amap, spec in sorted(MAPS.items()):
+        texts = [q['Text'] for q in spec['Why']]
+        for m in [x['Mode'] for x in MODES]:
+            kind = 'live' if m in spec['Live'] else None if m in spec['Unknown'] else 'dead'
+            if kind and not any(re.search(MODE_WORDS[m], t) or re.search(MODE_WORDS[kind], t) for t in texts):
+                out.append('MAPS %s: no quote names %s mode, or says why the map is %s everywhere' % (amap, m, kind))
+    return out
+
+
+def print_word_warnings():
+    for w in word_warnings():
+        print('  warning (advisory; read the quote and the status together): ' + w)
 
 
 def fingerprint(art, box):
@@ -1317,6 +1379,7 @@ def read_catalog():
 
 
 HOLD_MODES = ('delayed_press', 'hold', 'delayed_hold', 'delayed_hold_no_retrigger')
+STATUSES = ('flown', 'unverified', 'trial')
 STATUS_DOUBT = {'flown': 0, None: 1, 'unverified': 2, 'trial': 3}    # a tap / hold pair: the more doubtful
 
 
@@ -1342,11 +1405,8 @@ def rig_doc(images, pin=True):
     for amap, spec in sorted(MAPS.items()):
         if set(spec['Live']) & set(spec['Unknown']) or not set(spec['Live'] + spec['Unknown']) <= set(mode_ids):
             problems.append('MAPS %s: a mode is twice or not a mode' % amap)
-        texts = [q['Text'] for q in spec['Why']]
-        for m in mode_ids:
-            kind = 'live' if m in spec['Live'] else None if m in spec['Unknown'] else 'dead'
-            if kind and not any(re.search(MODE_WORDS[m], t) or re.search(MODE_WORDS[kind], t) for t in texts):
-                problems.append('MAPS %s: no quote names %s mode (or says why it is %s everywhere)' % (amap, m, kind))
+        if (spec['Live'] or len(spec['Unknown']) < len(mode_ids)) and not spec['Why']:
+            problems.append('MAPS %s: live or dead somewhere, and cites nothing' % amap)
         if spec['Unknown'] and not spec.get('Note'):
             problems.append('MAPS %s: an unknown cell without a Note' % amap)
     on_input = {}
@@ -1371,12 +1431,10 @@ def rig_doc(images, pin=True):
     status_of = {}
     for s in STATUS:
         key = (s['Control'], s['Part'], s.get('Press'))
-        if key in status_of or s['Status'] not in STATUS_WORDS:
+        if key in status_of or s['Status'] not in STATUSES:
             problems.append('STATUS %r is twice or has an unknown status' % (key,))
         if not s.get('Quote') or not all(q.get('In') and q.get('Text') for q in s['Quote']):
             problems.append('STATUS %r cites nothing, or a quote without In' % (key,))
-        elif not any(re.search(STATUS_WORDS[s['Status']], q['Text']) for q in s['Quote'] if s['Status'] in STATUS_WORDS):
-            problems.append('STATUS %r: no quote says %s' % (key, s['Status']))
         status_of[key] = s
     used = set()
 
@@ -1646,7 +1704,7 @@ def rig_doc(images, pin=True):
                   'MOZA.xml (the actions on each input); the action catalog in reference/ (labels, stock '
                   'activation modes and stock joystick bindings).',
         'catalog': 'reference/' + catalog_path().name,
-        'doc': 'Every field is described in dashboard/STATE.md, "The rig reference (rig.json)".',
+        'doc': 'Every field is described in dashboard/RIG.md.',
         'status': {'flown': 'Confirmed in a ship: root CLAUDE.md says it worked in flight (status_when: when, where it says).',
                    'unverified': 'Bound and loaded in the game, but not yet confirmed in a ship (CLAUDE.md says so).',
                    'trial': 'CLAUDE.md calls the binding a trial: bound to be tried out, not yet tried.',
@@ -1814,6 +1872,7 @@ def write_rig():
     written; leftover temporary files of an interrupted run are swept first."""
     sweep_parts(RIG_DIR) if RIG_DIR.is_dir() else None
     files, doc, _ = build_rig()
+    print_word_warnings()
     written = write_files(RIG_DIR, files, keep_png=False)
     c = doc['_meta']['counts']
     for name, data in files.items():
@@ -1859,6 +1918,7 @@ def main():
     sweep_parts(RIG_DIR) if RIG_DIR.is_dir() else None
     sweep_parts(CARD_DIR)
     rig_files, rig, _ = build_rig()
+    print_word_warnings()
 
     print('Cropping + recoloring diagram sub-views...')
     sub = {v['Id']: get_sub_diagram(v['File'], v['Box']) for v in CARD_ART}

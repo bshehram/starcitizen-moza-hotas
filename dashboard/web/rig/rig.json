@@ -5,9 +5,9 @@
   "generated_by": "tools/regen_cards.py (or --dashboard-only); do not edit by hand",
   "source": "The card tables and the literals after them in tools/regen_cards.py; the art in diagrams/; MOZA.xml (the actions on each input); the action catalog in reference/ (labels, stock activation modes and stock joystick bindings).",
   "catalog": "reference/SC_KEYBINDS_DATABASE_v4.10.md",
-  "doc": "Every field is described in dashboard/STATE.md, \"The rig reference (rig.json)\".",
+  "doc": "Every field is described in dashboard/RIG.md.",
   "status": {"flown": "Confirmed in a ship: root CLAUDE.md says it worked in flight (status_when: when, where it says).", "unverified": "Bound and loaded in the game, but not yet confirmed in a ship (CLAUDE.md says so).", "trial": "CLAUDE.md calls the binding a trial: bound to be tried out, not yet tried.", "missing": "No status key: the docs record neither a flight report nor a doubt about how that binding behaves. Doubts about which physical control carries a number, and about the game defaults the profile clears, are not statuses."},
-  "hash": {"tables": "67aa791ef117", "code": "47e690de3d62", "diagrams": {"MOZA_AB6.png": "89033ca3dc4b", "MOZA_MHG.png": "990a8b841e3b", "MOZA_MTQ.png": "1439c9e6eaab"}, "profile": "ed022b6ff515", "catalog": "602951f2f6de"},
+  "hash": {"tables": "66f32bc5957a", "code": "0292814e3071", "diagrams": {"MOZA_AB6.png": "89033ca3dc4b", "MOZA_MHG.png": "990a8b841e3b", "MOZA_MTQ.png": "1439c9e6eaab"}, "profile": "ed022b6ff515", "catalog": "602951f2f6de"},
   "counts": {"rows": 96, "views": 8, "discs": 103, "status": {"flown": 16, "none": 75, "trial": 7, "unverified": 22}}
  },
  "modes": [

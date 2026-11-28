@@ -54,7 +54,10 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     with no row, a row whose input is bound nowhere, a row whose `Actions` / `VariantActions` are
     not the actions bound on its input, a variant with no action in its mode, two jobs live in one
     mode on one press. Files are written through a temporary file, retried while a reader (the
-    dashboard's service) holds the old one; a killed run's leftovers are swept at the next start.
+    dashboard's service) holds the old one; a file that already holds the same thing is left alone
+    (a PNG judged by `png_facts`: pixels, palette, chunk list), and `rig.json` goes last. A write
+    that still fails can leave a mixed set, which `test_rig.py` catches and a rerun repairs. A
+    killed run's leftovers are swept at the next start.
   - Needs Pillow and a Chromium-family browser (Chrome, Edge or Chromium; `CARD_BROWSER`
     overrides the search). Look at both PNGs after a run for clipped text.
   - **The same run also writes the dashboard's rig reference** into `../dashboard/web/rig/`
@@ -71,17 +74,25 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     from rough positions), `FINGERPRINTS` (the names as read by eye), `RIG_ART`.
     `python tools/regen_cards.py --dashboard-only` writes just those files, without the browser.
     `--sheets <folder>` writes contact sheets to read the disc names by eye, `--fingerprints` prints
-    the table to pin them (root `CLAUDE.md` §8.5 says when). The schema is in `../dashboard/STATE.md`.
+    the table to pin them (root `CLAUDE.md` §8.3 and §8.5 say when). `STATUS_WORDS` and
+    `MODE_WORDS` are advisory: the run prints a warning when a quote uses no word of its status or
+    mode, and nothing fails. The schema is in [`../dashboard/RIG.md`](../dashboard/RIG.md).
   - `dashboard/tests/test_rig.py` reads the tables with `ast` and **fails when any of those inputs
     (or the rig code) changed and the rig files were not regenerated**; it also checks the card
     tables against `MOZA.xml` (inputs and actions), the printed `cards/*.svg` against the tables,
-    every quoted sentence against root `CLAUDE.md` (once, in the place named), the strips' statuses
-    in `dashboard/reference/controls.hand.json` against `STATUS`, the PNGs themselves (decoded,
-    hashed, discs found again, names against `FINGERPRINTS`) and the pinned row ids; with Pillow it
-    compares every file byte for byte with a fresh in-memory build. Run it with
+    every quoted sentence against root `CLAUDE.md` (once, in the place named, as whole sentences),
+    the strips' statuses in `dashboard/reference/controls.hand.json` against `STATUS`, the PNGs
+    themselves (decoded, hashed, discs found again, names against `FINGERPRINTS`) and the pinned row
+    ids; with Pillow it compares the files with a fresh in-memory build (`rig.json` byte for byte,
+    each PNG by `png_facts`). The rig code's hash is over the parsed code, so a comment or a blank
+    line in it needs no regeneration. Run it with
     `python -m unittest discover -s dashboard/tests -p "test_rig.py"`. So after any card edit, run the
-    full generator and commit `dashboard/web/rig/` with the cards. A change to the tables also moves the inputs hash
-    of `dashboard/reference/controls.json`: rewrite it the way `dashboard/reference/build_reference.py` does (no test catches a stale hash there).
+    full generator and commit `dashboard/web/rig/` with the cards.
+  - **Any change to this script also moves the `inputs` hash of the dashboard's reference tables**
+    (`dashboard/reference/*.json`): `build_reference.py` hashes this whole file, line endings aside,
+    because `controls.json` is built from its card tables. Rerun
+    `python dashboard/reference/build_reference.py` (about a minute; it reads `Data.p4k`) and commit
+    the tables; `--check` says whether they are current. No unit test catches a stale hash there.
   - The rounding helpers (`rnd`, `r1`) round half-to-even on purpose, to reproduce the original
     geometry exactly. Read [`../CLAUDE.md` §8.4](../CLAUDE.md) before changing the render code.
 

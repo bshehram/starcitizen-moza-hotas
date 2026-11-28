@@ -15,8 +15,13 @@ CLAUDE.md as text, the card SVGs with ElementTree and the PNGs with its own deco
   - the images themselves: each PNG decodes, has the size and pixel hash rig.json gives it, shows no
     sample reading, and every disc still carries the name that was verified by eye (FINGERPRINTS);
   - every sentence a status or a mode rests on occurs exactly once in root CLAUDE.md or MOZA.xml, in
-    the place the entry names, and the strips' statuses in reference/controls.hand.json agree;
-  - with Pillow installed: rig.json and every PNG are byte for byte what the generator makes today.
+    the place the entry names, as a whole sentence (it starts where a sentence starts and ends where
+    one ends), and the strips' statuses in reference/controls.hand.json agree;
+  - with Pillow installed: rig.json is byte for byte, and every PNG pixel for pixel and chunk for
+    chunk, what the generator makes today. Without Pillow that comparison is skipped.
+
+The word lists in the script (STATUS_WORDS, MODE_WORDS) are advisory: the generator prints what they
+find, and nothing here fails on them.
 
 When a source changed and the folder was not rewritten the fix is always the same:
     python tools/regen_cards.py --dashboard-only
@@ -29,6 +34,7 @@ import importlib.util
 import json
 import re
 import struct
+import sys
 import unittest
 import xml.etree.ElementTree as ET
 import zlib
@@ -46,7 +52,7 @@ CLAUDE = ROOT / "CLAUDE.md"
 CATALOG_DIR = ROOT / "reference"
 
 TABLES = ("AB6", "MHG_L", "MHG_R", "MTQ_L", "MTQ_R")
-SOURCES = TABLES + ("CARDS", "MODES", "LIVE_MODES", "MAPS", "STATUS", "STATUS_WORDS", "MODE_WORDS", "CARD_ART", "VIEWS",
+SOURCES = TABLES + ("CARDS", "MODES", "LIVE_MODES", "MAPS", "STATUS", "CARD_ART", "VIEWS",
                     "READINGS", "DISCS", "DISC_FINDER", "RIG_ART", "FINGERPRINTS")
 SCHEMA = 2
 REGEN = "rig reference is stale; run: python tools/regen_cards.py --dashboard-only"
@@ -120,13 +126,39 @@ def read_script():
     return env
 
 
+def canon(node):
+    """The same stable text of parsed code as regen_cards.canon(): node types and fields, without
+    positions, docstrings or empty fields, Python 3.8's Index and ExtSlice unwrapped."""
+    if isinstance(node, list):
+        return "[" + ", ".join(canon(x) for x in node) + "]"
+    if not isinstance(node, ast.AST):
+        return repr(node)
+    kind = type(node).__name__
+    if kind == "Index":
+        return canon(node.value)
+    if kind == "ExtSlice":
+        return "Tuple(elts=%s, ctx=Load())" % canon(node.dims)
+    fields = []
+    for name, value in ast.iter_fields(node):
+        if name == "body" and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and value \
+                and isinstance(value[0], ast.Expr) and isinstance(value[0].value, ast.Constant) \
+                and isinstance(value[0].value.value, str):
+            value = value[1:]
+        if value is None or value == [] or name in ("kind", "type_comment"):
+            continue
+        fields.append("%s=%s" % (name, canon(value)))
+    return "%s(%s)" % (kind, ", ".join(fields))
+
+
 def rig_code(text):
-    """The script's lines from the "dashboard rig reference" heading to `def main`, as
-    regen_cards.rig_code() takes them."""
+    """The script's rig code as regen_cards.rig_code() takes it: canon() of `jnum` and of every
+    statement between the "dashboard rig reference" heading and `def main`."""
     lines = text.split("\n")
-    a = next(i for i, ln in enumerate(lines) if ln.startswith("# ====") and ln.endswith(" dashboard rig reference"))
-    b = next(i for i, ln in enumerate(lines) if ln.startswith("def main("))
-    return "\n".join(lines[a:b])
+    a = next(i for i, ln in enumerate(lines) if ln.startswith("# ====") and ln.endswith(" dashboard rig reference")) + 1
+    b = next(i for i, ln in enumerate(lines) if ln.startswith("def main(")) + 1
+    keep = [n for n in ast.parse(text).body
+            if a < n.lineno < b or (isinstance(n, ast.FunctionDef) and n.name == "jnum")]
+    return "\n".join(canon(n) for n in keep)
 
 
 def digest(obj):
@@ -138,6 +170,23 @@ def digest(obj):
 def norm(text):
     """Text as a quote is matched against a file: ** and ` dropped, white space collapsed."""
     return re.sub(r"\s+", " ", text.replace("*", "").replace("`", "")).strip()
+
+
+def norm_breaks(text):
+    """norm(text) with the line breaks kept, at the same positions: a run of white space holding two
+    or more line breaks (a new paragraph) becomes "\\n", one holding one becomes "\\r", the rest " "."""
+    def run(m):
+        n = m.group().count("\n")
+        return "\n" if n >= 2 else "\r" if n == 1 else " "
+    return re.sub(r"\s+", run, text.replace("*", "").replace("`", "")).strip()
+
+
+# Where a sentence can start, as the text before a quote ends (in norm_breaks form): the file's
+# start, a new paragraph, an XML comment's start, after a sentence's end (. ! or ?, maybe a closing
+# quote mark or parenthesis), at a table cell, or at a list item or blockquote line. Not after a
+# colon or a mid-line dash: what follows those is the rest of a sentence.
+SENTENCE_START = re.compile(r"(?:\A|\n|<!--[ \r\n]|[.!?][\"')]?[ \r\n]|\|[ \r\n]|[\r\n][-*>] )\Z")
+SENTENCE_END = re.compile(r"[.!?][\"')]?\Z")
 
 
 def claude_block(text, where):
@@ -445,7 +494,9 @@ class RigReferenceTest(unittest.TestCase):
                     cls.pngs[v["id"]] = e
         cls.claude = CLAUDE.read_text(encoding="utf-8")
         cls.claude_norm = norm(cls.claude)
+        cls.claude_breaks = norm_breaks(cls.claude)
         cls.xml_text = PROFILE.read_text(encoding="utf-8")
+        cls.xml_breaks = norm_breaks(cls.xml_text)
 
     def png(self, view_id):
         got = self.pngs.get(view_id)
@@ -461,20 +512,26 @@ class RigReferenceTest(unittest.TestCase):
         return [round(pal[i][3] * (n - 1) / 255) for i in idx]
 
     def check_quote(self, q_file, where, text):
-        """A quote occurs exactly once in its file and sits in the place it names."""
+        """A quote occurs exactly once in its file, sits in the place it names, and is whole sentences:
+        it starts where a sentence starts and ends where one ends (SENTENCE_START, SENTENCE_END)."""
+        q = norm(text)
         if q_file == "CLAUDE.md":
-            self.assertEqual(self.claude_norm.count(norm(text)), 1,
-                             "the quote must occur exactly once in root CLAUDE.md: %s" % text)
-            self.assertIn(norm(text), claude_block(self.claude, where), "the quote is not in %s: %s" % (where, text))
+            self.assertEqual(self.claude_norm.count(q), 1, "the quote must occur exactly once in root CLAUDE.md: %s" % text)
+            self.assertIn(q, claude_block(self.claude, where), "the quote is not in %s: %s" % (where, text))
+            body = self.claude_breaks
         else:
             self.assertEqual(q_file, "MOZA.xml")
-            self.assertEqual(norm(self.xml_text).count(norm(text)), 1, "the quote must occur once in MOZA.xml: %s" % text)
+            self.assertEqual(norm(self.xml_text).count(q), 1, "the quote must occur once in MOZA.xml: %s" % text)
             self.assertEqual(len(xml_comment_with(self.xml_text, where, text)), 1,
                              "the quote is not in the MOZA.xml comment %r: %s" % (where, text))
-        self.assertRegex(norm(text), r"[.!?][)\"]?$", "a quote is a whole sentence (it ends one): %s" % text)
-        i = self.claude_norm.find(norm(text)) if q_file == "CLAUDE.md" else -1
-        if i > 0:
-            self.assertIn(self.claude_norm[i - 1], " |>-", "a quote is a whole sentence (it starts one): %s" % text)
+            body = self.xml_breaks
+        i = body.replace("\n", " ").replace("\r", " ").find(q)
+        self.assertRegex(q, SENTENCE_END, "a quote is whole sentences (it ends one): %s" % text)
+        self.assertRegex(body[i + len(q):i + len(q) + 3], r"\A(?:[ \r\n]|-->|\Z)",
+                         "a quote is whole sentences (the file's sentence goes on after it): %s" % text)
+        self.assertRegex(body[:i], SENTENCE_START,
+                         "a quote is whole sentences (it starts where a sentence starts, not after %r): %s"
+                         % (body[max(0, i - 12):i], text))
 
     # ------------------------------------------------------------------ the card tables vs MOZA.xml
     def test_card_tables_against_the_profile(self):
@@ -721,12 +778,6 @@ class RigReferenceTest(unittest.TestCase):
                 self.assertEqual(got.get("note"), spec.get("Note"), REGEN)
                 if live or dead:
                     self.assertTrue(spec["Why"], "a map said to be live or dead somewhere must cite why")
-                words = self.src["MODE_WORDS"]
-                for mode in live + dead:
-                    kind = "live" if mode in live else "dead"
-                    self.assertTrue(any(re.search(words[mode], q["Text"]) or re.search(words[kind], q["Text"])
-                                        for q in spec["Why"]),
-                                    "no quote names %s mode, or says why the map is %s everywhere" % (mode, kind))
                 if unknown:
                     self.assertTrue(spec.get("Note"), "an unknown cell says why in Note")
                 for q in spec["Why"]:
@@ -775,12 +826,6 @@ class RigReferenceTest(unittest.TestCase):
                 self.assertTrue(s.get("Quote"), "a status quotes the docs")
                 for q in s["Quote"]:
                     self.check_quote("CLAUDE.md", q["In"], q["Text"])
-                self.assertTrue(any(re.search(self.src["STATUS_WORDS"][s["Status"]], q["Text"]) for q in s["Quote"]),
-                                "none of the quotes says %s" % s["Status"])
-                for other in STATUSES:
-                    if other != s["Status"] and other == "trial":
-                        self.assertFalse(any(re.search(self.src["STATUS_WORDS"]["trial"], q["Text"]) for q in s["Quote"]),
-                                         "a quote calls it a trial, the status says %s" % s["Status"])
                 if s.get("When"):
                     self.assertTrue(any(s["When"] in claude_block(self.claude, q["In"]) for q in s["Quote"]),
                                     "When is not in the place a quote sits: %s" % s["When"])
@@ -1067,12 +1112,18 @@ class RigReferenceTest(unittest.TestCase):
     # ------------------------------------------------------------------ the generator itself
     def test_the_files_are_what_the_generator_makes_today(self):
         """With Pillow: build everything in memory with the generator's own code and compare it with
-        the committed files byte for byte. Closes every hand edit (an extra key, the date, a reformatted
-        rig.json, a PNG chunk or a re-encoding). Skipped without Pillow."""
+        the committed files: rig.json byte for byte, each PNG by png_facts (pixels, palette and chunk
+        list; another zlib build compresses the same image to other bytes). Closes every hand edit (an
+        extra key, the date, a reformatted rig.json, an added PNG chunk). Skipped without Pillow."""
         try:
             import PIL  # noqa: F401
         except ImportError:
-            self.skipTest("Pillow is not installed")
+            why = ("Pillow is not installed, so rig.json and the PNGs were NOT compared with a fresh build: "
+                   "a hand edit the other tests do not see (an extra key in rig.json, a date within range, "
+                   "a text chunk added to a PNG) passes. Install Pillow (python -m pip install Pillow) "
+                   "and run this test again")
+            sys.stderr.write("\ntest_rig: %s.\n" % why)       # a plain run shows a skip only as "s"
+            self.skipTest(why)
         spec = importlib.util.spec_from_file_location("regen_cards_under_test", CARD_SCRIPT)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)

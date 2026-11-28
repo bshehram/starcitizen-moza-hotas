@@ -40,6 +40,9 @@ Two guards stop a run from losing anything typed into an output by mistake:
 Keys the hand file supplied (listed in `_meta.hand_keys`, `_meta.hand_patterns`) are exempt, so
 deleting an entry from a hand file just deletes it. `--force` overrides both guards. A run that
 changes nothing keeps the old `generated` date, so a re-run on the same build is byte-identical.
+`_meta.generator` (this script) and `_meta.inputs` (the hand files, tools/regen_cards.py and, for
+prices, the UEX snapshot) are hashes of the files' text with CRLF read as LF, so a checkout's line
+endings move neither: --check gives the same answer on a CRLF and an LF checkout of one commit.
 
 Usage (from the project root):
     python dashboard/reference/build_reference.py           rebuild the files
@@ -2127,17 +2130,24 @@ def load_hand(name):
         sys.exit('%s is not valid JSON: %s' % (p.name, e))
 
 
-GENERATOR_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
+def text_bytes(path):
+    """A text input's bytes with CRLF read as LF, the way git stores the file: a checkout with
+    core.autocrlf (CRLF) and one without (LF) of the same commit then hash the same."""
+    return Path(path).read_bytes().replace(b'\r\n', b'\n')
+
+
+GENERATOR_HASH = hashlib.sha256(text_bytes(__file__)).hexdigest()[:12]
 
 
 def inputs_hash(extra_files=()):
     """A hash of everything besides the game files that shapes the outputs: the hand files, the card
-    tables, and any extra input (the UEX snapshot for prices). With the build and this script it
-    decides whether a difference in an output can only be a hand edit (see `guard`)."""
+    tables, and any extra input (the UEX snapshot for prices), each as text_bytes() reads it. With the
+    build and this script it decides whether a difference in an output can only be a hand edit (see
+    `guard`)."""
     h = hashlib.sha256()
     for p in sorted(HERE.glob('*.hand.json')) + [CARD_FILE] + [Path(f) for f in extra_files]:
         try:
-            h.update(p.name.encode() + b'\0' + p.read_bytes() + b'\0')
+            h.update(p.name.encode() + b'\0' + text_bytes(p) + b'\0')
         except OSError:
             h.update(p.name.encode() + b'\0missing\0')
     return h.hexdigest()[:12]
