@@ -1,7 +1,8 @@
-# Star Citizen: session brief
+# SCBOT: Star Citizen session brief
 
-This is my standing brief for a new Claude Code session in this folder. It says what we work on
-here, how to get up to speed, how I like to work, and what you can do without asking.
+This is my standing brief for a new Claude Code session in this folder: the prompt that starts
+every conversation about this project and my Star Citizen work. It says what we work on here,
+how to get up to speed, how I like to work, and what you can do without asking.
 
 It doesn't repeat what you already have. [`CLAUDE.md`](CLAUDE.md) is loaded for you and is the
 full reference for my control bindings. The memory directory holds what earlier sessions learned,
@@ -11,7 +12,7 @@ is not a disagreement. Where the two really do conflict, follow the one I stated
 (memory notes carry dates, and `git log` dates the lines here) and tell me, so the other gets
 fixed.
 
-**How I use it.** I start a session with `@STARCITIZEN.md`, alone or followed by a request. Alone
+**How I use it.** I start a session with `@SCBOT.md`, alone or followed by a request. Alone
 means *ramp up and tell me where things stand*. With a request, do the request: *How I work*,
 *What counts as known* and *Leaving things for the next session* always apply, and you read
 whatever part of *Ramping up* the request needs.

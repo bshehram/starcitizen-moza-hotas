@@ -290,10 +290,10 @@ laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
 [`CLAUDE.md`](CLAUDE.md) in this folder has the working notes for the code that exists.
 
 This file is the brief for the Claude session that builds the dashboard. The user starts that
-session with `@STARCITIZEN.md` and asks for the dashboard to be built from this plan. It says what
+session with `@SCBOT.md` and asks for the dashboard to be built from this plan. It says what
 to build, why each constraint exists, what is already known and what still has to be checked, and
 how to tell that each stage is done. It does not repeat the project's own rules: read
-[`../STARCITIZEN.md`](../STARCITIZEN.md) and [`../CLAUDE.md`](../CLAUDE.md) first, and follow them
+[`../SCBOT.md`](../SCBOT.md) and [`../CLAUDE.md`](../CLAUDE.md) first, and follow them
 where this plan is silent.
 
 Each fact below carries how it is known, the same way the rest of the project does:
@@ -763,13 +763,14 @@ get Claude going.
 
 17. **A terminal panel that runs Claude Code.** A real terminal drawn in the page, connected to a
     Claude Code process that the service starts in the project root. It is the same program the
-    user runs today, so everything works as they know it: `@STARCITIZEN.md`, approvals, a log
+    user runs today, so everything works as they know it: `@SCBOT.md`, approvals, a log
     check that updates memory and the game plan page.
     - **Dedicated.** The panel runs that one program. It is not a general shell, and nothing the
       page sends can choose a different program or different arguments (§8).
     - **It starts with the session brief already loaded** (the user, 2026-11-27: "that
-      particular claude that starts in the dashboard uses our starcitizen.md file"). The service
-      hands [`../STARCITIZEN.md`](../STARCITIZEN.md) to Claude Code as an addition to its system
+      particular claude that starts in the dashboard uses our starcitizen.md file"; the user
+      renamed that file `SCBOT.md` on 2026-11-28). The service hands
+      [`../SCBOT.md`](../SCBOT.md) to Claude Code as an addition to its system
       prompt when it starts it, read fresh from the file each time, so the user types a question
       and nothing before it. Loading the brief this way does not set off the ramp-up the brief
       describes for a session opened with the file alone: that takes minutes and would run every
@@ -1648,7 +1649,7 @@ check that can actually fail.
      option exists, the service reads the file and passes its text as one argument (the brief is
      about 15 KB; a Windows command line holds 32 KB).
    *Done when:* opening the window brings Claude up in the project root with nothing typed; a
-   plain question with no `@STARCITIZEN.md` in front is answered by a session that already has
+   plain question with no `@SCBOT.md` in front is answered by a session that already has
    the brief (ask it what needs the user's approval and compare with the file), and it did not
    start a ramp-up by itself; an approval prompt can be answered from the panel; keys, paste, arrow keys and Ctrl+C behave as in a normal terminal; it re-fits in
    landscape and portrait; closing the window leaves no Claude process or child behind; a request
@@ -1815,7 +1816,7 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Contract tracking | **In the first version:** the active contract and its current objective on the Now view (§4). | Leaving it for later. |
 | The game's telemetry stream (§3) | **Supported**, as stage 6 (§12), with 5.0 close. | Leaving it out. |
 | How the telemetry reader learns the stream's layout | **Read it from the installed game's program file**, read-only, at start: "most reliable", in their words. It follows a patch by itself. | Field numbers written into the code by hand. |
-| Community tools in general | **No precompiled binaries.** A community tool has to be open source and built or run from source here; otherwise we build our own. Now a standing rule in [`../STARCITIZEN.md`](../STARCITIZEN.md). | - |
+| Community tools in general | **No precompiled binaries.** A community tool has to be open source and built or run from source here; otherwise we build our own. Now a standing rule in [`../SCBOT.md`](../SCBOT.md). | - |
 | Which way up the side monitor stands | **Either: landscape or portrait, "depending on my mood".** The page has a layout for each and picks by the shape of its window (§11). | A page designed for landscape only, which is what this plan said before. |
 
 **Decided by the user on 2026-11-27, at the start of the build session:**
@@ -1830,7 +1831,7 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | How xterm.js comes into the repo (§5) | **The pinned published release file**, with its license and a recorded checksum. | Installing Node.js and building it from source here. |
 | Which activities get a view (§4) | **Mining, salvage, combat and cargo hauling**: "the other stuff like salvaging and combat and cargo hauling etc". Medical runs and crafting stay on the Now view until asked for (Claude's reading of "etc"). | Mining only, which is what this plan had. |
 | How the page looks (§11) | **"Good and modern": direction B, "Avionics",** picked on 2026-11-27 from three directions mocked up in every screen and both orientations. | A, "Cluster" (calm, typographic, light figures) and C, "Signal" (bold, color-blocked, very large numerals). |
-| What the dashboard's Claude knows when it starts | **`STARCITIZEN.md`, loaded by the dashboard**, so nothing is typed before the question. (Loading it without setting off a ramp-up is Claude's design, §4.) | - |
+| What the dashboard's Claude knows when it starts | **`SCBOT.md`, loaded by the dashboard**, so nothing is typed before the question. (Loading it without setting off a ramp-up is Claude's design, §4.) | - |
 
 **Decided by the user on 2026-11-27, in the second build session (after the reinstall):**
 
@@ -1864,7 +1865,7 @@ can read the stream, not only the dashboard. To undo it, delete the variable
 - `dashboard/THIRD_PARTY_NOTICES`: CSR's copyright line and license text, if its code was used
   (§5), and a pointer to it from `dashboard/README.md`.
 - `../README.md`: one line that the repo also holds the dashboard.
-- [`../STARCITIZEN.md`](../STARCITIZEN.md): a row in "Where things live", and in "Check the logs"
+- [`../SCBOT.md`](../SCBOT.md): a row in "Where things live", and in "Check the logs"
   that `timeline` and the session records exist and that `plan.json` is updated together with the
   game plan page.
 - Memory: the update routine in `game-plan-artifact` gains the `plan.json` step, and
