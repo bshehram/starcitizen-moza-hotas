@@ -94,10 +94,13 @@ added at the close of the fourth session, and the ids are given here. The queue 
 what; this plan says what is to be built.
 
 1. **With the user, first: confirm the guard, then walk its first-install checklist.**
-   - The guard was installed at the end of the fourth session: confirm with
-     `python tools/scbot.py check` (every line should say PASS). A session started after the
-     install is named in its first reply (SCBOT-1 and so on). One that sees no such notice
-     keeps the rules by hand ([`../SCBOT.md`](../SCBOT.md), "Until the guard is installed").
+   - The guard was installed at the end of the fourth session. **Confirmed by the fifth
+     session at 12:00 PM on 2026-11-28 [seen]:** `python tools/scbot.py check` gave PASS on
+     every line, the session was named SCBOT-1 at its start, and `crew --session SCBOT-1`
+     showed six sub-agents running, each with its context use (a crew member starts at 16 to
+     21 % of its window, before it has read anything). The guard's first call of the session
+     said it could not read the context use yet and let the call through; every later call
+     read it.
    - Then the twelve steps in `prompts/SCBOT-README.md`, "After the install: the first-install
      checklist". None of the guard had run inside Claude Code when it was written, and the
      steps turn "documented" into "seen". Record what was seen in that file's "What is tested,
@@ -163,9 +166,9 @@ what; this plan says what is to be built.
      stage B and its rules for the one write to `config.json`, and it can start beside the
      theme's build. Then a second Architect's review, the user's answers, and the build
      (`T006`).
-   - Two decisions in it are the user's ("Questions waiting for the user" below): how a
-     portrait or landscape setting combines with today's rule that the page follows the shape
-     of its window (§11), and whether light / dark / system is wanted.
+   - The user's two decisions in it are in (§15, 2026-11-28 about 12:05 PM): orientation is
+     "Follow the window" (default), "Landscape" or "Portrait"; and **Light / Dark / System is
+     in the first version**, so the design carries a light look too.
 6. **The rest of stage 4** (§12 stage 4 with §6, §8, §11 and §15; [`CLAUDE.md`](CLAUDE.md),
    "Stage 4: the window").
    - **A review of the first slice** (`T019`), best before more is built on it.
@@ -257,8 +260,8 @@ Architect who wrote this section: it is reasoning, not a decision **[verify]**.
 | 3 | Should js1 56 (shields to max, a hold) move to the left wing with the other power-assignment buttons? Asked on 2026-11-28, not answered. | None recorded. The left wing is full (49 to 51 the three increases, 52 the reset), so 56 would trade places with one of them, most likely the reset (the layout: root `CLAUDE.md` §6 item 29). | Staying: the hold sits under the three power toggles on the right wing. | Nothing. A yes is a binding change like root §6 item 29, with the cards and the rig data. |
 | 4 | Theme: on a rig lit near a status color (green, red, orange, yellow), what is the accent? | **The rig's own hue, pale** (the designer): the page stays one color family and the accent cannot be read as a status. | The look's cyan on those rigs: emphasis as strong as on blue, but two colors where the request was for one. With the pale accent, emphasis is weaker on red, orange and yellow rigs. | Nothing for stage A, which is built to the recommendation. Show the captures with the question. |
 | 5 | Theme: is it right that the default look turns from cyan to blue? | **Yes** (the designer's decision, open to change): with the default base `0,0,255` the cyan accent the look was chosen with gives way to the rig's blue, and the ground barely changes. It is what the request asks for. | Keeping cyan by default: the page does not match the rig's lights until the user sets a base. A base with no color keeps the cyan on a gray ground. | Stage A's default. |
-| 6 | Settings: how does a portrait or landscape setting combine with the rule that the page follows the shape of its window? | **Mine:** three choices, "Follow the window" (the default, today's rule), "Landscape" and "Portrait". For the design to test with captures. | A forced layout in a window of the other shape has to scale or scroll. Once the service opens the window itself (stage 4), the same setting could also choose the window's shape on the main screen (`open --portrait` exists). | The settings design (`T005`). |
-| 7 | Settings: is a light / dark / system choice wanted? Their word was "maybe". | **Mine:** not in the first version. THEME.md keeps a light theme out of the base color on purpose ("how light each part of the page is belongs to the design"), so a light mode is a second look to design and capture, not a switch. | Yes: a design pass of its own and twice the captures and contrast checks. | The settings design (`T005`). |
+| 6 | Settings: how does a portrait or landscape setting combine with the rule that the page follows the shape of its window? | **Answered 2026-11-28, about 12:05 PM:** the three choices, "Follow the window" (default), "Landscape", "Portrait" (§15). | - | - |
+| 7 | Settings: is a light / dark / system choice wanted? Their word was "maybe". | **Answered 2026-11-28, about 12:05 PM: yes, in the first version** (against the recommendation, §15). | - | - |
 | 8 | Terminal: how far to harden the token before stage 4b is built? | None recorded yet: §8 lists (a) the token only for the window the service opens, (b) the terminal's connections only from the browser the service started, (c) the data folder's files moved or locked to the user. Read §8 whole and bring a recommendation. | §8 gives each option's cost, in rising order of effort. | Stage 4b (`T009`). |
 | 9 | Rig reference: the five layout questions put to them at about 6:40 AM on 2026-11-28 with the mockup's captures (unchanged rows gray or white, Find's text box, the feed while the reference is open, missile in the filter, unbound controls on the drawings). No answer is in the notes. | The designer's five recommendations (`data/design/rig/NOTES.md`, "For the user to decide"). The built section follows them except in two places its builder chose otherwise (`data/handoff/session4/views-rig/NOTES.md`, "Decisions to confirm"). | - | The rig reference's design pass (`T013`). |
 | 10 | Shield faces: which seat were they in when the faces worked in the Corsair? Asked, not answered; the docs assume the pilot seat. | - | - | Nothing. |
@@ -2198,10 +2201,13 @@ stands", queue item 5):
 | --- | --- | --- |
 | Settings on the page | **A pop-up behind a small gear icon:** "id like a small gear icon for a settings pop up modal and the settings i think we can put there that i can configure from the UI is putting in the 0,0,255 color code 'base' for example for the theme to use (while keeping our existing alert colors the same across the themes) and also a setting for portrait or landscape mode and maybe even a light/dark/system mode as well". | Settings only in `config.json`, which is all the page has today. |
 
-Two questions on it are still to be put to the user, with the design's captures: how a
-portrait or landscape setting combines with the decision of 2026-11-27 that the page picks its
-layout by the shape of its window (§11), and whether a light / dark / system choice is wanted
-(their "maybe").
+**Decided by the user on 2026-11-28, at about 12:05 PM**, before the design (asked by SCBOT-1,
+recommendation first):
+
+| Decision | Their answer | What was turned down |
+| --- | --- | --- |
+| How does a portrait or landscape setting combine with the rule of 2026-11-27 that the page picks its layout by the shape of its window (§11)? | **Three choices: "Follow the window" (the default, today's rule), "Landscape" and "Portrait"** (the recommendation). A forced layout in a window of the other shape scales or scrolls; the design says which. | Only Landscape / Portrait, with no automatic choice; no orientation setting at all. |
+| Is a light / dark / system choice wanted? | **Yes, in the first version.** | Dark only for now, a light look later as a design pass of its own (the recommendation). So the settings design (`T005`) carries a light look on the base color's derivation, with its own contrast checks and captures. |
 
 **Asked for by the user on 2026-11-28, at about 10:40 AM** (designed the same day; not built):
 
