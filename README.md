@@ -19,7 +19,8 @@ in-game.
 
 **Folder docs** — each subfolder has its own README with the detail for what lives there:
 [`diagrams/`](diagrams/README.md) · [`cards/`](cards/README.md) ·
-[`reference/`](reference/README.md) · [`tools/`](tools/README.md).
+[`reference/`](reference/README.md) · [`tools/`](tools/README.md) ·
+[`prompts/`](prompts/README.md).
 
 ---
 

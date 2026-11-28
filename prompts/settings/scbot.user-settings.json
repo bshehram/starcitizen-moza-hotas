@@ -1,0 +1,8 @@
+{
+  "_about": "Proposed user settings: no automatic compaction in any project. Inert here. `python tools/scbot.py install --scope user` merges this into ~/.claude/settings.json. See prompts/SCBOT-README.md.",
+  "autoCompactEnabled": false,
+  "idleCompaction": false,
+  "env": {
+    "DISABLE_AUTO_COMPACT": "1"
+  }
+}

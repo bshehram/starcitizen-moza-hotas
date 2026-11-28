@@ -12,6 +12,7 @@ This document explains, in detail, **what every bound control does**, **how the 
 - **Card generator:** [`tools/regen_cards.py`](tools/regen_cards.py) - rebuilds both cards from the manufacturer diagrams + the binding tables embedded in it. Re-run after any binding change.
 - **All tooling is Python 3** and runs on Windows, macOS or Linux; one-time setup is `python -m pip install -r tools/requirements.txt`. The tools were PowerShell until 2026-11-23. Only the game-data tools (`gamedata.py`, `validate_actionmaps.py`) need the game installed (§10); the cards and the XML can be worked on from any machine.
 - **Session brief:** [`SCBOT.md`](SCBOT.md) - the user's standing brief for starting a new Claude session here (they type `@SCBOT.md`). It covers how to ramp up, their working preferences, what needs approval, and the recurring asks, including the gameplay work (logs, screenshots, mining and crafting plans, the game plan page) that this document doesn't cover. It holds standing preferences and routines only; current state lives in memory and on the game plan page.
+- **Crew prompts:** [`prompts/`](prompts/CLAUDE.md) - the two role prompts a session's sub-agents run on ([`SCBOT-ARCHITECT.md`](prompts/SCBOT-ARCHITECT.md), Fable 5.2; [`SCBOT-WORKER.md`](prompts/SCBOT-WORKER.md), Opus 5.5), the sources of their sub-agent definitions and of the Claude Code settings behind the context limits, and the user's own guide to the setup. [`tools/scbot.py`](tools/scbot.py) is the guard the hooks run, the work queue and the installer; nothing is live until it is installed.
 
 > Every action name, actionmap and in-game label below was re-checked against the game's own `defaultProfile.xml` / `global.ini` for build `4.10.201.48085` (2026-11-20); the "what it does" text is from earlier starbinder-era descriptions plus community references. Where the inline comments in `MOZA.xml` are imprecise or wrong, this file says so in a **⚠ Note**.
 
@@ -29,6 +30,8 @@ mappings/
 ├─ .gitignore
 ├─ dashboard/                ← side-screen dashboard, being built in stages (the plan and its status are in PLAN.md)
 │   └─ PLAN.md (starts with where the build stands) · README.md · CLAUDE.md · scdash.py (`timeline`, `run`, `start`, `stop`, `status`, `replay`) · scdash/ · web/ · design/ · reference/ · tests/
+├─ prompts/                  ← the crew's role prompts, and the sources of what `tools/scbot.py install` puts under .claude/
+│   └─ SCBOT-ARCHITECT.md · SCBOT-WORKER.md · SCBOT-README.md · agents/ · settings/ · README.md · CLAUDE.md
 ├─ diagrams/                 ← manufacturer button-number maps (source art - do not delete)
 │   └─ MOZA_AB6.png · MOZA_MHG.png · MOZA_MTQ.png · README.md · CLAUDE.md
 ├─ cards/                    ← generated button-reference cheat sheets (PNG + editable SVG)
@@ -36,15 +39,17 @@ mappings/
 ├─ reference/                ← bulk reference material
 │   └─ SC_KEYBINDS_DATABASE_v4.10.md · MOZA_BINDINGS.html · README.md · CLAUDE.md
 └─ tools/                    ← regeneration + validation scripts (run from the project root)
-    └─ gamedata.py · validate_actionmaps.py · regen_cards.py · requirements.txt · README.md · CLAUDE.md
+    └─ gamedata.py · validate_actionmaps.py · regen_cards.py · scbot.py · test_scbot.py · requirements.txt · README.md · CLAUDE.md
 ```
 
 > **Docs convention.** Every folder has a `README.md` (human-facing) and a `CLAUDE.md` (working
 > notes for whoever Claude is editing that folder). The rule for both: **`README.md` files link
 > only to other `README.md` files** (so the human docs stay self-contained and never send a
 > reader into a Claude doc), while **`CLAUDE.md` files may link to each other and to README
-> files.** Keep that rule when editing either. The root `SCBOT.md` counts as a Claude doc:
-> it may link to `CLAUDE.md`, and README files mention it without linking to it.
+> files.** Keep that rule when editing either. The root `SCBOT.md` and the two
+> role prompts in `prompts/` (`SCBOT-ARCHITECT.md`, `SCBOT-WORKER.md`) count as Claude docs:
+> they may link to `CLAUDE.md`, and README files mention them without linking to them.
+> `prompts/SCBOT-README.md` is a human doc and follows the README rule.
 
 ---
 

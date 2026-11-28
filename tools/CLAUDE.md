@@ -95,6 +95,14 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     the tables; `--check` says whether they are current. No unit test catches a stale hash there.
   - The rounding helpers (`rnd`, `r1`) round half-to-even on purpose, to reproduce the original
     geometry exactly. Read [`../CLAUDE.md` §8.4](../CLAUDE.md) before changing the render code.
+- **`scbot.py` is the SCBOT crew guard** ([`../prompts/CLAUDE.md`](../prompts/CLAUDE.md)):
+  the script Claude Code's hooks run (`hook`), the work queue (`queue`), and `install` /
+  `uninstall` / `check` / `status` / `meter` / `crew` / `close`. Standard library only.
+  The hooks call an installed copy under `.claude/scbot/bin/`, so after any edit run
+  `python tools/test_scbot.py` and then `python tools/scbot.py install --scope project`
+  (a Claude Code settings change: the user's OK first). It must keep two properties: it
+  fails open, and it only ever refuses a new tool call, never ends an agent.
+  `test_scbot.py` runs entirely in temporary folders.
 
 ## Where the detail lives
 

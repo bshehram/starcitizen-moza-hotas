@@ -1,0 +1,159 @@
+{
+  "_about": "Proposed project settings for the SCBOT crew guard. Inert here: Claude Code reads settings only from .claude/. `python tools/scbot.py install` merges this into .claude/settings.json and writes each hook's command itself: the absolute path of the Python that ran install, and a launcher (-I -S -c, marked scbot-guard-hook) that runs the installed copy at the absolute path of .claude/scbot/bin/scbot.py and cannot exit with code 2, so a missing script blocks nothing. See prompts/SCBOT-README.md.",
+  "autoCompactEnabled": false,
+  "idleCompaction": false,
+  "env": {
+    "DISABLE_AUTO_COMPACT": "1",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "6",
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<written by install: the absolute path of its Python>",
+            "args": [
+              "-I",
+              "-S",
+              "-c",
+              "<written by install: the launcher>",
+              "<written by install: the absolute path of .claude/scbot/bin/scbot.py>"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
