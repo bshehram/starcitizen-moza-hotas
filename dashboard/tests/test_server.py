@@ -851,6 +851,8 @@ class Stream:
                         self.events.append((time.monotonic(), "comment", text))
                     elif text.startswith("retry:"):
                         self.events.append((time.monotonic(), "retry", text))
+                    elif text.startswith("event: keepalive\n"):
+                        self.events.append((time.monotonic(), "keepalive", text))
                     else:
                         data = [ln[6:] for ln in text.split("\n") if ln.startswith("data: ")]
                         self.events.append((time.monotonic(), "data", data[0] if data else ""))
@@ -914,10 +916,47 @@ class EventStream(ServerCase):
         finally:
             c.close()
 
-    def test_keepalive_comment(self):
+    def test_keepalive_is_an_event_the_page_can_see(self):
+        """A comment line never reaches a page's script, so a service that hung with the stream
+        open looked live forever (page review, finding 5). The keepalive is an event named
+        `keepalive` whose data is the interval in seconds: sent after `retry:` on connecting, then
+        after each `keepalive` seconds with nothing written, and no more often than that."""
+        self.hub.publish('{"n":0}')
         c = Stream(self.port)
         try:
-            self.assertTrue(h.wait_until(lambda: any(e[1] == "comment" for e in c.events), 3))
+            self.assertTrue(h.wait_until(lambda: len(c.events) >= 3, 3))
+            self.assertEqual([e[1] for e in c.events[:3]], ["retry", "keepalive", "data"],
+                             "retry, the interval, then the current state at once")
+            self.assertEqual(c.events[1][2], "event: keepalive\ndata: 0.4")
+            t0 = time.monotonic()
+            time.sleep(2.2)                        # nothing published: keepalives only
+            seen = [e for e in c.events if e[0] > t0]
+            alive = [e for e in seen if e[1] == "keepalive"]
+            self.assertEqual({e[2] for e in alive}, {"event: keepalive\ndata: 0.4"})
+            self.assertEqual([e for e in seen if e[1] != "keepalive"], [], "nothing else while idle")
+            self.assertGreaterEqual(len(alive), 3, "one about every 0.4 s")
+            gaps = [b[0] - a[0] for a, b in zip(alive, alive[1:])]
+            self.assertGreaterEqual(min(gaps), 0.3, "never more often than the interval")
+            self.assertEqual([e for e in c.events if e[1] == "comment"], [], "no comment lines any more")
+            self.assertEqual(c.data(), ['{"n":0}'], "a keepalive is not a state")
+        finally:
+            c.close()
+
+    def test_a_state_resets_the_keepalive_clock(self):
+        """A keepalive comes only after a whole interval with nothing written: a state counts as
+        something written, so the keepalive adds no write (and no wake-up) of its own."""
+        c = Stream(self.port)
+        try:
+            self.assertTrue(h.wait_until(lambda: any(e[1] == "keepalive" for e in c.events), 3))
+            for i in range(10):                    # states 0.25 s apart, then quiet
+                self.hub.publish('{"n":%d}' % i)
+                time.sleep(0.25)
+            time.sleep(1.0)
+            ev = c.events[1:]
+            self.assertGreaterEqual(len([e for e in ev if e[1] == "data"]), 4)
+            for prev, e in zip(ev, ev[1:]):
+                if e[1] == "keepalive":
+                    self.assertGreaterEqual(e[0] - prev[0], 0.3, "a keepalive %.2f s after a %s" % (e[0] - prev[0], prev[1]))
         finally:
             c.close()
 

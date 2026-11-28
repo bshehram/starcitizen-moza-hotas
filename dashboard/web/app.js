@@ -6,7 +6,9 @@
 
    - One event stream (/api/stream). The browser reconnects by itself after a network error,
      using the server's `retry:` value; after an HTTP error (the page cap, a restart) it gives up,
-     so this script opens a new one a few seconds later.
+     so this script opens a new one a few seconds later. A stream that stays open but brings
+     neither a state nor the service's keepalive event for over two keepalive intervals counts as
+     lost too (a hung service): the banner goes up and the page connects again.
    - One one-second timer for every clock, countdown and count-up. Each tick computes the time
      from the system clock (and, in a replay, from the replay clock's anchor), so a page that was
      paused is right again at once. It writes only the texts that changed.
@@ -38,6 +40,9 @@
   const REQUEST_SECONDS = 8;           // a change with no answer by then is given up and said so
   const CHANGE_HOLD_MS = 2500;         // the controls wait at most this long for the message that shows a change
   const MOVED_MS = 450;                // a click this soon after the list under it was redrawn is not taken
+  const QUIET_INTERVALS = 2;           // no state and no keepalive for this many keepalive intervals...
+  const QUIET_EXTRA_MS = 3000;         // ...plus this: the service counts as gone (a hung one included)
+  const FAR_TIMER_HOURS = 3;           // Now: a countdown further out than this is drawn small, the next step leads
   // Every view the service can send, its label and icon. The picker lists all but "reference",
   // which has a switcher cell of its own. A renderer for each is in RENDERERS below.
   const VIEW_LIST = [
@@ -78,6 +83,9 @@
   let lastMessageAt = null;           // Date.now() of the last message
   let lostAt = Date.now();            // when the stream was lost (now: not connected yet)
   let reconnectTimer = null;
+  let heardAt = null;                 // Date.now() of the last state or keepalive (or of connecting)
+  let quietMs = 15000 * QUIET_INTERVALS + QUIET_EXTRA_MS;   // until the first keepalive gives the interval
+  let lastTickAt = Date.now();
   // Which instance served this page (pid/start, from the HTML): compared from the first message on.
   const servedBy = document.querySelector('meta[name="scdash-instance"]').getAttribute("content");
   let serviceId = /^\d+\//.test(servedBy) ? servedBy : null;
@@ -199,7 +207,20 @@
     for (const list of [lives.strip, lives.alerts, lives.panel]) for (const f of list) guarded("tick", () => f(now));
     for (const blk of host.blocks.values()) for (const f of blk.live) guarded("tick", () => f(now));
     if (toastUntil && Date.now() > toastUntil) hideToast();
-    if (lostAt !== null && Date.now() - lostAt > 2000) showOffline(true);
+    const wall = Date.now();
+    const slept = wall - lastTickAt > 5000;   // a frozen or throttled tab: let the stream catch up first
+    lastTickAt = wall;
+    if (!slept && heardAt !== null && wall - heardAt > quietMs) quiet();
+    if (lostAt !== null && wall - lostAt > 2000) showOffline(true);
+  }
+  /* Neither a state nor a keepalive for over two keepalive intervals, with the stream still open:
+     the service is hung, or the connection died without an error. Say so at once and connect
+     again; the next state or keepalive takes the banner down. */
+  function quiet() {
+    if (lostAt === null) lostAt = heardAt;
+    heardAt = null;
+    if (source) source.close();
+    if (reconnectTimer === null) reconnectTimer = setTimeout(connect, 5000);
   }
   /* A part that throws is noted once in the console (per part and message) and the rest go on. */
   const noted = new Set();
@@ -228,13 +249,21 @@
     reconnectTimer = null;
     if (source) source.close();
     source = new EventSource("/api/stream");
+    heardAt = Date.now();               // the quiet clock starts with the connection
     source.addEventListener("state", (e) => {
       let p;
       try { p = JSON.parse(e.data); } catch (err) { return; }
-      lastMessageAt = Date.now();
+      lastMessageAt = heardAt = Date.now();
       lostAt = null;
       showOffline(false);
       render(p);
+    });
+    // The service's keepalive (data: its interval in seconds): proof of life, nothing to draw.
+    source.addEventListener("keepalive", (e) => {
+      const every = parseFloat(e.data);
+      if (num(every) && every >= 0.1 && every <= 600) quietMs = Math.round(every * QUIET_INTERVALS * 1000) + QUIET_EXTRA_MS;
+      heardAt = Date.now();
+      if (lostAt !== null) { lostAt = null; showOffline(false); }
     });
     source.onerror = () => {
       if (lostAt === null) lostAt = Date.now();
@@ -503,20 +532,27 @@
     const cuts = Array.from(ui.host.querySelectorAll("[data-cut]"));
     for (const n of cuts) n.classList.remove("is-cut");
     ui.view.classList.remove("is-over");
-    if (host.name === "reference" || !overflows()) return;   // the reference scrolls its own rows
-    cuts.sort((a, b) => (+b.dataset.cut - +a.dataset.cut) ||
-                        (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1));
-    const dropped = [];
-    for (const n of cuts) {
-      n.classList.add("is-cut");
-      dropped.push(n);
-      if (!overflows()) break;
+    if (host.name !== "reference" && overflows()) {            // the reference scrolls its own rows
+      cuts.sort((a, b) => (+b.dataset.cut - +a.dataset.cut) ||
+                          (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1));
+      const dropped = [];
+      for (const n of cuts) {
+        n.classList.add("is-cut");
+        dropped.push(n);
+        if (!overflows()) break;
+      }
+      for (let i = dropped.length - 2; i >= 0; i--) {
+        dropped[i].classList.remove("is-cut");
+        if (overflows()) dropped[i].classList.add("is-cut");
+      }
+      ui.view.classList.toggle("is-over", overflows());
     }
-    for (let i = dropped.length - 2; i >= 0; i--) {
-      dropped[i].classList.remove("is-cut");
-      if (overflows()) dropped[i].classList.add("is-cut");
+    // A key explains marks on screen: the controls' "not yet confirmed" shows only while a row
+    // that carries the ring is still drawn (the cuts above can drop every one of them).
+    for (const k of ui.host.querySelectorAll(".ctl__key")) {
+      const pane = k.closest(".ctl");
+      show(k, !!(pane && pane.querySelector(".ctl--unv:not(.is-cut)")));
     }
-    ui.view.classList.toggle("is-over", overflows());
   }
   /* A row of large figures (the Mining view's scan readings) shares one size: the stylesheet's,
      or less when one of them is wider than its column, never under 18 px. */
@@ -537,13 +573,12 @@
     return v.scrollHeight > v.clientHeight + 1 || v.scrollWidth > v.clientWidth + 1;
   }
   let fitQueued = false;
-  if (window.ResizeObserver) {
-    new ResizeObserver(() => {
-      if (fitQueued) return;
-      fitQueued = true;
-      requestAnimationFrame(() => { fitQueued = false; fit(); });
-    }).observe(ui.view);
+  function queueFit() {                // a fit at the next frame, once however often it is asked for
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; fit(); });
   }
+  if (window.ResizeObserver) new ResizeObserver(queueFit).observe(ui.view);
 
   // ---------------------------------------------------------------- shared pieces
 
@@ -743,6 +778,17 @@
                           cap(tm.kind === "refinery" ? "Refinery" : tm.source === "quick" ? "Timer" : "Timer"),
                           timerFig(tm, "count__fig", live), timerMeter(tm, live),
                           h("p", "count__sub", t("b", "", (tm.where || tm.where_short || tm.label), 1), t("span", "", tm.label + " · " + tm.text, 2))));
+        // A countdown many hours out is nothing to act on yet: it steps back and the next step
+        // (or the place) leads, until it comes within FAR_TIMER_HOURS (then the view refits once).
+        if (tm.state === "running" && num(tm.ready_ms)) {
+          const isFar = (now) => tm.ready_ms - now > FAR_TIMER_HOURS * 3600000;
+          let far = isFar(nowMs());
+          row.classList.toggle("now__top--far", far);
+          live.push((now) => {
+            const f = isFar(now);
+            if (f !== far) { far = f; row.classList.toggle("now__top--far", f); queueFit(); }
+          });
+        }
       }
       return row;
     }));
@@ -943,10 +989,15 @@
       }
       return out;
     }
+    // With a contract its objective leads (the largest type on the view), and the session's tally
+    // follows it in smaller figures; without one the tally is the view's hero.
+    const lead = !!m.contract;
+    const tallyAt = out.length;
     if (m.tally || m.ship) {
-      out.push(B("hero", "act__hero figs tally frame", { ship: m.ship, tally: m.tally, downed: m.downed }, (d) => {
+      out.push(B("hero", "act__hero figs tally frame" + (lead ? " tally--minor" : ""), { ship: m.ship, tally: m.tally, downed: m.downed }, (d) => {
         const n = h("div", "");
         if (d.downed) cut(n, 3);           // downed: the contract matters more than the tally
+        else if (lead) cut(n, 4);          // under a contract: a crowded view drops the tally before the controls
         const tl = d.tally || {};
         if (d.ship && !d.downed) {
           n.appendChild(h("div", "fig fig--ship", cap("Ship"), t("p", "fig__name", d.ship.name, 2), d.ship.note ? t("p", "fig__sub", d.ship.note, 2) : null));
@@ -962,16 +1013,21 @@
       }));
     }
     // "Downed" and "Dead" are the red alert's already
-    if (m.health && !(m.downed && /^(Downed|Dead)$/.test(m.health))) out.push(B("health", "act__next act__next--warn", m.health, (d) => h("p", "", icon("warn"), h("span", "cap", "Health"), t("span", "", d, 2))));
+    if (m.health && !(m.downed && /^(Downed|Dead)$/.test(m.health))) {
+      out.splice(tallyAt, 0, B("health", "act__next act__next--warn", m.health, (d) => h("p", "", icon("warn"), h("span", "cap", "Health"), t("span", "", d, 2))));
+    }
     const lp = m.law && (m.law.jurisdiction || (m.law.marks || []).length);
+    const mainAt = out.length - (m.tally || m.ship ? 1 : 0);   // just before the tally
     if (m.contract || lp) {
-      out.push(B("main", "act__main", { contract: m.contract, law: m.law }, (d) => {
+      const main = B("main", "act__main" + (lead ? " combat__lead" : ""), { contract: m.contract, law: m.law }, (d) => {
         const row = h("div", "");
         if (d.contract) row.appendChild(contractCard(d.contract, "normal"));
         const law = lawPane(d.law);
         if (law) row.appendChild(cut(h("div", "act__ref frame", law), 4));
-        return cut(row, 2);
-      }));
+        return lead ? row : cut(row, 2);
+      });
+      if (lead) out.splice(mainAt, 0, main);
+      else out.push(main);
     }
     if (m.controls && !m.downed) out.push(controlsBlock(m.controls, 3));
     return out;
@@ -979,7 +1035,18 @@
 
   function vCargo(m, b) {
     const out = [headBlock("cargo", m.head, b)];
-    if (m.this_stop || m.contract_total || m.grid) {
+    // No stop under way: the next step leads (the model's `next` when it has one, else the trade's
+    // sentences), and the grid's size is a plain figure beside it, not the hero.
+    const tr = m.trade || {};
+    const lead = m.this_stop ? null : (m.next || tr.sell || tr.bought || null);
+    if (!m.this_stop && (lead || m.grid || m.contract_total)) {
+      out.push(B("lead", "act__hero cargo__lead frame", { lead: lead, total: m.contract_total, grid: m.grid }, (d) => h("div", "",
+        h("div", "cargo__next", cap(d.lead ? "Next step" : "No stop under way"),
+          d.lead ? t("p", "next", d.lead, 3) : h("p", "cargo__none", "No pickup or drop-off is under way.")),
+        d.total || d.grid ? h("div", "figs cargo__figs",
+          d.total ? fig("Contract", d.total.big, d.total.unit, d.total.sub) : null,
+          d.grid ? fig(d.grid.title || "Cargo grid", d.grid.big, d.grid.unit, d.grid.sub) : null) : null)));
+    } else if (m.this_stop) {
       out.push(B("hero", "act__hero figs frame", { stop: m.this_stop, total: m.contract_total, grid: m.grid }, (d) => {
         const n = h("div", "");
         if (d.stop) {
@@ -997,21 +1064,20 @@
         h("span", "keys", d.map((k) => h("span", "key", t("kbd", "", k.where), t("span", "", k.what))))), 4)));
     }
     if (m.contract || m.trade || m.earned) {
-      out.push(B("main", "act__main", { contract: m.contract, stops: m.stops || [], trade: m.trade, earned: m.earned }, (d) => {
+      out.push(B("main", "act__main", { contract: m.contract, stops: m.stops || [], trade: m.trade, earned: m.earned, used: lead }, (d) => {
         const row = h("div", "");
         if (d.contract) row.appendChild(contractCard(d.contract, "normal", d.stops));
-        if (d.trade || d.earned) {
+        const said = d.trade ? [d.trade.bought, d.trade.sell].filter((x) => x && x !== d.used) : [];   // the lead's sentence is not said twice
+        if (said.length || d.earned) {
           const ref = cut(h("div", "act__ref frame"), 4);
-          if (d.trade && (d.trade.bought || d.trade.sell)) {
-            ref.appendChild(h("div", "ref", cap("Trade"), d.trade.bought ? t("p", "", d.trade.bought, 3) : null, d.trade.sell ? t("p", "", d.trade.sell, 3) : null));
-          }
+          if (said.length) ref.appendChild(h("div", "ref", cap("Trade"), said.map((x) => t("p", "", x, 3))));
           if (d.earned) ref.appendChild(h("div", "earn", cap("Earned this session"), h("b", "num", d.earned.big), h("span", "earn__u", d.earned.unit || "aUEC")));
           row.appendChild(ref);
         }
         return cut(row, 2);
       }));
     }
-    if (!m.this_stop && !m.contract && !m.trade && !m.grid) {
+    if (!m.this_stop && !lead && !m.contract && !m.trade && !m.grid) {
       out.push(emptyBlock("No haul or trade under way", "The log cannot see what is aboard: stops come from a contract, trades from the plan."));
     }
     if (m.controls) {
@@ -1207,11 +1273,12 @@
   const RIG_DISC_GAP = 14;             // ...and where two round numbers keep this many px between them (the art's arrows stay in sight)
   const RIG_DISC_MIN = 30;             // px: a number the page draws is never in a smaller disc (18 px digits)
   const RIG_BOX_MIN = 28;              // px: the same for a switch position, which the art draws as a box
-  const RIG_MARKS = {                  // status -> icon, word, what it means
+  const RIG_MARKS = {                  // status -> icon, word, what it means (rig.json's own meaning replaces the third when it has one)
     flown: ["check", "Flown", "Confirmed in a ship"],
-    unverified: ["ring", "Unverified", "Bound and loaded, not yet confirmed in a ship"],
+    unverified: ["ring", "Unverified", "Bound, not yet confirmed in a ship"],
     trial: ["tri", "Trial", "The docs call this binding a trial"],
   };
+  const rigMeaning = {};               // status -> the file's meaning (`_meta.status`), its first clause
 
   const RIG_ARROW = { up: "↑", down: "↓", left: "←", right: "→" };
   const RIG_IMAGE = /^[a-z0-9_]{1,48}\.png$/;     // the names the service serves under /rig/
@@ -1279,6 +1346,14 @@
     const str = (x) => (typeof x === "string" ? x : "");
     const list = (x) => (Array.isArray(x) ? x : []);
     const mark = (s) => (RIG_MARKS[s] ? s : null);
+    // What each mark means, in the file's own words: the clause before its first ":" or ";"
+    // (the rest says where the docs record it), at most 160 characters; else the page's own.
+    const said = meta.status && typeof meta.status === "object" ? meta.status : {};
+    for (const k of Object.keys(RIG_MARKS)) {
+      const first = str(said[k]).split(/[:;]/)[0].trim();
+      if (first && first.length <= 160) rigMeaning[k] = first;
+      else delete rigMeaning[k];
+    }
     const modes = list(json.modes).map((m) => ({ id: str(m.id), name: str(m.name),
                                                  detent: m.knob && num(m.knob.detent) ? m.knob.detent : null }));
     const modeName = {};
@@ -1436,7 +1511,7 @@
     const m = RIG_MARKS[status];
     if (!m) return null;
     const s = h("span", "rmk rmk--" + status + (word ? "" : " rmk--bare"), icon(m[0]));
-    s.title = m[2] + (when ? " (" + when + ")" : "");
+    s.title = (rigMeaning[status] || m[2]) + (when ? " (" + when + ")" : "");
     if (word) s.append(m[1]);
     else s.appendChild(h("span", "sw__sr", m[1]));
     if (when && RIG_WHEN && !word && (full || /^\d{4}-\d{2}-\d{2}$/.test(when))) s.appendChild(h("span", "rmk__when num", rigWhen(when)));
@@ -1558,10 +1633,13 @@
       group("").appendChild(tab("find", "Find", "all " + M.total, lead, "find"));
       head.appendChild(tabs);
 
+      // The key and the filter travel together (`rig__tools`): beside the tabs when the row has
+      // room for all three, on a row of their own when it does not (style.css), never on top.
       const legend = h("div", "legend");
       legend.setAttribute("aria-label", "Marks");
       for (const k of Object.keys(RIG_MARKS)) legend.appendChild(rigMark(k, null, true, false));
-      head.appendChild(legend);
+      const tools = h("div", "rig__tools", legend);
+      head.appendChild(tools);
 
       const detents = (M.live[st.mode] || []).map((id) => (M.modes.find((x) => x.id === id) || {}).detent).filter(num);
       const modes = h("div", "modes", h("span", "cap modes__k", detents.length ? "Mode · knob " + rigRanges(detents) : "Mode"));
@@ -1574,7 +1652,7 @@
         mrow.appendChild(b);
       }
       modes.appendChild(mrow);
-      head.appendChild(modes);
+      tools.appendChild(modes);
     }
 
     // ---- a page: the diagram and its rows
@@ -2093,7 +2171,8 @@
   /* A private stream (a route behind the server's PRIVATE guard, such as stage 4b's terminal
      output): fetch() sends the token header and the browser's Sec-Fetch-Site, which an
      EventSource cannot. The response is close-delimited HTTP/1.0 in the event-stream format;
-     each `data:` line goes to onData(text, event). Reconnects by itself after `retryMs` (or the
+     each `data:` line goes to onData(text, event), the service's keepalives excepted.
+     Reconnects by itself after `retryMs` (or the
      server's `retry:`) until the returned function is called. */
   function openPrivateStream(path, onData, retryMs) {
     let stopped = false, controller = null, retry = retryMs || 3000;
@@ -2121,7 +2200,7 @@
                   else if (line.startsWith("event: ")) event = line.slice(7);
                   else if (line.startsWith("retry: ")) retry = parseInt(line.slice(7), 10) || retry;
                 }
-                if (data.length) onData(data.join("\n"), event);
+                if (data.length && event !== "keepalive") onData(data.join("\n"), event);
               }
             }
           }

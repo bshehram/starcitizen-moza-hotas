@@ -1,11 +1,17 @@
 """The page (stage 3) in a real browser: headless Edge, driven over the DevTools protocol, showing a
 real service instance that follows a sample log.
 
-What is checked: every view the service can send has a renderer and draws; no text on the page is
-under 18 px (computed, in every view, landscape and portrait, terminal region on and off); text
-from the log or the plan is never parsed as markup; picking a view by hand, going back to Live,
+What is checked: every view the service can send has a renderer and draws its own blocks; no text
+on the page is under 18 px (as drawn: zoom and transforms count, font-size-adjust fails), in every
+view, landscape and portrait, terminal region on and off, the toast and the offline banner too;
+text from the log or the plan is never parsed as markup, and no markup writer is called by any
+name nor anything outside the origin requested (a guard installed before the page's script);
+every countdown moves with the one-second tick; picking a view by hand, going back to Live,
 adding and removing a quick timer work with real pointer events; a refused change is shown, not
-swallowed.
+swallowed; Combat's objective outranks its tally and its controls' key shows only with a marked
+row on screen; Now's countdown many hours out steps back for the next step; a quiet service
+(keepalives only) stays live, a hung one (nothing at all on an open stream) raises the banner
+and is connected to again, a crashed one raises it and a restarted one reloads the page.
 
 The instance is the real service (`scdash.py run --background`) with a temporary data folder, a
 free port, a stand-in game process (test_service_helpers.FakeGame) and a sample log whose times
@@ -215,7 +221,9 @@ class Edge:
         self.port = int(port)
         self.browser = Target("ws://127.0.0.1:%d%s" % (self.port, path.strip()))
 
-    def new_page(self, url):
+    def new_page(self, url, before=()):
+        """A page at `url`; each script in `before` runs in it ahead of the page's own, on every
+        load (so a reload keeps it)."""
         r = self.browser.call("Target.createTarget", {"url": "about:blank"})
         tid = r["targetId"]
         for _ in range(100):
@@ -225,6 +233,8 @@ class Edge:
                     page.call("Page.enable")
                     page.call("Runtime.enable")
                     page.size(1920, 1080)
+                    for src in before:
+                        page.call("Page.addScriptToEvaluateOnNewDocument", {"source": src})
                     page.call("Page.navigate", {"url": url})
                     return page
             time.sleep(0.05)
@@ -343,7 +353,7 @@ class Scene:
     now, with a plan and settings of its own and a stand-in game process. Stopped through its
     shutdown endpoint; its folder removed."""
 
-    def __init__(self, sample, until=None, plan=None, terminal=False, append=b"", lead=20.0, game=True):
+    def __init__(self, sample, until=None, plan=None, terminal=False, append=b"", lead=20.0, game=True, settings=None):
         self.with_game = game
         self.inst = H.Instance()
         self.inst.data.mkdir(parents=True)
@@ -352,7 +362,8 @@ class Scene:
         self.inst.write_log(log)
         if plan is not None:
             (self.inst.data / "plan.json").write_text(json.dumps(shift_plan(plan, self.delta)), encoding="utf-8")
-        (self.inst.data / "config.json").write_text(json.dumps({"terminal": {"enabled": bool(terminal)}}), encoding="utf-8")
+        conf = dict(settings or {}, terminal={"enabled": bool(terminal)})
+        (self.inst.data / "config.json").write_text(json.dumps(conf), encoding="utf-8")
         self.game = H.FakeGame(self.inst.dir)
 
     def start(self):
@@ -382,31 +393,119 @@ class Scene:
 
 # The script run in the page to find text under the floor: every element that holds text of its
 # own (and every ::before / ::after with content), drawn on the page, outside the terminal region
-# (whose type is sized for the keyboard, PLAN §11).
+# (whose type is sized for the keyboard, PLAN §11). The size is the one drawn: the computed size
+# times what `zoom` and `transform` do to the element (its drawn box over its layout box, on the
+# longer side, which the rounding of offsetWidth/offsetHeight moves least), and any
+# `font-size-adjust` is a failure of its own (the page review: all three slipped past).
 SMALL_TYPE = r"""
 (() => {
   const out = [];
   const floor = %d;
+  const drawn = (el) => {
+    const r = el.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    let k = w >= h ? (w > 0 ? r.width / w : 1) : (h > 0 ? r.height / h : 1);
+    if (!(w > 0 || h > 0)) k = el.currentCSSZoom || 1;
+    return Math.abs(k - 1) < 0.02 ? 1 : k;
+  };
   for (const el of document.querySelectorAll("body *")) {
     if (el.closest("svg") || el.closest(".term")) continue;
     if (!el.getClientRects().length) continue;
     const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim());
+    const cs = getComputedStyle(el);
+    const what = el.tagName + "." + el.className;
     if (own) {
-      const fs = parseFloat(getComputedStyle(el).fontSize);
-      if (fs < floor) out.push(fs + "px " + el.tagName + "." + el.className + ": " + el.textContent.trim().slice(0, 40));
+      const fs = parseFloat(cs.fontSize) * drawn(el);
+      if (fs < floor - 0.01) out.push(Math.round(fs * 10) / 10 + "px " + what + ": " + el.textContent.trim().slice(0, 40));
+      if (cs.fontSizeAdjust && cs.fontSizeAdjust !== "none") out.push("font-size-adjust " + cs.fontSizeAdjust + " " + what);
     }
     for (const pse of ["::before", "::after"]) {
       const ps = getComputedStyle(el, pse);
       const c = ps.content;
       if (c && c !== "none" && c !== "normal" && c !== '""' && ps.display !== "none") {
-        const fs = parseFloat(ps.fontSize);
-        if (fs < floor) out.push(fs + "px " + el.tagName + "." + el.className + pse + " " + c);
+        const fs = parseFloat(ps.fontSize) * drawn(el);
+        if (fs < floor - 0.01) out.push(Math.round(fs * 10) / 10 + "px " + what + pse + " " + c);
       }
     }
   }
   return out;
 })()
 """ % FLOOR_PX
+
+# Installed before the page's own script: every way of writing markup is recorded when it is used
+# (however its name was spelled), and so is every request the content policy refused (an outside
+# address, an IP or another port of localhost included). The page must leave both lists empty.
+GUARD = r"""
+(() => {
+  const g = window.__guard = { markup: [], csp: [] };
+  const wrap = (proto, name) => {
+    const d = proto && Object.getOwnPropertyDescriptor(proto, name);
+    if (!d) return;
+    if (d.set) Object.defineProperty(proto, name, Object.assign({}, d, { set(v) { g.markup.push(name); return d.set.call(this, v); } }));
+    else if (typeof d.value === "function") { const f = d.value; proto[name] = function (...a) { g.markup.push(name); return f.apply(this, a); }; }
+  };
+  for (const n of ["innerHTML", "outerHTML", "insertAdjacentHTML", "setHTMLUnsafe", "setHTML"]) wrap(Element.prototype, n);
+  for (const n of ["innerHTML", "setHTMLUnsafe"]) wrap(window.ShadowRoot && ShadowRoot.prototype, n);
+  for (const n of ["write", "writeln"]) wrap(Document.prototype, n);
+  wrap(Range.prototype, "createContextualFragment");
+  wrap(DOMParser.prototype, "parseFromString");
+  wrap(window.HTMLIFrameElement && HTMLIFrameElement.prototype, "srcdoc");
+  if (Document.parseHTMLUnsafe) { const f = Document.parseHTMLUnsafe; Document.parseHTMLUnsafe = function (...a) { g.markup.push("parseHTMLUnsafe"); return f.apply(this, a); }; }
+  document.addEventListener("securitypolicyviolation", (e) => g.csp.push(e.violatedDirective + " " + e.blockedURI), true);
+})();
+"""
+
+# For the liveness checks: the page's EventSource, with a switch that drops what arrives on it
+# while the stream stays open ("state": the states only; "all": the keepalives too), and a count
+# of the streams the page opened.
+HUSH = r"""
+(() => {
+  const Real = window.EventSource;
+  const g = window.__es = { hush: null, opened: 0 };
+  const W = function (url) {
+    const es = new Real(url);
+    g.opened++;
+    const add = es.addEventListener.bind(es);
+    es.addEventListener = (type, fn, opt) => add(type, (e) => {
+      if (g.hush === "all" || (g.hush === "state" && type === "state")) return;
+      fn(e);
+    }, opt);
+    return es;
+  };
+  W.CLOSED = Real.CLOSED; W.OPEN = Real.OPEN; W.CONNECTING = Real.CONNECTING;
+  window.EventSource = W;
+})();
+"""
+
+# The text drawn largest in the view: its size and its element's classes.
+LARGEST = r"""
+(() => {
+  let best = null;
+  for (const el of document.querySelectorAll("#view-host *")) {
+    if (el.closest("svg") || !el.getClientRects().length || el.closest(".is-cut")) continue;
+    if (!Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+    const fs = parseFloat(getComputedStyle(el).fontSize);
+    if (!best || fs > best.fs + 0.5) best = { fs: fs, el: el };
+  }
+  if (!best) return { fs: 0, in: "" };
+  let n = best.el;
+  while (n && n.parentElement && n.parentElement.id !== "view-host" && !/^(obj |now__next|cargo__next|next)/.test(n.className)) n = n.parentElement;
+  return { fs: best.fs, in: String(n.className), text: best.el.textContent.trim().slice(0, 30) };
+})()
+"""
+
+# Each controls pane: is its key ("not yet confirmed") shown, and how many marked rows are drawn.
+CTL_KEYS = r"""
+Array.from(document.querySelectorAll("#view-host .ctl")).filter((c) => c.getClientRects().length).map((c) => {
+  const k = c.querySelector(".ctl__key");
+  return [!!(k && k.getClientRects().length), Array.from(c.querySelectorAll(".ctl--unv")).filter((r) => r.getClientRects().length).length];
+})
+"""
+
+# The countdowns drawn in the view (h:mm:ss), by position.
+COUNTDOWNS = r"""
+Array.from(document.querySelectorAll("#view-host *")).filter((n) => n.children.length === 0 && /^\d+:\d\d:\d\d$/.test(n.textContent.trim()))
+  .map((n) => n.className + "=" + n.textContent.trim())
+"""
 
 
 def view_names():
@@ -429,7 +528,7 @@ class PageInTheBrowser(unittest.TestCase):
         cls.edge = None
         try:
             cls.edge = Edge(find_edge())
-            cls.page = cls.edge.new_page(cls.scene.url)
+            cls.page = cls.edge.new_page(cls.scene.url, before=(GUARD,))
             ok = cls.page.wait("document.getElementById('view-host') && !document.getElementById('view-wait')", 20)
             if not ok:
                 raise AssertionError("the page drew nothing")
@@ -500,6 +599,46 @@ class PageInTheBrowser(unittest.TestCase):
         self.assertNotEqual(self.page.js("document.title"), "pwned")
         self.assertTrue(self.page.js("document.getElementById('view-host').textContent.includes('<img src=x id=pwn')"))
 
+    def test_no_view_writes_markup_or_reaches_another_origin(self):
+        """Every view drawn in two shapes with the guard installed before the page's own script:
+        no markup writer was called by any name, and the content policy refused nothing."""
+        for name in view_names():
+            self.pick(name)
+            for w, h in TARGETS:
+                self.page.size(w, h)
+            time.sleep(0.2)
+        self.assertEqual(self.page.js("window.__guard"), {"markup": [], "csp": []})
+
+    def test_each_view_draws_its_own_model(self):
+        """Each view picked shows its own pieces, not the empty frame and not another view's."""
+        own = {"now": ".now__top", "travel": ".dest", "mining": ".ores, .empty", "salvage": ".act__head",
+               "combat": ".act__head", "cargo": ".act__head", "mission": ".act__head", "refinery": ".refhero",
+               "selling": ".act__head", "preflight": ".fail__head", "idle": ".idle__hello", "reference": ".rig"}
+        for name in view_names():
+            self.pick(name)
+            self.assertTrue(self.page.wait("!!document.querySelector('#view-host > %s')" % own[name].replace(", ", ", #view-host > "), 5),
+                            "%s does not draw its own blocks" % name)
+            self.assertFalse(self.page.js("Array.from(document.querySelectorAll('#view-host .empty__t, #view-host .vfail__t'))"
+                                          ".some((n) => /could not be|Nothing to show here yet/.test(n.textContent))"),
+                             "%s drew the empty frame" % name)
+            kind = self.page.js("(document.querySelector('#view-host .act__kind') || {}).textContent || null")
+            if kind is not None:
+                self.assertEqual(kind.lower(), name, "the %s view is headed %s" % (name, kind))
+
+    def test_the_one_second_tick_moves_every_countdown(self):
+        """The tick keeps going between messages, and every countdown on the view follows it (the
+        head's chip, the Now view's figure, the other timers)."""
+        for name in ("mining", "now", "refinery"):
+            self.pick(name)
+            time.sleep(0.3)
+            before = self.page.js(COUNTDOWNS)
+            self.assertTrue(before, "%s shows no countdown" % name)
+            time.sleep(2.3)
+            after = self.page.js(COUNTDOWNS)
+            self.assertEqual(len(after), len(before), name)
+            same = [a for a, b in zip(before, after) if a == b]
+            self.assertEqual(same, [], "%s: countdowns that did not move in 2.3 s" % name)
+
     def test_pick_a_view_go_back_to_live_add_and_remove_a_timer_with_the_pointer(self):
         p = self.page
         auto = self.shown()
@@ -549,6 +688,7 @@ class PageInTheBrowser(unittest.TestCase):
                                         "responseHeaders": [{"name": "Content-Type", "value": "application/json"}]})
         self.assertTrue(p.wait("!document.getElementById('toast').hidden && document.getElementById('toast').textContent.includes('Not taken')", 5))
         self.assertIn("busy", p.js("document.getElementById('toast').textContent"))
+        self.assertEqual(p.js(SMALL_TYPE), [], "the toast keeps the floor")
         self.assertEqual(self.shown(), auto)
         self.assertIsNone(p.js("document.querySelector('[aria-busy]') && 'busy'"))
         # no answer at all
@@ -579,11 +719,11 @@ class StickBaseMissingInTheBrowser(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.scene = Scene("preflight_fail.log").start()
+        cls.scene = Scene("preflight_fail.log", plan=RUN_A_PLAN).start()     # its timers end up two days out
         cls.edge = None
         try:
             cls.edge = Edge(find_edge())
-            cls.page = cls.edge.new_page(cls.scene.url)
+            cls.page = cls.edge.new_page(cls.scene.url, before=(GUARD,))
             cls.page.wait("document.getElementById('view-host') && !document.getElementById('view-wait')", 20)
         except Exception:
             cls.tearDownClass()
@@ -599,6 +739,28 @@ class StickBaseMissingInTheBrowser(unittest.TestCase):
         finally:
             cls.scene.stop()
 
+    def test_a_countdown_hours_away_steps_back_and_the_next_step_leads(self):
+        """Now with its nearest timer far out (app.js FAR_TIMER_HOURS): the next step is the
+        larger type, the countdown steps back; in every shape."""
+        p = self.page
+        a = p.js("window.scdash.post('/api/view', {view: 'now'})")
+        self.assertTrue(a.get("ok"), a)
+        self.assertTrue(p.wait("document.getElementById('view-host').className === 'v v--now'", 10))
+        try:
+            for w, h, term in ((1920, 1080, "on"), (1920, 1080, "off"), (1080, 1920, "off"), (2560, 1300, "off")):
+                p.size(w, h)
+                p.js("document.documentElement.dataset.terminal = %s" % json.dumps(term))
+                time.sleep(0.2)
+                self.assertTrue(p.js("!!document.querySelector('.now__top--far')"), "the far countdown is not marked")
+                fs = p.js("Object.fromEntries(['.now__next .next', '.count__fig', '.mat__held', '.trow__fig'].map((s) => "
+                          "[s, Math.max(0, ...Array.from(document.querySelectorAll('#view-host ' + s)).map((n) => parseFloat(getComputedStyle(n).fontSize)))]))")
+                lead = fs.pop(".now__next .next")
+                self.assertTrue(all(lead > x for x in fs.values()), "%dx%d %s: the next step at %s px, the others %s" % (w, h, term, lead, fs))
+        finally:
+            p.size(1920, 1080)
+            p.js("document.documentElement.dataset.terminal = 'on'")
+            p.js("window.scdash.post('/api/view/live', {})")
+
     def test_the_red_screen_and_the_red_alert(self):
         p = self.page
         self.assertTrue(p.wait("document.getElementById('view-host').className === 'v v--preflight'", 10))
@@ -613,9 +775,135 @@ class StickBaseMissingInTheBrowser(unittest.TestCase):
         self.assertTrue(p.wait("document.getElementById('view-host').className === 'v v--now'", 10))
         alert = p.js("(() => { const a = document.querySelector('#alerts .alert--bad'); return a && [a.querySelector('.alert__kind').firstChild.textContent, a.querySelector('.alert__title').textContent]; })()")
         self.assertEqual(alert, ["Preflight failed", "Stick base not detected"])
+        self.assertEqual(p.js("window.__guard"), {"markup": [], "csp": []}, "the alert was drawn as text")
         self.assertFalse(p.js("document.getElementById('app').classList.contains('is-fail')"))
         p.js("window.scdash.post('/api/view/live', {})")
         self.assertTrue(p.wait("document.getElementById('view-host').className === 'v v--preflight'", 10))
+
+
+@unittest.skipUnless(find_edge() and sys.platform == "win32", "needs Edge on Windows (set SCDASH_EDGE)")
+class CombatInTheBrowser(unittest.TestCase):
+    """samples/built_bounty.log: Combat with a bounty contract. The objective is the largest type
+    on the view, the tally smaller under it; the controls' key shows only while a row it explains
+    is on screen."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.scene = Scene("built_bounty.log", terminal=True).start()
+        cls.edge = None
+        try:
+            cls.edge = Edge(find_edge())
+            cls.page = cls.edge.new_page(cls.scene.url)
+            if not cls.page.wait("document.getElementById('view-host').className === 'v v--combat'", 20):
+                raise AssertionError("not the Combat view")
+        except Exception:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            if getattr(cls, "page", None):
+                cls.page.close()
+            if cls.edge:
+                cls.edge.close()
+        finally:
+            cls.scene.stop()
+
+    SHAPES = ((1920, 1080, "on"), (1920, 1080, "off"), (1080, 1920, "on"), (1080, 1920, "off"), (2560, 1300, "off"),
+              (1920, 950, "on"), (1280, 720, "on"), (1280, 720, "off"))
+
+    def test_the_objective_outranks_the_tally(self):
+        p = self.page
+        for w, h, term in self.SHAPES:
+            p.size(w, h)
+            p.js("document.documentElement.dataset.terminal = %s" % json.dumps(term))
+            time.sleep(0.2)
+            got = p.js(LARGEST)
+            self.assertTrue(got["in"].startswith("obj obj--now"), "%dx%d %s: the largest type is %s" % (w, h, term, got))
+            order = p.js("Array.from(document.querySelectorAll('#view-host > .blk')).map((n) => n.dataset.key)")
+            self.assertLess(order.index("main"), order.index("hero"), "the contract comes before the tally: %s" % order)
+
+    def test_the_controls_key_shows_only_with_a_marked_row_on_screen(self):
+        p = self.page
+        seen = set()
+        for w, h, term in self.SHAPES:
+            p.size(w, h)
+            p.js("document.documentElement.dataset.terminal = %s" % json.dumps(term))
+            time.sleep(0.25)
+            for key, rows in p.js(CTL_KEYS):
+                self.assertEqual(key, rows > 0, "%dx%d %s: key shown %s with %d marked rows on screen" % (w, h, term, key, rows))
+                seen.add((key, rows > 0))
+        self.assertIn((False, False), seen, "no shape cut every marked row: the check proves nothing")
+        self.assertIn((True, True), seen)
+
+
+@unittest.skipUnless(find_edge() and sys.platform == "win32", "needs Edge on Windows (set SCDASH_EDGE)")
+class StaysAliveInTheBrowser(unittest.TestCase):
+    """The page against a service that goes quiet, hangs or restarts. The service sends its
+    keepalive event every 2 s here (`keepalive_seconds`, the setting's lowest), so the page's
+    limit is 2 x 2 s + 3 s = 7 s with neither a state nor a keepalive."""
+
+    BANNER = "!document.getElementById('offline').hidden"
+    LIMIT = 7.0
+
+    @classmethod
+    def setUpClass(cls):
+        cls.scene = Scene("run_a.log", until="2026-11-26T23:23:00.000Z", plan=RUN_A_PLAN,
+                          settings={"keepalive_seconds": 2}).start()
+        cls.edge = None
+        try:
+            cls.edge = Edge(find_edge())
+            cls.page = cls.edge.new_page(cls.scene.url, before=(HUSH,))
+            if not cls.page.wait("document.getElementById('view-host') && !document.getElementById('view-wait')", 20):
+                raise AssertionError("the page drew nothing")
+        except Exception:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            if getattr(cls, "page", None):
+                cls.page.close()
+            if cls.edge:
+                cls.edge.close()
+        finally:
+            cls.scene.stop()
+
+    def test_a_hung_service_looks_offline_and_a_quiet_one_does_not(self):
+        p = self.page
+        p.js("window.__es.hush = null")
+        self.assertFalse(p.js(self.BANNER))
+        # quiet: no state for longer than the limit, the keepalives still coming
+        p.js("window.__es.hush = 'state'")
+        time.sleep(self.LIMIT + 2)
+        self.assertFalse(p.js(self.BANNER), "a quiet service (keepalives only) is not offline")
+        # hung: nothing at all, the stream still open
+        opened = p.js("window.__es.opened")
+        p.js("window.__es.hush = 'all'")
+        t0 = time.monotonic()
+        self.assertTrue(p.wait(self.BANNER, self.LIMIT + 5), "a stream that brings nothing is not live")
+        took = time.monotonic() - t0
+        self.assertGreater(took, self.LIMIT - 2 - 1.5, "the banner came before the limit")
+        self.assertEqual(p.js(SMALL_TYPE), [], "the banner keeps the floor")
+        self.assertTrue(p.wait("window.__es.opened > %d" % opened, 8), "the page connects again")
+        # back: the next state or keepalive takes the banner down
+        p.js("window.__es.hush = null")
+        self.assertTrue(p.wait("!(%s)" % self.BANNER, 10), "the banner stays up after the service answers again")
+
+    def test_a_restarted_service_is_seen_and_the_page_reloads_itself(self):
+        p = self.page
+        p.js("window.__es.hush = null")
+        p.js("window.__mark = 1")
+        self.scene.inst.crash(self.scene.inst.procs[-1])
+        self.assertTrue(p.wait(self.BANNER, 8), "no banner after the service went away")
+        self.scene.inst.spawn(process=self.scene.game.name)
+        self.assertTrue(p.wait("window.__mark === undefined && !!document.getElementById('view-host')"
+                               " && !document.getElementById('view-wait')", 40), "the page did not reload itself")
+        self.assertTrue(p.wait("!(%s)" % self.BANNER, 10))
+        a = p.js("window.scdash.post('/api/view/live', {})")
+        self.assertTrue(a.get("ok"), "the reloaded page's token works: %s" % a)
 
 
 if __name__ == "__main__":

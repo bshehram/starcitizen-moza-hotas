@@ -44,9 +44,11 @@ call, and the guard comes with it:
     server.route("POST", "/api/timers", handler, CHANGE)       # handler(request) -> (status, obj)
     server.stream("/api/terminal/out", Hub(max_clients=1), PRIVATE)
 
-The event streams (PLAN §5): plain HTTP/1.0, one thread per page, a `retry:` value first, the
-current payload at once, then each new one merged to at most two sends a second, a comment line
-every 15 seconds, and a cap on connected pages per stream (each `Hub` has its own). A closed page
+The event streams (PLAN §5): plain HTTP/1.0, one thread per page, a `retry:` value and a
+keepalive event first, the current payload at once, then each new one merged to at most two sends
+a second, a keepalive event (`event: keepalive`, its data the interval in seconds) after every 15
+seconds with nothing written, so a page can tell a hung service from a quiet one, and a cap on
+connected pages per stream (each `Hub` has its own). A closed page
 is noticed by the next failed write or, within a second, by peeking at its socket.
 
 Ideas taken (not code) from sc-log-tracker's server (PLAN §5): the Host check on every request,
@@ -385,6 +387,12 @@ class Hub:
         with self._cond:
             self._clients -= 1
 
+    def keepalive_event(self):
+        """The keepalive: a real event (`event: keepalive`), not a comment, so a page can tell a
+        quiet service from a hung one. Its data is the interval in seconds. Sent after `retry:`
+        when a page connects, then whenever nothing was written for `keepalive` seconds."""
+        return b"event: keepalive\ndata: %s\n\n" % ("%g" % self.keepalive).encode("ascii")
+
     def serve(self, handler):
         """Runs in the page's own request thread until the page goes away or the hub closes."""
         self._join()
@@ -395,7 +403,7 @@ class Hub:
                 handler.send_header(k, v)
             handler.end_headers()
             w = handler.wfile
-            w.write(b"retry: %d\n\n" % self.retry_ms)
+            w.write(b"retry: %d\n\n" % self.retry_ms + self.keepalive_event())
             w.flush()
             sock = handler.connection
             last_v, last_send = 0, 0.0
@@ -421,7 +429,7 @@ class Hub:
                         self.sent += 1
                     last_v, last_send, last_write = v, now, now
                 elif now - last_write >= self.keepalive:
-                    w.write(b": keepalive\n\n")
+                    w.write(self.keepalive_event())
                     w.flush()
                     last_write = now
                 if _peer_closed(sock):

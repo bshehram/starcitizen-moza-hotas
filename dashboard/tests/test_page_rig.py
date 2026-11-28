@@ -16,6 +16,10 @@ What is checked:
   in every mode; a filter; a Find query (words and a number) and a result opened on its page.
 - No computed type under 18 px in any page, filter, opened row or Find query, in the four shapes;
   the view never overflows its region.
+- The head's parts (each tab, Find, the key's entries, the filter's label and buttons) never
+  intersect and never leave the section, on every page under every filter, in the four shapes and
+  the 2560x1300 tab with the terminal on and off.
+- Every number drawn over a diagram sits on its mark (rig.json's `discs`), within 2.5 px.
 - It stays open, unchanged, through a change of context on the live side; it never changes
   while nothing is done to it (the one-second tick does not touch it); the diagram refits when
   something above the view takes height.
@@ -35,6 +39,43 @@ ROWS = {r["id"]: r for r in RIG["rows"]}
 FILTERS = ("all", "flight", "mining", "salvage")
 SHAPES = ((1920, 1080, "on"), (1920, 1080, "off"), (1080, 1920, "on"), (1080, 1920, "off"))
 UNTIL_MINING = "2026-11-26T23:23:00.000Z"        # run_a.log at the ARC-L4 field: the Mining view
+
+# The numbers drawn over the diagram: each one's center, from the art's corner.
+DISCS = r"""
+(() => {
+  const art = document.querySelector(".rig .dg__art"), ar = art.getBoundingClientRect();
+  return { s: +art.dataset.scale || 1, z: parseFloat(getComputedStyle(document.documentElement).zoom) || 1,
+           discs: Array.from(document.querySelectorAll(".rig .dn")).map((n) => { const r = n.getBoundingClientRect();
+             return { k: n.dataset.key, t: n.textContent.trim(), cx: r.left + r.width / 2 - ar.left, cy: r.top + r.height / 2 - ar.top }; }) };
+})()
+"""
+
+# The head's parts as drawn, and every pair that intersects or part that leaves the section.
+HEAD_OVERLAPS = r"""
+(() => {
+  const sec = document.querySelector(".rig").getBoundingClientRect();
+  const parts = [];
+  const name = (n) => n.matches(".tab") ? "tab " + n.dataset.page : n.matches(".mode") ? "filter " + n.dataset.mode
+                    : n.matches(".rmk") ? "key " + n.textContent.trim() : "filter label";
+  for (const n of document.querySelectorAll(".rig__head .tab, .rig__head .legend .rmk, .rig__head .modes__k, .rig__head .mode")) {
+    const r = n.getBoundingClientRect();
+    if (r.width && r.height) parts.push([name(n), r]);
+  }
+  const out = [];
+  if (parts.length < 14) out.push("only " + parts.length + " parts drawn");
+  const T = 1.5;                       // neighbors share a 1 px border (margin-left: -1px)
+  for (const [k, r] of parts) {
+    if (r.left < sec.left - 1 || r.right > sec.right + 1 || r.top < sec.top - 1 || r.bottom > sec.bottom + 1)
+      out.push(k + " leaves the section");
+  }
+  for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) {
+    const a = parts[i][1], b = parts[j][1];
+    const x = Math.min(a.right, b.right) - Math.max(a.left, b.left), y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    if (x > T && y > T) out.push(parts[i][0] + " and " + parts[j][0] + " overlap by " + Math.round(x) + " x " + Math.round(y) + " px");
+  }
+  return out;
+})()
+"""
 
 
 def kind(row, f):
@@ -292,6 +333,54 @@ class RigInTheBrowser(unittest.TestCase):
                 problems.append("%dx%d %s find 'salvage': %s" % (w, h, term, x))
             p.js("(() => { const i = document.querySelector('.rig .find__in'); i.value = ''; i.dispatchEvent(new Event('input')); })()")
         self.assertEqual(problems, [])
+
+    def test_the_head_never_overlaps_in_any_page_filter_or_shape(self):
+        """The user's first look at the real window (2026-11-28): at 1920x1080 with the terminal
+        off, the marks' key was drawn on top of the Find tab (the tabs had grown with "+ axes").
+        Every part of the head (each tab, Find, each entry of the key, the filter's label and each
+        of its buttons) is measured on every page under every filter, in the four shapes and the
+        2560x1300 tab: no two may intersect (neighboring tabs and buttons share a 1 px border) and
+        none may leave the section."""
+        p = self.page
+        problems = []
+        pages = [v["id"] for v in RIG["views"]] + ["find"]
+        for w, h, term in SHAPES + ((2560, 1300, "off"), (2560, 1300, "on")):
+            p.size(w, h)
+            p.js("document.documentElement.dataset.terminal = %s" % json.dumps(term))
+            for f in FILTERS:
+                p.js("document.querySelector('.rig .mode[data-mode=%s]').click()" % json.dumps(f))
+                for pg in pages:
+                    p.js("document.querySelector('.rig .tab[data-page=%s]').click()" % json.dumps(pg))
+                    time.sleep(0.03)
+                    for x in p.js(HEAD_OVERLAPS):
+                        problems.append("%dx%d terminal %s, %s, %s: %s" % (w, h, term, f, pg, x))
+        self.assertEqual(problems[:20], [], "%d problems" % len(problems))
+
+    def test_every_number_sits_on_its_mark(self):
+        """Each number the page draws over a diagram is centered on the place rig.json gives its
+        mark (`discs`, in the art's pixels, times the art's scale), within 2.5 px, on every page in
+        three shapes. A number 9 px off passed every test before (page review)."""
+        p = self.page
+        problems = []
+        for w, h, term in ((1920, 1080, "on"), (1080, 1920, "off"), (2560, 1300, "off")):
+            p.size(w, h)
+            p.js("document.documentElement.dataset.terminal = %s" % json.dumps(term))
+            for v in RIG["views"]:
+                if not v.get("image"):
+                    continue
+                p.js("document.querySelector('.rig .tab[data-page=%s]').click()" % json.dumps(v["id"]))
+                time.sleep(0.05)
+                d = p.js(DISCS)
+                if not d["discs"]:
+                    problems.append("%dx%d %s: no numbers drawn" % (w, h, v["id"]))
+                for x in d["discs"]:
+                    want = [q for q in ROWS[x["k"]]["discs"]
+                            if (str(q["n"]) == x["t"] if q["n"] is not None else not x["t"])]
+                    err = min((abs(x["cx"] / d["z"] - q["x"] * d["s"]) + abs(x["cy"] / d["z"] - q["y"] * d["s"]) for q in want),
+                              default=None)
+                    if err is None or err > 2.5:
+                        problems.append("%dx%d %s: %r of %s is %s px from its mark" % (w, h, v["id"], x["t"], x["k"], err))
+        self.assertEqual(problems[:20], [], "%d problems" % len(problems))
 
     def test_still_while_untouched_and_refits_when_the_view_loses_height(self):
         p = self.page

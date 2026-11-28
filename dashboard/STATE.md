@@ -750,10 +750,15 @@ on `GET /api/state`:
 When a message is sent:
 
 - Only when its text differs from the last one, and merged to at most two a second per page
-  (`push_min_seconds`). `retry: 3000` comes first, a comment line every 15 s, at most 4 pages on
+  (`push_min_seconds`). `retry: 3000` comes first, at most 4 pages on
   the stream at once (`max_pages`). A fifth gets a 503, which an EventSource does not retry by
   itself: `app.js` tries again every 5 s. Every open tab on the dashboard holds one of the four,
   and a browser allows about six connections to one address across all its tabs.
+- **A keepalive event, not a comment** (since 2026-11-28): `event: keepalive` with the interval in
+  seconds as its data (`data: 15`, the `keepalive_seconds` setting), right after `retry:` and then
+  whenever nothing was written for that long; it adds no write while states flow. A page that
+  hears neither a state nor a keepalive for two intervals plus 3 s (33 s) counts the service as
+  gone, a hung one with the stream still open included: the offline banner, then a new stream.
 - The board is built again only when one of its inputs changed (an event applied to the state, a
   session that ended in the same file, `plan.json`'s plan or notice, the user block, whether the
   game runs) or when the service's clock has reached the last payload's `next_change_ms`. Bytes

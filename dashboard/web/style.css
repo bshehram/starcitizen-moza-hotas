@@ -623,6 +623,16 @@ button, input { font: inherit; color: inherit; }
 /* combat */
 .tally { grid-auto-columns: minmax(0, 1fr); }
 .tally > .fig--ship { grid-column: span 2; }
+/* With a contract, its objective is the largest type on the view and the tally follows it, smaller */
+.combat__lead { flex: 0 0 auto; }
+.combat__lead .contract .obj--now { grid-template-columns: 64px minmax(0, 1fr) auto; font-size: var(--t-2xl); line-height: 1.04;
+                                    padding: var(--s-3) 0; margin: var(--s-3) 0; }
+.combat__lead .contract .obj--now .obj__n { font-size: var(--t-m); }
+.combat__lead .contract__title { color: var(--c-text); }
+.tally--minor { --fig: var(--t-xl); padding-top: var(--s-3); padding-bottom: var(--s-3); }
+.tally--minor .fig__name { font-size: var(--t-xl); }
+.tally--minor > .fig--ship { grid-column: auto; }                    /* four equal columns: every caption whole */
+.tally--minor .fig__sub { margin-top: var(--s-1); }
 .law__j { font-size: var(--t-s); color: var(--c-text); font-weight: 500; }
 .marks { display: grid; gap: 6px; margin-top: var(--s-2); }
 .mark { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-s); color: var(--c-text-2); font-stretch: var(--w-semi); }
@@ -638,6 +648,13 @@ button, input { font: inherit; color: inherit; }
 .act__main--foot > .act__ref > .ref + .ref { padding-top: 0; border-top: 0; padding-left: var(--s-5); border-left: var(--hair); }
 
 /* cargo */
+/* no stop under way: the next step leads, the grid's size beside it */
+.cargo__lead { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+.cargo__lead > :only-child { grid-column: 1 / -1; }
+.cargo__next { min-width: 0; }
+.cargo__next .next { margin-top: var(--s-3); font-size: var(--t-3xl); line-height: 1.04; }
+.cargo__none { margin-top: var(--s-3); font: 300 var(--t-2xl)/1.1 var(--f-ui); font-stretch: var(--w-semi); color: var(--c-text-2); }
+.cargo__figs { --fig: var(--t-xl); }
 .keys { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2) var(--s-5); min-width: 0; }
 .key { display: inline-flex; align-items: baseline; gap: var(--s-3); min-width: 0; }
 kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px solid var(--c-accent); color: var(--c-accent);
@@ -663,6 +680,11 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
 .count .meter { margin-top: var(--s-3); --seg: 5px; --gap: 2px; }
 .count__sub { display: grid; margin-top: var(--s-3); color: var(--c-text-2); font-size: var(--t-s); font-stretch: var(--w-semi); }
 .count__sub b { color: var(--c-text); font-weight: 500; }
+/* a countdown many hours out (app.js FAR_TIMER_HOURS): the next step leads, the countdown steps back */
+.now__top.now__top--far { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+.now__top--far .now__next .next { font-size: var(--t-2xl); line-height: 1.08; }
+.now__top--far .count__fig { font-size: var(--t-xl); }
+.v--now:has(.now__top--far) .mat__held { font-size: var(--t-xl); }
 .now__mats { padding: var(--s-4) var(--s-5); }
 .mats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .mat { padding: 0 var(--s-5); border-left: var(--hair); min-width: 0; }
@@ -875,6 +897,7 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
 .rig__head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px var(--s-5);
              grid-template-areas: "tabs tabs" "legend modes"; }
 .rig__main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.rig__tools { display: contents; }                                  /* the key and the filter: grid items of the head here */
 
 /* pages: one tab per piece of hardware, grouped by device, each with the button numbers it holds */
 .tabs { grid-area: tabs; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; min-width: 0; }
@@ -1043,8 +1066,11 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
 }
 @media (orientation: landscape) {                                     /* landscape, terminal off: wide and short */
   :root[data-terminal="off"] .rig { --rr-f: var(--t-l); --rr-h: var(--t-m); --rr-n: 24px; --bw: 54px; --bh: 34px; --rr-pad: 5px; --dg-max: 2; }
-  :root[data-terminal="off"] .rig__head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tabs legend modes"; }
-  :root[data-terminal="off"] .tabs { gap: var(--s-3); }
+  /* one row when the tabs, the key and the filter all fit; else the key and the filter wrap to a
+     row of their own, together and to the right. Nothing shrinks, so nothing can sit on top. */
+  :root[data-terminal="off"] .rig__head { display: flex; flex-wrap: wrap; align-items: flex-end; }
+  :root[data-terminal="off"] .tabs { flex: 0 0 auto; gap: var(--s-3); }
+  :root[data-terminal="off"] .rig__tools { display: flex; flex: 0 0 auto; align-items: center; gap: var(--s-5); margin-left: auto; }
   :root[data-terminal="off"] .tabs__g:last-child { margin-left: 0; }
   :root[data-terminal="off"] .legend { justify-content: flex-end; height: 54px; }
   :root[data-terminal="off"] .modes { height: 54px; }
@@ -1070,7 +1096,9 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
 /* Plain browser tabs smaller than the side monitor (`:root[data-terminal]` outranks the shape rules
    above, whichever way the terminal is set) */
 @container view (width < 1500px) {                                    /* the head in two rows */
-  :root[data-terminal] .rig__head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tabs tabs" "legend modes"; }
+  :root[data-terminal] .rig__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tabs tabs" "legend modes"; }
+  :root[data-terminal] .rig__tools { display: contents; }
+  :root[data-terminal] .tabs { flex: initial; }
   :root[data-terminal] .tabs__g:last-child { margin-left: auto; }
   :root[data-terminal] .legend, :root[data-terminal] .modes { height: 40px; }
 }
@@ -1095,8 +1123,13 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
   .act__main { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
   .now__top { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
   .mats { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-  .contract--full .obj--now { font-size: var(--t-3xl); line-height: 1.02; }
   .mission { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
+/* wide and not short (the side monitor's landscape, a large tab): the objective and the refinery's figures a step up */
+@container view (aspect-ratio >= 1.7) and (height >= 700px) {
+  .contract--full .obj--now, .combat__lead .contract .obj--now { font-size: var(--t-3xl); line-height: 1.02; }
+  .v--refinery { --fig: 168px; }
+  .refhero__name { font-size: var(--t-5xl); }
 }
 /* tall: terminal off in portrait. The region is half again as tall as it is wide, so the view's
    type is a step larger (the tokens, inside the view only) and the blocks follow one another from
@@ -1114,12 +1147,119 @@ kbd { display: inline-block; max-width: 22em; padding: 1px 8px 2px; border: 1px 
   .ctl__list { gap: 6px var(--s-6); }
   .step, .obj, .ref, .leg__why { line-height: 1.35; }
 }
+/* ---- the roomy shapes, view by view: the panes take the room, the figures the user acts on grow
+   first (PLAN §11: numbers acted on get the largest type). Steps by the region's shape, never a
+   scale that follows the window. */
+/* tall (portrait, terminal off, about 1000 x 1300 to 1700): one column where two sat side by side */
+@container view (aspect-ratio <= .85) {
+  .v--now { --fig: 240px; }                                          /* the countdown */
+  .now__top, .now__more, .idle__bottom, .cargo__lead { grid-template-columns: minmax(0, 1fr); }
+  .now__top { gap: var(--s-5); }
+  .now__next .next, .idle__next .next { font-size: var(--t-2xl); line-height: 1.08; }
+  .step { grid-template-columns: 40px minmax(0, 1fr); font-size: var(--t-m); }
+  .step .i { font-size: 22px; }
+  .place__name { font-size: var(--t-4xl); }
+  .v--now .contract--compact .obj--now { font-size: var(--t-2xl); line-height: 1.06; }
+  .now__top.now__top--far { grid-template-columns: minmax(0, 1fr); }
+  .now__top--far .now__next .next { font-size: var(--t-3xl); line-height: 1.02; }
+  .now__top--far .count__fig { font-size: var(--t-2xl); }
+  .v--now:has(.now__top--far) .mat__held { font-size: var(--t-2xl); }
+  .count { padding: var(--s-5) var(--s-6) var(--s-6); }
+  .count__sub { font-size: var(--t-m); }
+  .mat__held { font-size: var(--t-3xl); }
+  .mats__first, .goal__next { font-size: var(--t-m); }
+  .trows { max-width: 760px; }
+  .trow__name { font-size: var(--t-m); }
+  .trow__fig { font-size: var(--t-2xl); }
+  .notes { font-size: var(--t-m); }
+  /* mining: one ore's three scan readings as rows, each figure at full size */
+  .ore:only-of-type .reads { grid-template-columns: minmax(0, 1fr); margin-top: var(--s-4); }
+  .ore:only-of-type .read { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s-5);
+                            padding: var(--s-4) 0; border-left: 0; border-top: var(--hair); }
+  .ore:only-of-type .read__fig { font-size: 200px; }
+  .ore:only-of-type .read__sub { flex-direction: column; align-items: flex-end; gap: var(--s-2); margin-top: 0; font-size: var(--t-m); }
+  .ore:only-of-type .read__sub .meter { width: 160px; height: 10px; }
+  .ore__name { font-size: var(--t-2xl); }
+  .need { grid-template-columns: minmax(80px, 170px) auto auto minmax(60px, 1fr); }
+  .need .num { font-size: var(--t-2xl); }
+  /* refinery: the station over its order's countdown */
+  .refhero { flex-direction: column; align-items: stretch; gap: var(--s-5); }
+  .refhero__count { max-width: none; min-width: 0; padding-top: var(--s-4); border-top: var(--hair); }
+  .v--refinery { --fig: 240px; }
+  .refpanes { grid-template-columns: minmax(0, 1fr); }
+  .rrow--big { font-size: var(--t-l); }
+  .rrow--big .num { font-size: var(--t-2xl); }
+  /* idle: the last session's facts larger */
+  .facts .fig__num { font-size: var(--t-4xl); }
+  .facts .fig__sub { font-size: var(--t-m); }
+  .list { font-size: var(--t-m); }
+  /* on foot and Mission: the objective, then the panes under it, larger */
+  .act__main--foot .contract--full .obj--now, .mission .contract--full .obj--now { font-size: var(--t-4xl); line-height: 1; }
+  .contract--full .obj:not(.obj--now) { font-size: var(--t-l); }
+  .ref__big { font-size: var(--t-xl); }
+  .ref__big .i { font-size: 30px; }
+  .act__main--foot > .act__ref > .ref, .mission__side .ref { font-size: var(--t-m); }
+  .where__place { font-size: var(--t-2xl); }
+  .where__place .i { font-size: 36px; }
+  .where__sub, .other { font-size: var(--t-m); }
+  /* combat with a contract: its objective larger still */
+  .combat__lead { grid-template-columns: minmax(0, 1fr); }              /* the contract the full width, the law under it */
+  .combat__lead .contract .obj--now { font-size: var(--t-4xl); line-height: 1; }
+  .tally--minor { --fig: var(--t-2xl); }
+  /* preflight: the verdict, the devices and what to do, larger */
+  .fail__icon { font-size: 140px; }
+  .fail__title { font-size: var(--t-4xl); line-height: .98; }
+  .fail__why, .pfnote { font-size: var(--t-l); }
+  .dev { grid-template-columns: 170px minmax(0, 1fr) auto; padding: var(--s-4) 0; font-size: var(--t-l); }
+  .dev__name small { font-size: var(--t-m); }
+  .do__text { font-size: var(--t-2xl); }
+  .note, .pfnotes__profile { font-size: var(--t-m); }
+  /* a view with nothing to show: its words in the middle of the room, not at the top */
+  .v > .empty { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
+  .empty__t { font-size: var(--t-3xl); }
+  .empty__sub { font-size: var(--t-l); }
+}
+/* a large wide tab (2560 x 1300 shows a region of about 2480 x 900 to 1100): the tall shape's type
+   step, the figures a step more */
+@container view (aspect-ratio >= 1.7) and (width >= 2200px) and (height >= 860px) {
+  .v { --t-cap: 20px; --t-s: 21px; --t-m: 24px; --t-l: 30px; --t-xl: 38px; --t-2xl: 52px; --t-3xl: 72px;
+       --t-4xl: 112px; --t-5xl: 150px; --fig: 132px; --hero: 160px; gap: var(--s-5); }
+  .v--now { --fig: 168px; }
+  .v--now .contract--compact .obj--now { font-size: var(--t-2xl); line-height: 1.06; }
+  .v--refinery { --fig: 240px; }
+  .refhero__name { font-size: var(--t-5xl); }
+  .now__top--far .now__next .next { font-size: var(--t-3xl); line-height: 1.02; }
+  .v--now:has(.now__top--far) .mat__held { font-size: var(--t-2xl); }
+  .now__next .next, .idle__next .next { font-size: var(--t-2xl); line-height: 1.08; }
+  .step, .trow__name, .notes, .count__sub, .mats__first, .goal__next, .list { font-size: var(--t-m); }
+  .mat__held { font-size: var(--t-3xl); }
+  .facts .fig__num { font-size: var(--t-3xl); }
+  .contract--full .obj:not(.obj--now) { font-size: var(--t-l); }
+  .rrow--big { font-size: var(--t-l); }
+  .rrow--big .num { font-size: var(--t-2xl); }
+  .dev { font-size: var(--t-l); }
+  .ctl__list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 /* a square region: the Mission view's side panes go under the contract, which keeps the width */
 @container view (width < 1200px) and (aspect-ratio > .85) {
   .mission { grid-template-columns: minmax(0, 1fr); }
   .mission__side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mission__side > :only-child { grid-column: 1 / -1; }
   .ctl__list { gap: 2px var(--s-6); }
+}
+/* a short region (a plain tab with the terminal on, an alert and a hand pick: about 1060 x 520):
+   Mission's "go next" stays beside the contract, whose objective steps down, so it is in sight */
+@container view (width < 1200px) and (height < 700px) {
+  .mission { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .mission__side { grid-template-columns: minmax(0, 1fr); }
+  .mission .contract--full .obj--now { font-size: var(--t-xl); line-height: 1.1; }
+  .mission .contract--full .contract__title { font-size: var(--t-l); }
+}
+/* any short region (under 600 px tall): the leading objective steps down so the rest of its view stays in sight */
+@container view (height < 600px) {
+  .combat__lead .contract .obj--now, .contract--full .obj--now,
+  .act__main--foot .contract--full .obj--now { font-size: var(--t-xl); line-height: 1.1; }
+  .combat__lead .contract__title { font-size: var(--t-m); }
 }
 /* narrow: a small tab */
 @container view (width < 860px) {
