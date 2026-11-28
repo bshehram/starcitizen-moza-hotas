@@ -397,7 +397,11 @@ def contract_kind(doc, generator=None, contract=None, title=None):
 
 
 def sample_text():
-    return '\n'.join(p.read_text(encoding='utf-8', errors='replace') for p in sorted(SAMPLES.glob('*.log')))
+    """The real (sanitized) log samples. `built_*.log` files are lines made up from the game's
+    text for activities no real log covers yet; they prove nothing about what the log prints,
+    so the tables are not checked against them here."""
+    return '\n'.join(p.read_text(encoding='utf-8', errors='replace')
+                     for p in sorted(SAMPLES.glob('*.log')) if not p.name.startswith('built_'))
 
 
 def fold(s):

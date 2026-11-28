@@ -240,8 +240,10 @@ the red banner takes the strip's place (its figures are stale then) and the rest
 covers nothing else.
 
 **The follower across a real game launch** (PLAN §8, §12 stage 2) was proved with the stage 1
-follower on 2026-11-27 at 12:57 PM (PLAN §8 has the figures); the same check with the service
-itself is still to do. The service logs what the proof needs to `data/service.log`: `log facts (...)` lines with the log's size, file
+follower on 2026-11-27 at 12:57 PM, and with the service itself that evening: it followed a
+first launch that began with no `Game.log` at all, and a second launch at 6:13 PM where the game
+emptied the log in place under the same file id and the backup appeared at the old session's
+full size (PLAN §8 has the figures and the lines). The service logs what the proof needs to `data/service.log`: `log facts (...)` lines with the log's size, file
 id, volume, created and modified times and first line, at start, when the game appears and ends,
 when the log is emptied and when a new session begins; `the session ... ends in the same file,
 read to offset N`; `a new session starts in the log at offset 0: first line ... (was ...)`; and

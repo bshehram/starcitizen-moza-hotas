@@ -103,9 +103,10 @@ game's own files, and other open-source tools' parsers, each item marked with ho
 2. **The launch check with the service itself** (stage 2's last check): with the game closed run
    `python dashboard/scdash.py start`, have the user launch the game and stay two minutes, then
    read `dashboard/data/service.log` for the rotation lines (§12 stage 2 has what a pass looks
-   like). The follower alone already passed this (§8). *Half done on 2026-11-27: the service
-   followed the first launch on the fresh install, which had no log to rotate. Read the log
-   again after the second launch.*
+   like). The follower alone already passed this (§8). ***Done on 2026-11-27:** the service
+   followed the first launch on the fresh install (no log at all, then a new one) and the
+   second launch at 6:13 PM, where the game emptied the log in place and the backup appeared at
+   the old session's full size (§8 has the lines).*
 3. **Stage 3, first the part behind the page** (§12 stage 3): events for what salvage, combat,
    hauling and missions leave in the log (from the survey), `plan.json` and its loader with
    `plan.example.json`, timers, alerts, the view rules, and a written description of the state
@@ -993,8 +994,19 @@ with `schtasks /Query /TN <name> /XML` and compare it with what was intended.
     after, 117,663 bytes down to 4,457), the old session's backup appeared in `logbackups` in the
     same second at the full 117,663 bytes, and the follower saw the new first line and began the
     new session at offset 0. Over 328 polls, up to the user standing in the game world: no
-    error, no unreadable line, and the slowest poll took 2.6 ms. Still to do: the same launch
-    check with the stage 2 service, whose log records these facts by itself.
+    error, no unreadable line, and the slowest poll took 2.6 ms.
+  - **Proved again with the stage 2 service itself [seen 2026-11-27, 6:13 PM].** The service
+    had followed the 5:20 PM session to its quit at offset 744,397 and was still running when
+    the user launched the game again. Its own log has the whole sequence: the game process
+    appeared at 6:13:04 with the log still the old session's (file id `0x...8f82`, 744,397
+    bytes); at 6:13:09 "the session ... ends in the same file, read to offset 744397" and "a
+    new session starts in the log at offset 0" with the new first line, the file now 9,185
+    bytes under the **same file id and creation time**; and the newest backup,
+    `Game Build(13220821) 27 Nov 26 (17 20 01).log`, was created in the launch's own second at
+    exactly 744,397 bytes, which the service recognized as the session that had ended in
+    place. Both sessions got their summaries, with no error. Earlier the same evening it had
+    followed the first launch on the fresh install, where there was no `Game.log` at all until
+    the game made one.
 - **Where the size comes from matters.** With the game running, `os.stat` gave the same size as
   an open handle in 20 samples out of 20, while the size in a directory listing (`os.scandir`)
   was behind in 4 of the 20, by up to 4 KB **[seen 2026-11-27, Python 3.12, game running]**. So
