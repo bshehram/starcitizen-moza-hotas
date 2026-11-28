@@ -977,6 +977,96 @@ labels from the cards as is but ill let u sort that out, like a quick reference 
     - What state each binding is in (flown, loaded, trial) is shown the way `controls.json`
       already marks it, so the screen does not claim more than [`../CLAUDE.md`](../CLAUDE.md)
       does.
+    - Its Find page is to list the game's actions as well, bound and not bound: item 20.
+
+### The base color (designed 2026-11-28, not built)
+
+The user asked for this on 2026-11-28: "for the moza cockpit LED button settings i have all of
+the devices set to use 0,0,255 which is the basic blue LED can we use that as the 'mother' color
+for the dashboard? can we make it so we have a singular setting that accepts the RGB 0,0,0 format
+just like the moza cockpit for the dashboard color theme 'Base' or whatever? this way if i change
+the moza rig to 0,255,0 which i think is the default green, we can change that in the dashboard
+too and it reflects that so sort of like a theme type thing."
+
+19. **One base color, from which the page takes its colors.** A single setting, written the way
+    MOZA Cockpit writes an LED color, so the side screen matches the lights on the stick and
+    throttle beside it. The implementer's brief, with the exact math, the token table, the test
+    vectors and the tests, is [`design/theme/THEME.md`](design/theme/THEME.md).
+    - **The setting** is `theme.base` in `data/config.json`, default `"0,0,255"`. Also accepted:
+      `"rgb(0,0,255)"`, `"#0000FF"` and `[0, 0, 255]`. Anything else takes the default, with a
+      note in the log, like any other bad setting ([`CLAUDE.md`](CLAUDE.md), "Settings").
+    - **What the base controls:** its hue colors the ground, the panes, the line work, the
+      text's faint tint and the accent; its saturation sets how strongly the ground, lines and
+      text are tinted. Its brightness is ignored. A base with no color (white, gray, black)
+      gives a gray page with the look's own cyan accent.
+    - **What it does not control:** how light anything is. Every token keeps a luminance of its
+      own, so every contrast ratio is the same for every base (§11). Red, amber and green do not
+      move, and neither do their shapes and words.
+    - **Near a status color the accent turns pale.** On a green, red, orange or yellow rig the
+      accent keeps the rig's hue and loses strength until it is about as far from each status
+      color as the status colors are from each other. The status color is always the stronger of
+      the two, and it alone carries a shape and a word.
+    - **Picked up while the service runs.** A change of the file recolors the open page within a
+      second with the game running and within about ten seconds without: no restart, no reload.
+      The values are computed in the service, served as a stylesheet for the first paint, and
+      sent in the message for a change.
+    - **The rig reference follows it:** the diagrams' line work is drawn in the text color
+      through a mask of the same image files, and the "changes in this mode" highlight is the
+      accent.
+    - **A second step, if the user says yes (§15):** the same setting as a field on the desk
+      panel, writing the same key.
+    - Mocked up on the page's own screens under five bases, in the git-ignored
+      `data/design/theme/`. **[seen 2026-11-28 by the designer; not yet by the user, and not on
+      the side monitor beside the rig]**
+
+### The rig reference: the game's actions, bound and not bound (designed 2026-11-28, not built)
+
+The user asked for this on 2026-11-28, at about 10:40 AM, looking at the rig reference's Find
+page: "it would be better i think if it also showed logically and clearly which bindings we do
+have bound and which ones exist that we have not bound (like ESP and Decoupled, etc) and if we
+can make it pull the available bindings from existing game files so its always updated with the
+latest patch in the game, thats better than relying on third party websites databases or APIs".
+
+20. **The game's own actions in the rig reference, each marked bound or not bound.** The
+    implementer's brief, with the file's schema, the page's measurements, the tests and the two
+    build stages, is [`design/actions/ACTIONS.md`](design/actions/ACTIONS.md).
+    - **Read from the installed game's files, and from nothing else.** A new command,
+      `python tools/gamedata.py actions`, reads the game's `defaultProfile.xml` and `global.ini`
+      out of `Data.p4k` (about a second, read-only), joins them with `MOZA.xml` and `rig.json`,
+      and writes `web/rig/actions.json`. The card generator runs it too, so a binding change
+      still takes one command. After a game patch it is one more line of the patch routine
+      ([`../CLAUDE.md`](../CLAUDE.md) §7), and the file marks what the patch added.
+    - **Grouped as the game's Keybindings menu groups them** ("Flight - Movement", "Vehicles -
+      Weapons"): the names come from the game's file **[game]**.
+    - **Only what the rig is for.** The pilot's seat is listed in full: 431 named actions in 24
+      actionmaps, of which 120 were bound, 309 not bound, one cleared and one left on the game's
+      own joystick default **[game and `MOZA.xml`, 2026-11-28]**. Turret seats and the advanced
+      camera follow. On foot, E.V.A., ground vehicles and menus are counted, and only the 38
+      actions there that touch the stick are listed (the cleared defaults and the live ones). An
+      actionmap a patch adds is listed in full until someone sorts it.
+    - **Inside Find, not a ninth tab.** Find gets a switch, Controls (the 96) and Actions. The
+      tab row has no room left at either width **[seen 2026-11-28, captures of the built
+      page]**, and one search box then covers both lists: typing "esp" on Controls finds no
+      control and shows the game's four matching actions.
+    - **A row reads like a control's row turned around:** the action's name, then the control's
+      number in the badge, or a dash in a dashed outline when nothing is bound. A rail of the
+      game's groups shows "bound / all" for each.
+    - **From an action to a control.** An opened action that is not bound shows the controls with
+      nothing bound and the controls that are idle in the operator modes its group is live in,
+      taken from `rig.json`. A click on one opens it on its diagram.
+    - **It does not claim more than the tables know.** Where `rig.json` has an unknown cell the
+      control is listed as "not known", never as free; where it has no entry for an actionmap the
+      page says so and lists only the controls with nothing bound. For an always-live group such
+      as Flight - Movement the truthful answer on 2026-11-28 is that no bound button is idle in
+      every mode, and the page says that.
+    - **It says when it is out of date.** The page compares the running game's version from the
+      log with the build the file was read from, and shows a notice and the command when they
+      differ. A binding in `MOZA.xml` that names an action the build no longer has is shown in
+      red.
+    - Mocked up on the real data of that morning, 19 screens in both orientations with the
+      terminal on and off, in the git-ignored `data/design/actions/`. **[seen 2026-11-28 by the
+      designer, ten of the 76 captures; not yet by the user, no real pointer, not on the side
+      monitor]**
 
 ### Later, each only if the user asks
 
@@ -1614,10 +1704,29 @@ files, all local, all bounded.
 - **The look is direction B, "Avionics"** (the user's choice on 2026-11-27, §15): a well-made
   instrument panel without the sci-fi costume. Bahnschrift in its condensed and normal widths
   (set with `font-stretch`; it ships with Windows), 1-pixel line work, panes with bracketed
-  corners, segmented meters, labeled data blocks, controls as a dotted-leader checklist, an
-  ink-blue ground and one cyan accent. Red, amber and green always come with a shape and a word:
+  corners, segmented meters, labeled data blocks, controls as a dotted-leader checklist, a dark
+  ground and one accent. Red, amber and green always come with a shape and a word:
   an octagon, a triangle, a check. The terminal's type is Cascadia Mono with Consolas behind it
   (Cascadia comes with Windows Terminal, not with Windows).
+  - **The ground and the accent come from one base color** (§4 item 19; designed 2026-11-28,
+    not built: until it is, the page has the ink-blue ground and the cyan accent the look was
+    chosen with). With the default base `0,0,255` the ground stays ink blue (`#070A0F`; it was
+    `#060A0E`) and the accent is the rig's blue at a lightness text can have (`#83ABFF`). The
+    rules, in full in [`design/theme/THEME.md`](design/theme/THEME.md):
+    - The base gives a hue and a saturation. **Every token keeps its own luminance**, the one
+      the look was built with, so the contrast of every pair is the same under every base:
+      text 15:1 or better, secondary text 8.8:1, labels 7:1, the accent 7.5:1, on every ground
+      **[seen 2026-11-28: computed over 1,445 bases]**. When sRGB cannot show a color that
+      strong at that luminance, the color gets weaker, never darker.
+    - **Red, amber and green are fixed points** (`#FF8578`, `#FFB23E`, `#4FDB8F`), with their
+      fills and the failed-preflight screen's reds. No base moves them.
+    - **The accent is never as strong as a status color near that color's hue.** It turns pale
+      until its distance from green, amber and red (in OKLab) is at least 0.110, 0.130 and
+      0.170; amber and red themselves are 0.136 apart. Blue, violet and most cyans keep the
+      full accent. The price on a red, orange or yellow rig is an accent close to the text
+      color.
+    - **No view names a color of its own.** A new view uses the tokens; a color literal outside
+      the stylesheet's token block is a fault a test catches.
   - **The chosen mockup is tracked in `dashboard/design/avionics/`** (`index.html` and
     `style.css`, invented data only), so it survives a fresh clone. Stage 2's page already uses
     its design system; stage 3 builds the views from it.
@@ -1996,6 +2105,36 @@ Use the default unless they say otherwise, and tell them what was chosen.
 | Decision | Their answer | What was turned down |
 | --- | --- | --- |
 | Whether the build waits for the side monitor | **No.** It arrives a day later than expected, and its size is known: 15.6 inches, 1920x1080. Build and test everything now on the main screen, where the user alt-tabs to the dashboard while in the game, then adjust and test again once it is connected ("we can keep working and finish things before montior arrives and adjust if needed after it arrives"). | Holding stage 4 (autostart and the window) until the monitor is connected, which is what this plan said. |
+
+**Asked for by the user on 2026-11-28, at about 10:25 AM** (designed the same morning; not built):
+
+| Decision | Their answer | What was turned down |
+| --- | --- | --- |
+| The page's colors (§4 item 19, §11) | **One base color, set the way MOZA Cockpit sets an LED color, default `0,0,255`:** "can we use that as the 'mother' color for the dashboard? can we make it so we have a singular setting that accepts the RGB 0,0,0 format just like the moza cockpit ... if i change the moza rig to 0,255,0 ... we can change that in the dashboard too and it reflects that so sort of like a theme type thing". | The fixed colors of the look as chosen on 2026-11-27: the ink-blue ground stays (it is the blue rig's ground too), and its cyan accent gives way to the rig's blue. |
+
+Two questions on it are still to be put to the user, each with captures
+([`design/theme/THEME.md`](design/theme/THEME.md), "The user's decisions"):
+
+| Question | Recommendation | The other way, and what it costs |
+| --- | --- | --- |
+| The same setting as a field on the desk panel, as a second step? | **Yes:** type a color, see the page change, as in MOZA Cockpit. It writes the same key, so there is still one setting. | No: the color is changed in `config.json`, by hand or by asking Claude. Saying yes means the service writes one key of that file, which it only reads today. |
+| On a rig near a status color (green, red, orange, yellow), what is the accent? | **The rig's own hue, pale,** so the page stays one color family and the accent cannot be read as a status. | A strong accent in the look's cyan on those rigs: emphasis as strong as on blue, but two colors on the page where the request was for one. With the pale accent, emphasis is weaker on red, orange and yellow rigs. |
+
+**Asked for by the user on 2026-11-28, at about 10:40 AM** (designed the same day; not built):
+
+| Decision | Their answer | What was turned down |
+| --- | --- | --- |
+| The game's actions in the rig reference (§4 item 20) | **Show which actions are bound and which are not, from the game's own files:** "which bindings we do have bound and which ones exist that we have not bound (like ESP and Decoupled, etc) ... pull the available bindings from existing game files so its always updated with the latest patch in the game, thats better than relying on third party websites databases or APIs". | A community site, database or API as the source of the action list. |
+
+Three questions on it are still to be put to the user, with captures
+([`design/actions/ACTIONS.md`](design/actions/ACTIONS.md) §11). The design is built on the
+recommendations until they answer:
+
+| Question | Recommendation | The other way, and what it costs |
+| --- | --- | --- |
+| After a game patch, who refreshes the list? | **A session does, in the patch routine (one command), and the page says when it is out of date.** The routine has to run anyway, to check `MOZA.xml` against the new build. | The dashboard refreshes it by itself when it sees a new build: no session needed, at the price of a second, git-ignored copy of the file, a child process started by the service, and the zstd package as something the service needs. |
+| Which groups count as "for the rig"? | **The pilot's seat in full; turret seats and the advanced camera after it; the rest only where it touches the stick.** | Pilot seat only (shorter; the two live turret defaults move to the "not for the rig" list), or everything the game has (753 named actions, 264 of them on foot, in menus and in ground vehicles). |
+| Where does it live? | **Inside Find, as a second list.** | A ninth tab, "Actions": one click from any page instead of two, and the head has to be laid out again at both widths. |
 
 Still to be put to the user, with a recommendation, before the stage that needs it: how far to
 harden the token for the Claude terminal (§8, three options; stage 4b).
