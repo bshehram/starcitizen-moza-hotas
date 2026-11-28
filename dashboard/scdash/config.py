@@ -68,6 +68,9 @@ DEFAULTS = {
     "log_backups": 1,                   # rotated copies kept (service.log.1)
     "sessions_keep": 500,               # session summaries kept in data/sessions/
     "terminal": {"enabled": False},     # the Claude terminal panel (stage 4b); in stage 2 a placeholder
+    # `open` (stage 4): the browser that shows the window (None: Edge, then Chrome) and the
+    # window's own profile folder (None: %LOCALAPPDATA%\scdash\browser).
+    "window": {"browser": None, "profile": None},
 }
 
 # Every number's allowed range, both ends included. A value outside it is a mistake in the file:

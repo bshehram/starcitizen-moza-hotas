@@ -18,3 +18,4 @@ __pycache__/
 
 # The dashboard's local data: the user's plan, state and session records (never public)
 dashboard/data/
+*.lnk

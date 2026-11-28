@@ -10,10 +10,12 @@ from the state, `data/plan.json` and the user block, sends it as `board` in ever
 four changes from the page (pick a view, back to Live, add and remove a quick timer), records
 unmapped contracts, and serves the rig reference's files from `web/rig/` ("Stage 3 in the
 service" below; the message and the endpoints are in [`STATE.md`](STATE.md)'s last section).
-**The page still has no views:** it draws stage 2's strip and feed and ignores `board`. There is
-no autostart, no window opening and no terminal yet. A plain browser tab at
-`http://127.0.0.1:<port>/` is a full client (the user alt-tabs to one until the side monitor is
-there; see "A browser tab instead of the window" below).
+**The page still has no views:** it draws stage 2's strip and feed and ignores `board`.
+**Stage 4's window half exists** since 2026-11-28: `open` shows the page in Edge's app mode (and
+starts the service first if needed), and `shortcut` writes a `.lnk` that runs it through
+`pythonw` for the taskbar ("Stage 4: the window" below). There is no autostart (the logon task)
+and no terminal yet. A plain browser tab at `http://127.0.0.1:<port>/` is still a full client
+(see "A browser tab instead of the window" below).
 The human-facing page is [`README.md`](README.md).
 
 Three rules that hold for everything in this folder:
@@ -30,9 +32,11 @@ Three rules that hold for everything in this folder:
 
 | File | What it does |
 | --- | --- |
-| `scdash.py` | Command line, run from the project root: `run`, `start`, `stop`, `status`, `replay`, `timeline`; `install`, `uninstall`, `open` are stage 4 stubs that do nothing. |
-| `scdash/config.py` | Paths (LIVE found from the repo's place, or `SCDASH_LIVE`), read sizes, caps, the expected joysticks; the service settings `DEFAULTS` and `load_settings(data_dir, overrides)`; stage 3's service constants (plan look, catch-up, the lock waits of a change and of the last save, the last save's write, user ops, the user block's other keys, the largest data file read, the damaged copies kept, error repeats, rig file bounds). |
-| `scdash/winutil.py` | Windows-only calls, each with a fallback: `open_shared()`, `InstanceLock` (named mutex), `process_list()`/`process_table()` (pid, name and creation time from one `NtQuerySystemInformation` call, no handle to any process; Toolhelp as the fallback), `process_created()`, `below_normal_priority()`, `exclusive_address()`, `own_memory()`. |
+| `scdash.py` | Command line, run from the project root: `run`, `start`, `stop`, `status`, `replay`, `timeline`, `open`, `shortcut`; `install`, `uninstall` are stage 4 stubs that do nothing. `start` and `open` share `_ensure_running()`. `HAS_CONSOLE` is read at import, before `__main__` points missing streams at the null device; `_Out` sends `open`'s messages to the console, or (none, under pythonw) to a message box and `data/service.log`. |
+| `scdash/config.py` | Paths (LIVE found from the repo's place, or `SCDASH_LIVE`), read sizes, caps, the expected joysticks; the service settings `DEFAULTS` (with `window.browser` and `window.profile` for `open`) and `load_settings(data_dir, overrides)`; stage 3's service constants (plan look, catch-up, the lock waits of a change and of the last save, the last save's write, user ops, the user block's other keys, the largest data file read, the damaged copies kept, error repeats, rig file bounds). |
+| `scdash/winutil.py` | Windows-only calls, each with a fallback: `open_shared()`, `InstanceLock` (named mutex), `process_list()`/`process_table()` (pid, name and creation time from one `NtQuerySystemInformation` call, no handle to any process; Toolhelp as the fallback), `process_created()`, `below_normal_priority()`, `exclusive_address()`, `own_memory()`; for stage 4 `monitors()` (bounds, work area, primary, scale, in physical pixels, read on a per-monitor-DPI-aware thread), `app_path()` (App Paths in the registry), `message_box()`, `desktop_folder()`, `write_shortcut()` / `read_shortcut()` (the shell's ShellLink COM object through ctypes, no PowerShell). |
+| `scdash/window.py` | Stage 4's window: `find_browser()` (a named one, else Edge, then Chrome: App Paths, install folder, PATH), `profile_dir()`, `profile_in_use()` (Chromium's `lockfile` in the profile folder), `placement(monitors, portrait, main)` (pure: a centered window on the main screen, or a point inside the second display and full screen), `command()` (the exact command line), `launch()` (below normal, out of the caller's job, no console window), `describe()`. |
+| `make_icon.py`, `scdash.ico` | The shortcut's icon and its generator (Pillow, which only this script imports): the ink-blue ground, the panes' corner brackets and a cyan segmented meter, each size drawn on its own pixel grid. |
 | `scdash/server.py` | The web server: `Server` (its file table `files`: the page's three `FILES` plus `rig_files()`, built once; registered routes), the request guard (`READ`, `CHANGE`, `PRIVATE`), `Hub` (one event stream, with its own cap), `json_text()` / `encodable()` / `scrub()` (JSON that always encodes and parses; `scrub` and `_finite` stop at `MAX_DEPTH` = 64 levels, deeper becomes null, so neither can raise `RecursionError`), `json_depth_over()` (a depth check without recursion, for values read from a file), `_plain()` (no junction, link or other reparse point, and a file with a single name), `error_key()` / `remember()` (a repeating fault logged once). |
 | `scdash/service.py` | The service: `Service` (life cycle, main loop, data files; stage 3: the plan look, the board, the four changing routes, the user block and its late merge, the saves as snapshots, unmapped contracts), `user_block_from_file()` (the block as stored, bounded), `apply_user_op()`, `visible()` (a label's test), `shown_path()` (paths in `status`), clocks and the replay feeder, and the helpers the commands use to talk to an instance (`instance_info`, `probe_health`, `launch_background`). |
 | `scdash/telemetry*.py` | Stage 6's telemetry reader, written by another agent. Not wired into the service. |
@@ -58,7 +62,7 @@ Three rules that hold for everything in this folder:
 | `scdash/pipeline.py` | `LogReader`: follower -> records -> events -> state. What the stage 2 service drives. `read_whole()`. |
 | `scdash/timeline.py` | The `timeline` text and JSON, and the session list (`--list`). |
 | `THIRD_PARTY_NOTICES` | CSR's MIT license and what was adapted where. `tests/test_credit.py` keeps it honest: a file with a "From CSR" mark must be listed, and a listed file must carry the copyright line. |
-| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`). |
+| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`); stage 4's window is `test_open.py` (a stand-in browser behind a `.cmd` records its command line; no real browser is started). |
 
 `scdash.py` sits beside the package folder `scdash/`. With `dashboard/` on `sys.path`, `import
 scdash` finds the package because a package directory wins over a module file of the same name;
@@ -83,7 +87,8 @@ its first line looks like a session's. `tests/test_reference.py` belongs to the 
 The suite takes about 3 min (520 tests in 182 s on 2026-11-28, with the game running). Stage 1's part is about 10 s
 (the 100 MB flood test, which `SCDASH_FLOOD_MB` makes smaller, and the privacy test, which learns
 names and ids from the newest local logs for up to 4 s); stage 2's process tests start and stop
-real background instances (`test_cli.py` about 65 s, `test_replay.py` about 17 s); stage 3's
+real background instances (`test_cli.py` about 65 s, `test_replay.py` about 17 s, stage 4's
+`test_open.py` about 35 s); stage 3's
 `test_wiring.py` takes about 16 s (81 tests after the wiring review's two fix rounds, 2026-11-28). With 64 GB (since 2026-11-28) the suite needs no
 `SCDASH_FLOOD_MB` while the game runs; on a PC short of memory, set `SCDASH_FLOOD_MB=5`.
 
@@ -96,6 +101,8 @@ python dashboard/scdash.py stop             # stops it and writes data/stopped.j
 python dashboard/scdash.py run              # foreground until Ctrl+C, logging to the console too
 python dashboard/scdash.py replay "26 Nov 26 (15 11 12)" [--minutes 1.5 | --speed 40] [--terminal]
 python dashboard/scdash.py replay <log> --plan dashboard/plan.example.json   # with a plan of its own
+python dashboard/scdash.py open [--portrait] [--main] [--browser <program>]   # the window (stage 4)
+python dashboard/scdash.py shortcut [--desktop] [--folder <dir>]   # SC Dashboard.lnk, running `open` via pythonw
 ```
 
 Every service command takes `--data <folder>` (default `dashboard/data`); `run` and `start` also
@@ -310,8 +317,10 @@ section below).
 which gives it the lock, the 503s and the save before the answer.
   The page reloads itself when the payload's `service.pid` or `service.started` changes, so it
   never posts with a dead token.
-- Stage 4: the `install`, `uninstall` and `open` commands in `scdash.py`; `start` through the task
-  in `launch_background()`; `run.json` records `python` for the moved-interpreter check.
+- Stage 4: `open` and `shortcut` exist ("Stage 4: the window" below). Still to come: the
+  `install` and `uninstall` commands in `scdash.py`; `start` (and so `open`) through the task in
+  `launch_background()`; `run.json` records `python` for the moved-interpreter check; the service
+  opening and closing the window by itself.
 - Stage 4b: a `Hub` of its own (`max_clients=1`) registered with
   `server.stream(path, hub, PRIVATE)` for the terminal's output, read on the page with
   `window.scdash.openPrivateStream(path, onData)` (fetch with the token header over the
@@ -673,6 +682,95 @@ before the last message is read). Stage 3's "done when" also names Refinery, Com
 Salvage: no rule chose any of them in these sessions (no contract rule fired, and Refinery comes
 from a plan leg; the example plan's legs name other places), so those are judged on the built
 samples and on the user's next sessions.
+
+## Stage 4: the window (`open`, `shortcut`), 2026-11-28
+
+The `open` half of stage 4 (PLAN §6, §11 "Opening the window", §12 stage 4). The logon task
+(`install`, `uninstall`) is not part of it.
+
+**`open`** (`cmd_open` in `scdash.py`, the mechanics in `scdash/window.py`):
+
+1. Finds the browser first, so nothing is started when there is nothing to show it in: `--browser`,
+   else the `window.browser` setting (a path, or a name looked up under App Paths and on PATH; a
+   named browser that is missing is an error, not a reason to use another), else Edge, then
+   Chrome: App Paths (HKCU, then HKLM), their install folders, PATH. On this PC App Paths gives
+   `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` [seen].
+2. Makes sure the service answers, through `_ensure_running()`, the code `start` uses (it clears a
+   stop marker too, as `start` does).
+3. Decides whether a window is open. `pages` from `/api/status` alone cannot tell the window from
+   a browser tab, so it is combined with the window's profile folder: Chromium keeps `lockfile`
+   in it while it runs, opened delete-on-close [seen 2026-11-28: present while the user's
+   hand-made Edge window ran; Python's `open()` was refused, `open_shared()` was not, so the
+   holder has delete access]. Only its presence is tested (opening it could race a starting
+   browser).
+   - Profile in use and a page connected: "already open", exit 0, nothing started.
+   - Profile in use, no page, the service up less than `RECONNECT_SECONDS` (8 s): waits for the old
+     page to reconnect (its stream retries after 3 s, `app.js` after 5 s), as PLAN §11 asks.
+     Then "already open", or it opens one (the launch is handed to the running browser, whose
+     placement switches are then dropped).
+   - A page connected but the profile not in use: a tab elsewhere; the window opens anyway and
+     the output says so (and warns at `max_pages`).
+4. Places the window (`window.placement()`, displays read from Windows each time) and starts the
+   browser below normal priority (the whole browser tree inherits it, so it yields to the game),
+   out of the caller's job, with `CREATE_NO_WINDOW`, working folder the home folder. It does not
+   wait for the browser. One `INFO open: started ...` line goes to `data/service.log`.
+
+**The exact command line** (Edge on this PC, one display at 3840x2160 and 100 %, taskbar 48 px):
+
+```
+msedge.exe --user-data-dir=%LOCALAPPDATA%\scdash\browser --app=http://127.0.0.1:47826/
+           --window-position=952,496 --window-size=1936,1119 --no-first-run
+           --no-default-browser-check --disable-background-networking
+           --disable-component-update --disable-sync
+```
+
+(the profile path is passed expanded). With `--portrait`: `--window-position=1372,76
+--window-size=1096,1959`. With a second display: `--window-position=<a point inside it>
+--start-fullscreen` and no size. Never `--kiosk`.
+
+- **One display:** the window is the page's size plus `window.FRAME` = (16, 39), centered in the
+  primary's work area, in the browser's scaled units (physical / scale). When the work area is
+  smaller, the window is capped to it and the output says so. `FRAME` is an estimate of Edge's
+  app-window borders and title bar on Windows 11 **[unverified]**.
+- **A second display:** a non-primary display of 1920x1080 or 1080x1920 if there is one, else the
+  first. Whether Chromium reads `--window-position` in physical or scaled pixels is still open
+  (PLAN §14 item 2), so `inside_point()` takes the middle of the overlap of both readings (the
+  scaled one estimated by placing the display against the primary's edge at its own scale), and
+  the scaled one alone when they do not overlap. With a main screen at 100 %, as on this PC,
+  both readings are the same. `--main` keeps a window on the main screen. **[unverified: no
+  second display until the side monitor is connected]**
+- **No console** (pythonw from the shortcut): `_Out` puts a problem in a message box and in
+  `data/service.log` (`ERROR open: ...`, never through a link), and "already open" in a message
+  box; progress is not shown. The box is `MB_SETFOREGROUND`: the user started the command.
+
+**`shortcut`** writes `dashboard/SC Dashboard.lnk` (`--folder` elsewhere, `--desktop` also on
+the Desktop, from `SHGetKnownFolderPath`): target `pythonw.exe` beside the running Python,
+arguments `"<repo>\dashboard\scdash.py" open`, working folder the repo root, a description, and
+`dashboard/scdash.ico`. Written through the ShellLink COM object (`winutil.write_shortcut`); a
+`.lnk` holds absolute paths (the Windows user name among them), so `*.lnk` is git-ignored and
+`test_privacy` would catch one that is not. The user's hand-made Desktop shortcut (Edge app mode
+pointed straight at port 47826, same profile folder) is replaced by the orchestrator, not by a
+test: no test writes to the Desktop or to `dashboard/`.
+
+**Decisions to confirm** (made in this slice): a tab does not count as the window (the profile
+test above); the reconnect wait; the window below normal priority; `--main`; the custom icon
+rather than Edge's (`make_icon.py`); "already open" from the shortcut is a message box, not
+bringing the window to the front (that would need finding the window by its title; not done).
+
+**Unverified until checked by hand or with the side monitor:**
+
+- `FRAME`: whether the page gets exactly 1920x1080 (check `innerWidth`, `innerHeight` with F12 in
+  the window and adjust `window.FRAME`).
+- Everything about the second display: placement, full screen in both orientations, and whether
+  a full-screen window follows a rotation made while it is open (PLAN §11).
+- Focus while the game is in front; the window's real memory (PLAN §9); what still goes online
+  with the window open (PLAN §8).
+- Pinning the shortcut to the taskbar, and the message box under pythonw (the tests patch it).
+
+**Left in stage 4:** the logon task (`install`, `uninstall`, `start` through `schtasks /Run`);
+the service opening the window when the game starts and closing the one it opened a few minutes
+after the game exits (PLAN §6, §15; it must close only a window it opened itself, by process id
+and start time, PLAN §8); the second-display checks above.
 
 ### A browser tab instead of the window
 

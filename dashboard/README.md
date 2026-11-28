@@ -11,15 +11,16 @@ list is only a note), where you went,
 ships, quantum jumps, contracts, refinery orders, trades, deaths, and how the session ended. The
 service follows the game's log while you play and serves a page at http://127.0.0.1:47826/: the
 time, the session's length, the game's state, the joystick check as a clear pass or fail, where
-you are, your ship, alerts, and the latest events. Open that address in any browser tab; the
-dashboard's own window comes later.
+you are, your ship, alerts, and the latest events. `open` shows that page in a window of its own
+(see "The dashboard's own window" below); any browser tab at that address works too.
 
 **Also built, but not on the page yet: the logic behind the views (stage 3).** The service already
 works out which view fits the moment (mining, travel, preflight and the rest), the alerts and
 timers, and what your plan file says, and sends it all to the page; the page will draw it in the
 next part of stage 3. It also serves the rig reference's data and diagrams, and takes four changes
 from the page: pick a view by hand, go back to the live choice, add a quick timer, remove one.
-Starting by itself at sign-in and opening its own window come in later stages.
+Starting by itself at sign-in, and opening the window by itself when the game starts, come in a
+later stage.
 
 Run these from the repo's root folder (Python 3, nothing to install):
 
@@ -51,10 +52,60 @@ files, listens on this PC alone (127.0.0.1), and runs below normal priority. To 
 (the port, for example), copy `config.example.json` to `data/config.json` and edit that copy; every
 setting is explained in the example.
 
+## The dashboard's own window
+
+```sh
+python dashboard/scdash.py open              # starts the service if needed, then opens the window
+python dashboard/scdash.py open --portrait   # the same, shaped for a monitor stood on its end
+python dashboard/scdash.py shortcut          # writes dashboard/SC Dashboard.lnk, which runs `open`
+python dashboard/scdash.py shortcut --desktop   # ... and puts a copy on your Desktop
+```
+
+`open` shows the page in Microsoft Edge's app mode (Google Chrome if Edge is missing): a window
+with no tabs, address bar or toolbar, and its own button on the taskbar. If the service is not
+running, `open` starts it first, as `start` does (it also clears a stop marker). If the window is
+already open, it says so and opens nothing; a page open in an ordinary browser tab does not count,
+so the window still opens beside it.
+
+- **With one screen** (until the side monitor is connected), the window opens in the middle of
+  the main screen, sized so the page gets 1920x1080 (1080x1920 with `--portrait`), the side
+  monitor's own size, or as much as the screen has room for. Move it and resize it as you like.
+- **With a second screen connected**, it fills that screen, in whichever way the screen stands
+  (F11 leaves full screen, Alt+F4 closes the window). `--main` keeps it a window on the main
+  screen instead. This part has not been tried yet: the side monitor was not connected when it
+  was written.
+- **Another browser:** `--browser chrome.exe` (or the full path to the program), or set it once
+  in `data/config.json` under `"window"` (see `config.example.json`). It has to be a Chromium
+  browser.
+
+**The shortcut, for the taskbar.** `shortcut` writes `dashboard/SC Dashboard.lnk`. It runs `open`
+through `pythonw`, so no console window appears; if something goes wrong (no browser, the
+service will not start) you get a message box, and the problem is also written to
+`data/service.log`. To pin it to the taskbar, right-click the shortcut, choose **Show more
+options**, then **Pin to taskbar** (the same menu has **Pin to Start**); dragging it onto the
+taskbar works too. The window then gets a taskbar button of its own while it is open. A shortcut
+holds the full paths of Python and of this folder, so it is never committed (`*.lnk` is in the
+repo's `.gitignore`): make it again with `shortcut` after Python or the repo moves. Its icon is
+`scdash.ico`, made by `make_icon.py` (needs Pillow).
+
+**The window's browser profile.** The window runs from a browser profile of its own, in
+`%LOCALAPPDATA%\scdash\browser`, outside this repo and the game folder: it holds the window's own
+cache and remembers where you put the window, and nothing in it is shared with your everyday
+browser. It is started with the options that stop a new profile from going online by itself
+(updates, sync, first-run pages). To remove it, close the dashboard window and delete the folder,
+for example in PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\scdash\browser"
+```
+
+The next `open` makes a fresh one. The window runs below normal priority, so it gives way to the
+game, as the service does.
+
 ## Setting up on a fresh Windows install
 
-The dashboard is not finished, so this list is short. It will grow as later stages add autostart,
-the window and the Claude terminal. Every step is safe to repeat.
+The dashboard is not finished, so this list is short. It will grow as later stages add autostart
+and the Claude terminal. Every step is safe to repeat.
 
 1. **Python 3.12 or newer**, with `python` on your PATH. The dashboard needs nothing else: it
    uses the standard library only. (The other tools in this repo need
@@ -64,7 +115,10 @@ the window and the Claude terminal. Every step is safe to repeat.
    `gh repo clone bshehram/starcitizen-moza-hotas` or the HTTPS address.
 3. **Check it:** run the tests command above from the repo's root folder. Everything should pass.
    Two privacy tests are skipped until the game has written a log.
-4. **Optional, for the telemetry readouts in a later stage:** the game only serves its local
+4. **The window's shortcut:** `python dashboard/scdash.py shortcut --desktop`, then pin it to the
+   taskbar as described in "The dashboard's own window" above. Microsoft Edge comes with Windows,
+   so nothing else is needed.
+5. **Optional, for the telemetry readouts in a later stage:** the game only serves its local
    telemetry stream when the RSI Launcher was started with one variable set. To set it for your
    Windows user, run `setx GRPC_CLIENT_SERVER_ENABLED true`, then quit the launcher completely
    and start it again. To undo it, run `reg delete HKCU\Environment /v GRPC_CLIENT_SERVER_ENABLED`

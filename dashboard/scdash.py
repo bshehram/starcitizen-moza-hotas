@@ -7,12 +7,17 @@
     python dashboard/scdash.py replay "26 Nov 26 (15 11 12)"   # a past log, at speed, on port 47827
     python dashboard/scdash.py replay <log> --plan dashboard/plan.example.json   # with a plan of its own
     python dashboard/scdash.py timeline [log] [--json] [--list --since 2026-11-26]
+    python dashboard/scdash.py open [--portrait]        # the dashboard's own window; starts the service if needed
+    python dashboard/scdash.py shortcut [--desktop]     # writes dashboard/SC Dashboard.lnk, which runs `open`
 
 Every service command takes `--data <folder>` (default dashboard/data) and, where it makes sense,
 `--port`, `--log`, `--live` and `--process`: an instance belongs to its data folder, so tests and
 replays run beside the live one. What each command does when repeated is in PLAN.md §6.
 
-`install`, `uninstall` and `open` belong to stage 4 (PLAN.md §12) and do nothing yet.
+`install` and `uninstall` belong to stage 4 (PLAN.md §12) and do nothing yet.
+
+`open` is also run by `pythonw` from the shortcut, with no console: then what the user must see
+(a problem, or "already open") goes into a message box, and a problem also into the service's log.
 
 Import note: this script sits beside the package folder `scdash/`. Python puts the script's own
 folder (dashboard/) first on sys.path, and the import system prefers a package directory over a
@@ -39,10 +44,17 @@ if not hasattr(scdash, "__path__"):        # guard: we must have the package, no
 
 PLAN_COPY_MAX = 1 << 20          # `replay --plan`: a larger file is refused (the plan reader takes 256 KB)
 
+# Read before anything replaces the streams: under pythonw (the shortcut) there are none, so
+# `open` has nobody to print to and uses a message box instead.
+HAS_CONSOLE = sys.stdout is not None
+
+TITLE = "SC Dashboard"
+SHORTCUT_NAME = "SC Dashboard.lnk"     # git-ignored (*.lnk): a shortcut holds absolute paths
+ICON = Path(__file__).resolve().parent / "scdash.ico"   # made by dashboard/make_icon.py
+
 STAGE4 = {
     "install": "register the logon task (stage 4, not built yet)",
     "uninstall": "remove the logon task (stage 4, not built yet)",
-    "open": "open the dashboard window on the side monitor (stage 4, not built yet)",
 }
 
 
@@ -92,12 +104,27 @@ def main(argv=None):
     rp.add_argument("--plan", help="a plan.json to replay with (copied into the replay's own folder; "
                                    "for example dashboard/plan.example.json). Without it there is no plan")
 
+    op = sub.add_parser("open", help="open the dashboard in its own window, starting the service if it is not running")
+    _instance_args(op)
+    op.add_argument("--wait", type=float, default=15.0, help="seconds to wait for a service it starts (default 15)")
+    op.add_argument("--portrait", action="store_true",
+                    help="on the main screen, a window for 1080x1920 instead of 1920x1080")
+    op.add_argument("--main", action="store_true",
+                    help="a window on the main screen even when there is a second display")
+    op.add_argument("--browser", help="the browser program: a path, or a name such as chrome.exe "
+                                      "(default: the window.browser setting, else Edge, else Chrome)")
+
+    sc = sub.add_parser("shortcut", help="write dashboard/SC Dashboard.lnk, a shortcut that runs `open` without a console")
+    sc.add_argument("--desktop", action="store_true", help="also put it on your Desktop")
+    sc.add_argument("--folder", help="write it into this folder instead of dashboard/")
+
     for name, text in STAGE4.items():       # stage 4 fills these in
         sub.add_parser(name, help=text)
 
     args = ap.parse_args(argv)
     return {"timeline": cmd_timeline, "run": cmd_run, "start": cmd_start, "stop": cmd_stop,
-            "status": cmd_status, "replay": cmd_replay}.get(args.command, cmd_stage4)(args)
+            "status": cmd_status, "replay": cmd_replay, "open": cmd_open,
+            "shortcut": cmd_shortcut}.get(args.command, cmd_stage4)(args)
 
 
 def _port_arg(text):
@@ -179,28 +206,34 @@ def _wait_healthy(paths, port, seconds):
 
 
 def cmd_start(args):
-    from scdash import service
     paths, settings, notes, log = _resolve(args)
+    return _ensure_running(args, paths, settings, print)[0]
+
+
+def _ensure_running(args, paths, settings, say):
+    """`start`'s work, shared with `open`: make sure an instance for this data folder answers,
+    starting one if none does. Each message goes to `say`. Returns (exit code, instance info)."""
+    from scdash import service
     port = settings["port"]
     if paths.stopped.exists():
         try:
             paths.stopped.unlink()
-            print("Removed the stop marker: automatic starts work again.")
+            say("Removed the stop marker: automatic starts work again.")
         except OSError as e:
-            print("Could not remove the stop marker %s (%s)." % (paths.stopped, e))
-            return 1
+            say("Could not remove the stop marker %s (%s)." % (paths.stopped, e))
+            return 1, None
     info = service.instance_info(paths, port)
     if info["healthy"]:
-        print("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
-        return 0
+        say("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
+        return 0, info
     if info["lock_held"]:
         info = _wait_healthy(paths, port, args.wait)
         if info["healthy"]:
-            print("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
-            return 0
-        print("An instance holds the lock for %s but does not answer; not starting another. "
-              "See %s." % (paths.data, paths.log))
-        return 1
+            say("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
+            return 0, info
+        say("An instance holds the lock for %s but does not answer; not starting another. "
+            "See %s." % (paths.data, paths.log))
+        return 1, info
     proc = service.launch_background(_forward(args, paths))
     end = time.monotonic() + args.wait
     while time.monotonic() < end:
@@ -209,26 +242,26 @@ def cmd_start(args):
             if code == service.EXIT_RUNNING:
                 info = _wait_healthy(paths, port, max(1.0, end - time.monotonic()))
                 if info["healthy"]:
-                    print("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
-                    return 0
+                    say("Already running: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
+                    return 0, info
             if code == service.EXIT_PORT:
                 kind, why = service.probe_health(port)
                 if kind == "scdash":
-                    print("Not started: another dashboard instance (pid %s, another data folder) is using port %d."
-                          % (why.get("pid"), port))
+                    say("Not started: another dashboard instance (pid %s, another data folder) is using port %d."
+                        % (why.get("pid"), port))
                 else:
-                    print("Not started: port %d is taken by another program, not this dashboard (%s). "
-                          "Set \"port\" in %s to another number." % (port, why or "it answered", paths.config))
-                return service.EXIT_PORT
-            print("Not started: the service exited with code %d. See %s." % (code, paths.log))
-            return code or 1
+                    say("Not started: port %d is taken by another program, not this dashboard (%s). "
+                        "Set \"port\" in %s to another number." % (port, why or "it answered", paths.config))
+                return service.EXIT_PORT, info
+            say("Not started: the service exited with code %d. See %s." % (code, paths.log))
+            return code or 1, info
         info = service.instance_info(paths, port)
         if info["healthy"]:
-            print("Started: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
-            return 0
+            say("Started: pid %d, http://127.0.0.1:%d/" % (info["run"]["pid"], info["port"]))
+            return 0, info
         time.sleep(0.2)
-    print("Started (pid %d), but it did not answer within %.0f s. See %s." % (proc.pid, args.wait, paths.log))
-    return 1
+    say("Started (pid %d), but it did not answer within %.0f s. See %s." % (proc.pid, args.wait, paths.log))
+    return 1, info
 
 
 def cmd_stop(args):
@@ -435,6 +468,149 @@ def cmd_replay(args):
 def _span_words(seconds):
     from scdash.words import duration
     return duration(seconds)
+
+
+# ---------------------------------------------------------------------------- open, shortcut
+
+class _Out:
+    """Where `open` tells the user things. With a console, everything is printed. Without one
+    (pythonw from the shortcut), what the user must see goes into a message box and the rest
+    nowhere: the window appearing is the news. A problem is also written to the service's log."""
+
+    def __init__(self, paths, console):
+        self.paths, self.console = paths, console
+
+    def say(self, text):
+        if self.console:
+            print(text)
+
+    def tell(self, text):
+        """Something the user must see though nothing failed ("already open"). Returns 0."""
+        if self.console:
+            print(text)
+        else:
+            _message_box(text, error=False)
+        return 0
+
+    def fail(self, text, code=1):
+        _log_line(self.paths, "ERROR", text)
+        if self.console:
+            print(text)
+        else:
+            _message_box(text, error=True)
+        return code
+
+
+def _message_box(text, error):
+    from scdash import winutil
+    winutil.message_box(TITLE, text, error=error)
+
+
+def _log_line(paths, level, text):
+    """One line in the service's log (data/service.log), in its format, from this process. Never
+    through a junction or a link (PLAN §8); a failure to write is passed over."""
+    from scdash import service
+    try:
+        paths.data.mkdir(parents=True, exist_ok=True)
+        if service.link_on_the_way(paths.data, paths.log, include_self=True) is not None:
+            return
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
+        with open(paths.log, "a", encoding="utf-8", errors="backslashreplace") as f:
+            f.write("%s %s open: %s\n" % (stamp, level, text))
+    except OSError:
+        pass
+
+
+def cmd_open(args):
+    """The dashboard in its own window (PLAN §6 `open`, §11). The service is started first if it
+    is not running. No second window: when the window's own browser runs from its profile folder
+    and a page is connected, nothing is opened. A page connected while that browser is not running
+    is a tab somewhere else, so the window still opens."""
+    from scdash import service, window, winutil
+    paths, settings, notes, log = _resolve(args)
+    out = _Out(paths, HAS_CONSOLE)
+    wset = settings["window"]
+    named = args.browser or wset.get("browser")
+    browser = window.find_browser(named)
+    if browser is None:
+        if named:
+            return out.fail("The browser %r was not found. Give the full path to its program with --browser, "
+                            "or set \"window\": {\"browser\": ...} in %s." % (named, paths.config))
+        return out.fail("No browser to show the dashboard in: neither Microsoft Edge nor Google Chrome was found. "
+                        "Install one, or name another Chromium browser with --browser.")
+    said = []
+
+    def say(text):
+        said.append(text)
+        out.say(text)
+    code, info = _ensure_running(args, paths, settings, say)
+    if code != 0 or not info or not info["healthy"]:
+        return out.fail("The dashboard service is not running, so there is nothing to show. %s"
+                        % (said[-1] if said else ""), code or 1)
+    profile = window.profile_dir(wset.get("profile"))
+    st = service.instance_status(info) or {}
+    pages = st.get("pages") or 0
+    in_use = window.profile_in_use(profile)
+    if in_use and not pages and (st.get("uptime_s") or 0) < window.RECONNECT_SECONDS:
+        # A window open from before this service started reconnects by itself within seconds:
+        # wait for it rather than open a second one (PLAN §11).
+        say("Waiting a few seconds for an open dashboard window to reconnect ...")
+        end = time.monotonic() + window.RECONNECT_SECONDS - (st.get("uptime_s") or 0) + 0.5
+        while not pages and time.monotonic() < end:
+            time.sleep(0.25)
+            pages = (service.instance_status(info) or {}).get("pages") or 0
+    if in_use and pages:
+        return out.tell("The dashboard window is already open (%d page%s connected), so no second one was "
+                        "opened. It may be behind another window or minimized." % (pages, "" if pages == 1 else "s"))
+    if pages:
+        say("%d page%s already connected (a browser tab?); opening the window as well." % (pages, "" if pages == 1 else "s"))
+        if pages >= settings["max_pages"]:
+            say("That is the most the service serves (max_pages %d): the window will wait until one is closed."
+                % settings["max_pages"])
+    place = window.placement(winutil.monitors(), portrait=args.portrait, main=args.main)
+    if place["where"] == "side" and args.portrait:
+        say("--portrait is for the main screen: on the second display the window takes the display's own shape.")
+    cmd = window.command(browser, profile, "http://127.0.0.1:%d/" % info["port"], place)
+    try:
+        proc = window.launch(cmd)
+    except OSError as e:
+        return out.fail("Could not start the browser %s (%s)." % (browser, e.strerror or e.__class__.__name__))
+    text = window.describe(place, window.browser_label(browser))
+    say(text)
+    _log_line(paths, "INFO", "started %s (pid %d). %s" % (browser.name, proc.pid, text))
+    return 0
+
+
+def cmd_shortcut(args):
+    """Write `SC Dashboard.lnk`: pythonw running this script's `open`, with no console, for the
+    taskbar, the Start menu or the Desktop. The file holds absolute paths, so it is git-ignored."""
+    from scdash import winutil
+    if not winutil.IS_WINDOWS:
+        print("A .lnk shortcut is a Windows file: nothing was written.")
+        return 2
+    exe = Path(sys.executable)
+    target = exe.with_name("pythonw.exe")
+    if not target.is_file():
+        target = exe
+        print("No pythonw.exe beside %s: the shortcut uses python.exe, which shows a console window." % exe.name)
+    script = Path(__file__).resolve()
+    folders = [Path(args.folder).resolve() if args.folder else script.parent]
+    if args.desktop:
+        folders.append(winutil.desktop_folder())
+    for folder in folders:
+        path = folder / SHORTCUT_NAME
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            winutil.write_shortcut(path, target, '"%s" open' % script, workdir=script.parent.parent,
+                                   description="Open the Star Citizen side-screen dashboard in its own window",
+                                   icon=(ICON, 0) if ICON.is_file() else None)
+        except OSError as e:
+            print("Could not write %s (%s)." % (path, e))
+            return 1
+        print("Wrote %s" % path)
+    print("To pin it: right-click it, choose Show more options, then Pin to taskbar (or Pin to Start). "
+          "It runs `open`, which starts the service if needed and opens the window.")
+    return 0
 
 
 # ---------------------------------------------------------------------------- stage 4, timeline

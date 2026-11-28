@@ -18,6 +18,15 @@
 - `process_created()`: a process's creation time, to tell a live instance of ours from a reused
   process id.
 
+For `open` and `shortcut` (stage 4, `window.py`):
+
+- `monitors()`: the displays as Windows reports them now, in physical pixels, with their scale.
+- `app_path()`: where a program registered itself under App Paths, Microsoft's documented place
+  for an installed program's location (how Edge and Chrome are found).
+- `message_box()`: a plain message box, for `open` run without a console (from the shortcut).
+- `desktop_folder()`, `write_shortcut()`, `read_shortcut()`: a `.lnk` file through the shell's own
+  ShellLink object.
+
 No handle is ever opened to another program's process, the game's or any other. The calls that
 take a process handle use `GetCurrentProcess()`, a pseudo-handle for this process. Nothing here,
 or anywhere in scdash, ends or signals a process.
@@ -25,6 +34,7 @@ or anywhere in scdash, ends or signals a process.
 import os
 import socket
 import sys
+from pathlib import Path
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -443,3 +453,230 @@ def own_memory():
     except (ImportError, OSError, ValueError):
         pass
     return out
+
+
+# ------------------------------------------------------------------------- the window (stage 4)
+
+if IS_WINDOWS:
+    _user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+    class _MONITORINFO(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
+                    ("dwFlags", wintypes.DWORD)]
+
+    _MONITORENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HMONITOR, wintypes.HDC,
+                                          ctypes.POINTER(wintypes.RECT), wintypes.LPARAM)
+    _user32.EnumDisplayMonitors.argtypes = [wintypes.HDC, ctypes.c_void_p, _MONITORENUMPROC, wintypes.LPARAM]
+    _user32.EnumDisplayMonitors.restype = wintypes.BOOL
+    _user32.GetMonitorInfoW.argtypes = [wintypes.HMONITOR, ctypes.POINTER(_MONITORINFO)]
+    _user32.GetMonitorInfoW.restype = wintypes.BOOL
+    _user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+    _user32.MessageBoxW.restype = ctypes.c_int
+    try:                                          # Windows 10 1607 and later
+        _SetThreadDpiAwarenessContext = _user32.SetThreadDpiAwarenessContext
+        _SetThreadDpiAwarenessContext.argtypes = [ctypes.c_void_p]
+        _SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+    except AttributeError:                        # pragma: no cover
+        _SetThreadDpiAwarenessContext = None
+    try:                                          # Windows 8.1 and later
+        _GetDpiForMonitor = ctypes.WinDLL("shcore").GetDpiForMonitor
+        _GetDpiForMonitor.argtypes = [wintypes.HMONITOR, ctypes.c_int, ctypes.POINTER(wintypes.UINT),
+                                      ctypes.POINTER(wintypes.UINT)]
+        _GetDpiForMonitor.restype = ctypes.c_long
+    except (OSError, AttributeError):             # pragma: no cover
+        _GetDpiForMonitor = None
+    _PER_MONITOR_AWARE_V2 = ctypes.c_void_p(-4)   # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    _MONITORINFOF_PRIMARY = 1
+
+
+def monitors():
+    """The displays, as Windows reports them at this moment: a list of {"bounds": (left, top,
+    right, bottom), "work": the same without the taskbar, "primary": bool, "scale": 1.0 at 96 DPI,
+    1.5 at 144}, in physical pixels on the virtual desktop (the primary display starts at 0, 0).
+    Read each time the window is opened, never stored: a display turned to portrait reports its
+    new shape at once (PLAN §11). Empty off Windows or when the calls fail."""
+    if not IS_WINDOWS:
+        return []
+    out = []
+
+    def one(hmon, _hdc, _rect, _data):
+        mi = _MONITORINFO()
+        mi.cbSize = ctypes.sizeof(mi)
+        if not _user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
+            return True
+        scale = 1.0
+        if _GetDpiForMonitor is not None:
+            dx, dy = wintypes.UINT(0), wintypes.UINT(0)
+            if _GetDpiForMonitor(hmon, 0, ctypes.byref(dx), ctypes.byref(dy)) == 0 and dx.value:
+                scale = dx.value / 96.0
+        m, w = mi.rcMonitor, mi.rcWork
+        out.append({"bounds": (m.left, m.top, m.right, m.bottom), "work": (w.left, w.top, w.right, w.bottom),
+                    "primary": bool(mi.dwFlags & _MONITORINFOF_PRIMARY), "scale": scale})
+        return True
+
+    # Physical pixels need a DPI-aware thread: set for this call only, then put back.
+    old = _SetThreadDpiAwarenessContext(_PER_MONITOR_AWARE_V2) if _SetThreadDpiAwarenessContext else None
+    try:
+        callback = _MONITORENUMPROC(one)
+        if not _user32.EnumDisplayMonitors(None, None, callback, 0):
+            return []
+    finally:
+        if old:
+            _SetThreadDpiAwarenessContext(ctypes.c_void_p(old))
+    return out
+
+
+def app_path(exe):
+    """Where the program `exe` (such as "msedge.exe") registered itself under App Paths, the
+    location Microsoft documents for an installed program to record its path: the current user's
+    key first, then the machine's. None off Windows or when there is no entry."""
+    if not IS_WINDOWS:
+        return None
+    import winreg
+    key = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\%s" % exe
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(hive, key) as k:
+                value, kind = winreg.QueryValueEx(k, "")
+        except OSError:
+            continue
+        if isinstance(value, str) and value.strip().strip('"'):
+            value = value.strip().strip('"')
+            return os.path.expandvars(value) if kind == winreg.REG_EXPAND_SZ else value
+    return None
+
+
+def message_box(title, text, error=False):
+    """A plain message box with an OK button, for `open` run without a console. Returns False off
+    Windows (nothing shown). The user started the command, so the box may come to the front."""
+    if not IS_WINDOWS:
+        return False
+    flags = (0x10 if error else 0x30) | 0x10000          # MB_ICONERROR or MB_ICONWARNING, MB_SETFOREGROUND
+    _user32.MessageBoxW(None, str(text), str(title), flags)
+    return True
+
+
+# ------------------------------------------------------------------------- shortcuts
+
+if IS_WINDOWS:
+    class _GUID(ctypes.Structure):
+        _fields_ = [("Data1", wintypes.DWORD), ("Data2", wintypes.WORD), ("Data3", wintypes.WORD),
+                    ("Data4", ctypes.c_ubyte * 8)]
+
+    def _guid(text):
+        import uuid
+        return _GUID.from_buffer_copy(uuid.UUID(text).bytes_le)
+
+    _ole32 = ctypes.WinDLL("ole32")
+    _ole32.CoInitializeEx.argtypes = [ctypes.c_void_p, wintypes.DWORD]
+    _ole32.CoInitializeEx.restype = ctypes.c_long
+    _ole32.CoUninitialize.argtypes = []
+    _ole32.CoUninitialize.restype = None
+    _ole32.CoCreateInstance.argtypes = [ctypes.POINTER(_GUID), ctypes.c_void_p, wintypes.DWORD,
+                                        ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p)]
+    _ole32.CoCreateInstance.restype = ctypes.HRESULT
+    _ole32.CoTaskMemFree.argtypes = [ctypes.c_void_p]
+    _ole32.CoTaskMemFree.restype = None
+    _shell32 = ctypes.WinDLL("shell32")
+    _shell32.SHGetKnownFolderPath.argtypes = [ctypes.POINTER(_GUID), wintypes.DWORD, wintypes.HANDLE,
+                                              ctypes.POINTER(ctypes.c_void_p)]
+    _shell32.SHGetKnownFolderPath.restype = ctypes.HRESULT
+
+    _CLSID_SHELL_LINK = "00021401-0000-0000-C000-000000000046"
+    _IID_SHELL_LINK_W = "000214F9-0000-0000-C000-000000000046"
+    _IID_PERSIST_FILE = "0000010B-0000-0000-C000-000000000046"
+    _FOLDERID_DESKTOP = "B4BFCC3A-DB2C-424C-B029-7FE99A87C641"
+
+
+def desktop_folder():
+    """The user's Desktop folder, where Windows says it is (it can be moved); the usual place
+    under the home folder when it cannot say."""
+    if IS_WINDOWS:
+        out = ctypes.c_void_p()
+        try:
+            _shell32.SHGetKnownFolderPath(ctypes.byref(_guid(_FOLDERID_DESKTOP)), 0, None, ctypes.byref(out))
+            if out.value:
+                return Path(ctypes.wstring_at(out.value))
+        except OSError:
+            pass
+        finally:
+            if out.value:
+                _ole32.CoTaskMemFree(out)
+    return Path.home() / "Desktop"
+
+
+def _com_method(obj, index, *argtypes):
+    """Method `index` of a COM object's table, as a function that takes the object first."""
+    table = ctypes.cast(obj, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+    return ctypes.WINFUNCTYPE(ctypes.HRESULT, ctypes.c_void_p, *argtypes)(table[index])
+
+
+def _release(obj):
+    if obj:
+        table = ctypes.cast(obj, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+        ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)(table[2])(obj)
+
+
+class _ShellLink:
+    """The shell's ShellLink object and its file interface; released, and COM closed, on exit."""
+
+    def __enter__(self):
+        hr = _ole32.CoInitializeEx(None, 0x2)              # apartment threaded
+        self._uninit = hr in (0, 1)                        # S_OK, S_FALSE; another mode: leave it be
+        self.link, self.file = ctypes.c_void_p(), ctypes.c_void_p()
+        try:
+            _ole32.CoCreateInstance(ctypes.byref(_guid(_CLSID_SHELL_LINK)), None, 1,
+                                    ctypes.byref(_guid(_IID_SHELL_LINK_W)), ctypes.byref(self.link))
+            _com_method(self.link, 0, ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p))(
+                self.link, ctypes.byref(_guid(_IID_PERSIST_FILE)), ctypes.byref(self.file))
+        except BaseException:
+            self.__exit__()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        _release(self.file)
+        _release(self.link)
+        if self._uninit:
+            _ole32.CoUninitialize()
+
+
+def write_shortcut(path, target, arguments="", workdir=None, description="", icon=None):
+    """Write a Windows shortcut (.lnk) at `path`: `target` started with `arguments` in `workdir`,
+    with a description (its tooltip) and an icon (path, index). Raises OSError on failure."""
+    if not IS_WINDOWS:
+        raise OSError("shortcuts are written on Windows only")
+    s = ctypes.c_wchar_p
+    with _ShellLink() as sl:
+        _com_method(sl.link, 20, s)(sl.link, str(target))                       # SetPath
+        _com_method(sl.link, 11, s)(sl.link, str(arguments))                    # SetArguments
+        if workdir:
+            _com_method(sl.link, 9, s)(sl.link, str(workdir))                   # SetWorkingDirectory
+        if description:
+            _com_method(sl.link, 7, s)(sl.link, str(description))               # SetDescription
+        if icon:
+            _com_method(sl.link, 17, s, ctypes.c_int)(sl.link, str(icon[0]), int(icon[1]))   # SetIconLocation
+        _com_method(sl.file, 6, s, wintypes.BOOL)(sl.file, str(path), True)    # IPersistFile::Save
+
+
+def read_shortcut(path):
+    """{"target", "arguments", "workdir", "description", "icon": (path, index)} of a .lnk file."""
+    if not IS_WINDOWS:
+        raise OSError("shortcuts are read on Windows only")
+    n = 4096
+    with _ShellLink() as sl:
+        _com_method(sl.file, 5, ctypes.c_wchar_p, wintypes.DWORD)(sl.file, str(path), 0)   # IPersistFile::Load
+        out = {}
+        buf = ctypes.create_unicode_buffer(n)
+        _com_method(sl.link, 3, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD)(
+            sl.link, buf, n, None, 0x4)                                          # GetPath, SLGP_RAWPATH
+        out["target"] = buf.value
+        for key, index in (("description", 6), ("workdir", 8), ("arguments", 10)):
+            buf = ctypes.create_unicode_buffer(n)
+            _com_method(sl.link, index, ctypes.c_wchar_p, ctypes.c_int)(sl.link, buf, n)
+            out[key] = buf.value
+        buf, idx = ctypes.create_unicode_buffer(n), ctypes.c_int(0)
+        _com_method(sl.link, 16, ctypes.c_wchar_p, ctypes.c_int, ctypes.POINTER(ctypes.c_int))(
+            sl.link, buf, n, ctypes.byref(idx))                                  # GetIconLocation
+        out["icon"] = (buf.value, idx.value)
+        return out

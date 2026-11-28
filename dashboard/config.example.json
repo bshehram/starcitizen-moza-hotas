@@ -43,5 +43,11 @@
   "_terminal": "The Claude terminal panel (a later stage). With enabled false, the page has no terminal region at all; with true it is laid out with one (in this stage an empty placeholder).",
   "terminal": {
     "enabled": false
+  },
+
+  "_window": "The dashboard's own window, which `scdash.py open` (and the shortcut) starts. browser: the program that shows it; null finds Microsoft Edge, then Google Chrome, where Windows records installed programs (App Paths); otherwise a full path to the program, or a name such as \"chrome.exe\". Only Chromium browsers take the switches `open` passes. profile: the window's own browser profile folder; null is %LOCALAPPDATA%\\scdash\\browser, outside the repo and the game folder. `open` reads these each time, so no restart is needed.",
+  "window": {
+    "browser": null,
+    "profile": null
   }
 }
