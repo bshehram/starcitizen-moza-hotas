@@ -80,6 +80,30 @@ class BoundsTest(unittest.TestCase):
         plan, _ = P.normalize({"runs": [{"id": "a", "name": "one"}, {"id": "a", "name": "two"}]})
         self.assertEqual(len({r["id"] for r in plan["runs"]}), 2)
 
+    def test_unknown_keys_and_other_silent_drops_are_counted(self):
+        # stage 3 review, round 4: none of these was counted
+        cases = {
+            "a misspelled leg field": ({"runs": [{"name": "r", "legs": [{"to": "x", "GM": 3}]}]}, {"keys": 1}),
+            "an unknown top-level key": ({"notes": ["n"], "note": "typo"}, {"keys": 1}),
+            "a misspelled material field": ({"objectives": [{"title": "o", "materials": [{"name": "Ore", "need": 1}]}]},
+                                            {"keys": 1}),
+            "a block's unknown field": ({"runs": [{"name": "r", "trade": {"commodity": "x", "buyat": "y"}}]}, {"keys": 1}),
+            "run beside runs": ({"runs": [{"name": "a"}], "run": {"name": "b"}}, {"keys": 1}),
+            "an empty code": ({"runs": [{"name": "r", "legs": [{"to": "x", "codes": ["", "Stanton1"]}]}]}, {"codes": 1}),
+            "a schema this loader does not know": ({"schema": 2, "notes": ["n"]}, {"values": 1}),
+            "done of the wrong type": ({"runs": [{"name": "r", "legs": [{"to": "x", "done": "yes"}]}]}, {"types": 1}),
+            "timer, sell, target and objective keys": (
+                {"timers": [{"label": "t", "ready_at": "2026-11-26T16:21:00Z", "readyat": 1}],
+                 "sell": [{"what": "Ore", "wher": "x"}], "objectives": [{"title": "o", "stat": 1}],
+                 "runs": [{"name": "r", "targets": [{"ore": "Gold", "minq": 1}], "nam": 1}]}, {"keys": 5}),
+        }
+        for label, (raw, want) in cases.items():
+            self.assertEqual(P.normalize(raw)[1], want, label)
+        self.assertIn("1 key (not in the plan's shape)", P.left_out({"keys": 1}))
+        plan, skipped = P.normalize({"_about": "a comment", "runs": [{"name": "r", "_why": "also"}]})
+        self.assertEqual(skipped, {})                                 # "_" keys are comments
+        self.assertEqual(P.normalize({"runs": [], "run": {"name": "b"}})[0]["runs"][0]["name"], "b")
+
 
 class StoreTest(unittest.TestCase):
     def test_missing_invalid_and_last_good_copy(self):
@@ -143,6 +167,15 @@ class UserBlockTest(unittest.TestCase):
         self.assertEqual(u["view"]["view"], "mining")
         self.assertEqual(P.clean_user({"view": {"view": "not a view", "context": "x"}})["view"], None)
         self.assertEqual(P.clean_user(None), {"timers": [], "view": None})
+
+    def test_a_quick_timers_label_is_cleaned(self):
+        # stage 3 review, round 4: a label with a bidi control or one too long was not checked
+        u = P.clean_user({"timers": [{"id": "q1", "label": "Med" + chr(0x202E) + "gel" + "x" * 100,
+                                      "ready_at": "2026-11-27T20:15:00Z"}]})
+        label = u["timers"][0]["label"]
+        self.assertNotIn(chr(0x202E), label)
+        self.assertLessEqual(len(label), 60)
+        self.assertTrue(label.startswith("Medgel"))
 
 
 if __name__ == "__main__":

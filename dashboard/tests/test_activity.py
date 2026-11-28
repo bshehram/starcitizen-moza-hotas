@@ -49,7 +49,7 @@ class NoticeKindsTest(unittest.TestCase):
             self.assertIn(k, kinds)
         self.assertNotIn("notice", kinds)                      # nothing fell through to the catch-all
         crime = next(e for e in r.events if e.kind == "crime")
-        self.assertEqual((crime.crime, crime.victim), ("Assault", "OtherPilot_2"))   # a split notice
+        self.assertEqual((crime.crime, crime.victim), ("Aggravated Assault", "OtherPilot_2"))   # a split notice
         self.assertEqual(next(e for e in r.events if e.kind == "fined").amount, 1500.0)
         self.assertEqual(next(e for e in r.events if e.kind == "reward").amount, 50250.0)
         self.assertEqual(next(e for e in r.events if e.kind == "impounded").vehicle, "Drake Golem")
@@ -231,7 +231,7 @@ class LawPrivacyTest(unittest.TestCase):
             json.dumps(timeline.render_json(r, r.summary(complete=True)))
         for name in ("OtherPilot_2", "OtherPilot_3", "Pilot_Example"):
             self.assertNotIn(name, out)
-        self.assertIn("committed Assault against you", out)
+        self.assertIn("committed Battery (First Degree) against you", out)
         self.assertIn("another player", out)
         # The state keeps no law text with the name, private or not; the name is learned only.
         self.assertNotIn("OtherPilot_3", json.dumps(r.state.to_dict(private=True)))

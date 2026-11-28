@@ -57,6 +57,18 @@ def hostile_lines():
         "quotes": rep('" ['),
         "refinery": "A Refinery Work Order has been Completed at " + rep("at "),
         "awarded": "Awarded " + rep(",") + " aUEC",
+        # the named shapes and families of review round 3 (events.NAMED_NOTICES, FAMILIES)
+        "leader": "y is now " + rep("channel 'x : a "),
+        "leader quotes": "y is now the " + rep("' : '"),
+        "disbanded": "The channel " + rep(" : a") + " has been",
+        "comms owner": "Comms Channel Joined: " + rep(" : "),
+        "invited to": "y invited to " + rep(" : b"),
+        "request from": "Combat Assist Detected: " + rep("Request From: "),
+        "toast body": "New Member Joined: " + rep("x has joined the "),
+        "beacon contract": "Contract Complete: Your " + rep(" contract") + " Please rate",
+        "family cues": rep("party group invite join queue "),
+        "social names": rep("by from: party leader "),
+        "connected": rep("y") + " connected.",
     }
     for name, text in texts.items():
         out.append(("notice " + name, [T + notice(text)]))

@@ -40,7 +40,7 @@ beyond the state (the view, its model, alerts, timers) is board.build(); the sta
 """
 import re
 from array import array
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from collections import deque
 
 from . import config
@@ -94,12 +94,48 @@ YOU = "you"                                         # the user's own handle, in 
 MAX_OTHERS = 1000          # other players' names remembered at once (a real session meets dozens)
 MAX_NAME = 100             # a capture longer than this is not a handle
 NOT_REDACTED = {"names", "ref", "me", "_others", "_others_re", "_forgotten_rx", "_forgot_order",
-                "_forgot_sorted", "_kept_lower"}
+                "_forgot_sorted", "_kept_lower", "forget_hook", "_forgot_counts", "_kept_counts"}
 # Forgotten names still hidden in output, as 8-byte hashes (Python's own string hash: the table
 # lives in this process only): 50,000 cost 0.8 MB with the sorted copy. Past that the oldest go.
 MAX_FORGOTTEN = 50000
-_RUN_RE = re.compile(r"[A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*")   # a handle-shaped run of a text
+# Lookups per "-" part of a run in _hide_forgotten: a part makes at most one per number of parts
+# the names held have, so no run is cut short while they have at most 8 different numbers of
+# parts (real handles have 1 to 3; round 4 of the stage 3 review: at 4, names of 1 to 5 parts made
+# a nameless run of 80 parts be hidden from part 77).
+HIDE_BUDGET = 8
+# A run of a text that may hold a handle: the characters law.HANDLE_RE accepts, so a name learned
+# with a leading, trailing or doubled "-" is found again once forgotten (stage 3 review, round 3:
+# the old run, word parts joined by single hyphens, could not match those).
+_RUN_RE = re.compile("[%s]+" % law.HANDLE_CHARS)
 _PUNCT = ".,;:!?()[]{}\"'"
+
+
+def _fold(ch):
+    """A character as the names pattern keys it: one character that re.I takes as equal to it, the
+    same for all the characters re.I takes as equal. Lower case of upper case where both stay one
+    character, so long s, dotless i, the final sigma and the Kelvin sign key as "s", "i", "σ" and
+    "k" (stage 3 review, round 4: kept "bos" cut "boſ-x" to "another player-x"); else lower case
+    (ß); else the first character of it (U+0130 to "i", which re.I matches too). So two names
+    that differ only in case share one branch, and the longer is still tried first: with a branch
+    per case, a kept "Bob_Q" matched inside a kept "bob_q-Smith" and left "another player-Smith"
+    (stage 3 review, round 3)."""
+    up = ch.upper()
+    if len(up) == 1:
+        low = up.lower()
+        if len(low) == 1:
+            return low
+    low = ch.lower()
+    return low if len(low) == 1 else low[:1]
+
+
+def _key(name):
+    """A name as the names pattern keys it (_fold, character by character)."""
+    return name.lower() if name.isascii() else "".join(map(_fold, name))
+
+
+def _parts(name):
+    """How many "-" parts a name has ('Bob_Q-Smith' 2, '-Lead' 2, 'Dbl--Hy' 3)."""
+    return name.count("-") + 1
 
 
 class _Redactor:
@@ -119,8 +155,9 @@ def name_regex(names):
     trie = {}
     for name in names:
         node = trie
-        for ch in name:                     # as written: re.I matches every case, and lower()
-            node = node.setdefault(ch, {})  # can change a name's length (U+0130)
+        # One branch for every case of a character (_fold); re.I matches each of them.
+        for ch in _key(name):
+            node = node.setdefault(ch, {})
         node[""] = {}
 
     def build(node):
@@ -172,6 +209,9 @@ class State:
     def __init__(self, names=None, ref=None):
         self.names = names if names is not None else LocationNames()
         self.ref = ref if ref is not None else refdata.shared()
+        # Called with the names of each forgetting pass, after the state's own texts lost them
+        # (the reader holds every feed line for `timeline` and takes them out of those too).
+        self.forget_hook = None
         self.reset()
 
     # ------------------------------------------------------------------ life cycle
@@ -180,14 +220,17 @@ class State:
         self.session = {"id": session, "start": None, "local": None, "build": None,
                         "version": None, "game": "not_running", "world": None,
                         "ended": None, "last_t": None, "events": 0, "spawns": 0,
-                        "in_game_since": None, "in_game_s": 0.0, "unreadable": 0}
+                        "in_game_since": None, "in_game_s": 0.0, "unreadable": 0, "withheld": 0,
+                        "withheld_tips": 0}
         self._others = {}                                     # other players' names: never shown;
         self._others_re = None                                # a dict as an ordered set, oldest first
         self._forgotten_rx = None
         self.forgotten = 0                                    # how many times names were forgotten
         self._forgot_order = array("q")                       # hashes of forgotten names, oldest first
         self._forgot_sorted = array("q")                      # the same, sorted for lookups
+        self._forgot_counts = set()                           # "-" parts counts of forgotten names
         self._kept_lower = None                               # the names known, lower case (scrub)
+        self._kept_counts = ()                                # the same of the names known
         self._pending_world = None
         self.me = {"handle": None, "player_id": None}         # memory only (PLAN §8)
         self.server = {"shard": None, "joined": None, "shards": []}
@@ -334,11 +377,11 @@ class State:
         output as hashes (`_hide_forgotten`)."""
         gone = set(names)
         h = self.me["handle"]
-        keep = {n.lower() for n in self._others if n not in gone} | ({h.lower()} if h else set())
+        keep = {_key(n) for n in self._others if n not in gone} | ({_key(h)} if h else set())
         rx = name_regex(list(self._others) + ([h] if h else []))
         if rx is not None:
             def swap(m, keep=keep):
-                return m.group(0) if m.group(0).lower() in keep else OTHER_PLAYER
+                return m.group(0) if _key(m.group(0)) in keep else OTHER_PLAYER
             fn = _Redactor(rx, swap)
             for key, value in self.__dict__.items():
                 if key not in NOT_REDACTED:
@@ -353,43 +396,104 @@ class State:
         if len(order) > MAX_FORGOTTEN:
             del order[:len(order) - MAX_FORGOTTEN]
         self._forgot_sorted = array("q", sorted(order))
+        self._forgot_counts.update(_parts(n) for n in names)  # at most MAX_NAME + 1 values
+        if self.forget_hook is not None:
+            self.forget_hook(list(names))
 
     def redact_held(self, obj):
         """Take the names forgotten last out of a container held outside the state (the reader's
-        list of every feed line). The reader calls it when `forgotten` changes."""
+        lines waiting for `take_lines`). The reader calls it when `forgotten` changes."""
         if self._forgotten_rx is not None:
             redact(self._forgotten_rx, obj)
 
-    def _hide_forgotten(self, text, kept):
-        """A forgotten name met later in a text that teaches nothing (a contract title naming a
-        player forgotten long ago) is still hidden: every handle-shaped run of the text is looked
-        up among the hashes of the names forgotten, longest first across its "-" parts. A part
-        that is a name still known (`kept`, lower case) is left whole for the scrubber, so neither
-        pass can cut a handle in two. Only after a flood of names (MAX_OTHERS): a normal session
-        pays nothing."""
-        table = self._forgot_sorted
+    def redact_names(self, obj, names):
+        """Replace `names` (forgotten ones, collected by `forget_hook`) with "another player" in
+        every text inside `obj`, in place, with one pattern that also holds the names known now
+        and leaves those whole for the scrubber, as `_forget` does. The reader uses it on its list
+        of every feed line once, when the list is read, instead of at every forgetting pass: a
+        walk per pass made `timeline` quadratic in the number of names (stage 3 review, round 3:
+        20,000 names took 2.1 s)."""
+        if not names:
+            return obj
+        h = self.me["handle"]
+        keep = {_key(n) for n in self._others} | ({_key(h)} if h else set())
+        rx = name_regex(list(names) + list(self._others) + ([h] if h else []))
 
-        def gone(s):
-            k = hash(s.lower())
+        def swap(m, keep=keep):
+            return m.group(0) if _key(m.group(0)) in keep else OTHER_PLAYER
+        return redact(_Redactor(rx, swap), obj)
+
+    def _hide_forgotten(self, text, kept, counts):
+        """A forgotten name met later in a text that teaches nothing (a contract title naming a
+        player forgotten long ago) is still hidden: every run of handle characters in the text is
+        looked up among the hashes of the names forgotten, longest first across its "-" parts. A
+        span that is a name still known (`kept`, lower case) is left whole for the scrubber, so
+        neither pass can cut a handle in two. Only after a flood of names (MAX_OTHERS): a normal
+        session pays nothing.
+
+        Bounded (stage 3 review, round 3: every span of every run was joined and looked up, so a
+        2,000-character "a-a-a-..." took 1.8 s): from each part, a span is tried only with a number
+        of parts that some name forgotten or known has (`counts`, ascending; most often 1 and 2)
+        and only when it is 3 to MAX_NAME characters long, and it is a slice of the run, not a
+        join. A run of n parts may make at most HIDE_BUDGET * n + 64 lookups; past that the rest of
+        the run is replaced whole (fail closed: hidden, never cut). A part makes at most one
+        lookup per number in `counts`, so a run is cut short only when the names held (forgotten
+        or known) have more than HIDE_BUDGET (8) different numbers of parts, which takes names of
+        9 parts or more (stage 3 review, round 4: the old budget of 4 hid nameless runs of 40
+        parts once names of 1 to 6 parts were held)."""
+        table = self._forgot_sorted
+        size = len(table)
+        top = counts[-1] if counts else 0
+
+        def gone(low):
+            k = hash(low)
             i = bisect_left(table, k)
-            return i < len(table) and table[i] == k
+            return i < size and table[i] == k
 
         def run(m):
-            parts = m.group(0).split("-")
-            out, i, n = [], 0, len(parts)
+            s = m.group(0)
+            if len(s) < 3:
+                return s
+            low = s.lower()                       # ASCII only: the same length as `s`
+            if "-" not in s:                      # one part: most words
+                if len(s) > MAX_NAME or low in kept or not gone(low):
+                    return s
+                return OTHER_PLAYER
+            starts, ends, at = [], [], 0
+            for piece in s.split("-"):
+                starts.append(at)
+                at += len(piece)
+                ends.append(at)
+                at += 1
+            n = len(starts)
+            budget = HIDE_BUDGET * n + 64
+            out, i = [], 0
             while i < n:
-                for j in range(n, i, -1):
-                    span = "-".join(parts[i:j])
-                    if span.lower() in kept:
-                        out.append(span)
-                    elif gone(span):
+                a = starts[i]
+                hit = None
+                # the counts that fit: no more parts than are left, no longer than MAX_NAME
+                most = min(n, i + top, bisect_right(ends, a + MAX_NAME)) - i
+                for x in range(bisect_right(counts, most) - 1, -1, -1):
+                    j = i + counts[x]
+                    b = ends[j - 1]
+                    if b - a < 3:
+                        break                     # shorter still for every smaller count
+                    budget -= 1
+                    if budget < 0:                # crafted names: hide the rest of the run whole
                         out.append(OTHER_PLAYER)
+                        return "-".join(out)
+                    k = low[a:b]
+                    if k in kept:
+                        hit = s[a:b]
+                    elif gone(k):
+                        hit = OTHER_PLAYER
                     else:
                         continue
+                    out.append(hit)
                     i = j
                     break
-                else:
-                    out.append(parts[i])
+                if hit is None:
+                    out.append(s[a:ends[i]])
                     i += 1
             return "-".join(out)
         return _RUN_RE.sub(run, text)
@@ -410,10 +514,12 @@ class State:
         if self._forgot_sorted:
             if self._kept_lower is None:
                 self._kept_lower = {n.lower() for n in self._others} | ({mine} if mine else set())
+                self._kept_counts = {_parts(n) for n in self._kept_lower}
             kept = self._kept_lower
+            counts = sorted(self._forgot_counts | set(self._kept_counts))
 
             def hide(s):
-                return self._hide_forgotten(s, kept)
+                return self._hide_forgotten(s, kept, counts)
         else:
             hide = None
 
@@ -578,7 +684,9 @@ class State:
         self.server["joined"] = ev.t
         if ev.shard and ev.shard not in self.server["shards"]:
             self.server["shards"].append(ev.shard)
-        return MINOR, "Joining a server (%s)" % (ev.shard or "shard unknown")
+        # The shard's name says which server the user was on: kept in the private form only, so
+        # not in the feed line either (stage 3 review of the wiring).
+        return MINOR, "Joining a server"
 
     def _on_connecting(self, ev):
         if self._pending_world is None:
@@ -1163,6 +1271,29 @@ class State:
         c.update(kind=info["kind"], view=info["view"], setting=info["setting"],
                  giver_name=info["giver"] or _generator_words(c["giver"]), type_name=info["type_name"],
                  lookup=info["how"], unmapped=bool(info["unmapped"]))
+        if c.get("_raw"):
+            self._look_again(c)
+
+    def _look_again(self, c):
+        """A contract the log had not placed is placed now (its title or marker came): its
+        objectives stored meanwhile are worded again from their text as read (`_raw`, kept on the
+        contract, never output): a player contract's as such contracts' are (the name learned
+        now), an NPC contract's as written (stage 3 review, round 5)."""
+        player = law.player_contract(c)
+        if player is None:
+            return
+        pairs = c.pop("_raw")
+        objs = c["objectives"]
+        for o, raw in pairs:
+            if not any(x is o for x in objs):
+                continue
+            text = raw if player is False else self._objective_words(c, raw, player)
+            if text != o["text"]:
+                o["text"] = text
+                o["stop"] = _stop(text, o["id"])
+        if objs:
+            live = [x for x in objs if x["state"] == "active"]
+            c["objective"] = (live or objs)[-1]["text"]
 
     def _touch(self, c, t):
         if c is not None and (c["touched"] is None or t >= c["touched"]):
@@ -1172,10 +1303,11 @@ class State:
     # again (same mission id) is updated, not added a second time; a failed or withdrawn contract
     # (stage 3, SURVEY.md §1) has handlers of this project's own below.
     def _on_contract_accepted(self, ev):
-        c = self._contract(ev.mission_id, ev.title, ev.t)
+        title = self._title_words(ev.title)
+        c = self._contract(ev.mission_id, title, ev.t)
         again = c["accepted"] is not None
-        if c["title"] != ev.title:
-            c["title"] = ev.title
+        if c["title"] != title:
+            c["title"] = title
             self._classify(c)
         if c["status"] in (None, "active"):
             c["status"] = "active"
@@ -1183,13 +1315,14 @@ class State:
             c["accepted"] = ev.t
         self._touch(c, ev.t)
         if again:
-            return MINOR, "Contract still active: %s" % ev.title
-        return MAJOR, "Contract accepted: %s" % ev.title
+            return MINOR, "Contract still active: %s" % title
+        return MAJOR, "Contract accepted: %s" % title
 
     def _on_contract_complete(self, ev):
-        c = self._contract(ev.mission_id, ev.title, ev.t)
+        title = self._title_words(ev.title)
+        c = self._contract(ev.mission_id, title, ev.t)
         if not c["title"]:
-            c["title"] = ev.title
+            c["title"] = title
             self._classify(c)
         if c["status"] != "complete":
             c["status"] = "complete"
@@ -1199,22 +1332,23 @@ class State:
         for o in c["objectives"]:
             if o["state"] == "active" and (o.get("stop") or {}).get("kind") == "dropoff":
                 o["state"] = "complete"
-        return MAJOR, "Contract complete: %s" % ev.title
+        return MAJOR, "Contract complete: %s" % title
 
     def _contract_end_notice(self, ev, status):
         """"Contract Failed:" or "Contract Withdrawn:" [game text, unverified in a log]. Its
         `<EndMission>` line can come first or after; the contract is announced once."""
-        c = self._contract(ev.mission_id, ev.title, ev.t)
+        title = self._title_words(ev.title)
+        c = self._contract(ev.mission_id, title, ev.t)
         if not c["title"]:
-            c["title"] = ev.title
+            c["title"] = title
             self._classify(c)
         if c["status"] == status:
             return None                            # its <EndMission> line said so already
         if c["status"] in (None, "active"):
             c["status"] = status
             c["ended"] = c["ended"] or ev.t
-        self._note(ev, "contract_" + status, "Contract %s: %s" % (status, ev.title))
-        return MAJOR, "Contract %s: %s" % (status, ev.title)
+        self._note(ev, "contract_" + status, "Contract %s: %s" % (status, title))
+        return MAJOR, "Contract %s: %s" % (status, title)
 
     def _on_contract_failed(self, ev):
         return self._contract_end_notice(ev, "failed")
@@ -1234,6 +1368,10 @@ class State:
         optional = text.upper().startswith("OPTIONAL:")
         if optional:
             text = text[len("OPTIONAL:"):].strip()
+        plain = text
+        player = law.player_contract(c)
+        text = self._objective_words(c, text, player)
+        shown = ev.text if text == plain else ("OPTIONAL: " if optional else "") + text
         objs = c["objectives"]
         o = (next((o for o in objs if ev.objective_id and o["id"] == ev.objective_id), None)
              or next((o for o in objs if o["text"] == text), None))
@@ -1245,6 +1383,10 @@ class State:
         if o["text"] != text or o.get("stop") is None:
             o["stop"] = _stop(text, ev.objective_id or o["id"])
         o.update(text=text, state=state)
+        if player is None:
+            # not placed yet: the text as read, for when its title or marker comes (_look_again)
+            raw = [pair for pair in c.get("_raw") or () if pair[0] is not o and any(x is pair[0] for x in objs)]
+            c["_raw"] = raw + [[o, plain]]
         if state != "active" and o.get("done") is None:
             o["done"] = ev.t
         if c["status"] is None and state == "active":
@@ -1252,25 +1394,62 @@ class State:
         live = [x for x in objs if x["state"] == "active"]
         c["objective"] = (live or objs)[-1]["text"]
         self._touch(c, ev.t)
-        return c
+        return c, shown
+
+    def _objective_words(self, c, text, player):
+        """An objective as the state keeps it. In a contract that names a player in its objectives
+        (`player`, law.player_contract: "beacon" or "bounty"), one of a known shape is worded
+        without the name, which is learned (a beacon's words for a beacon, "the target" for a
+        bounty), and one of any other shape is not shown (counted in `withheld`) unless it is one
+        of the game's nameless objectives. In a contract not placed (None), a known shape whose
+        slot could be a handle is worded "the target" and nothing is learned (round 5: one-word
+        NPC names were learned as players); the contract's placement looks at it again. In a
+        contract known to be of another kind (False), nothing changes (round 4: "Rescue <player>"
+        reached the page)."""
+        if player is False:
+            return text
+        shape = law.player_objective(text)
+        if shape is not None:
+            words, slot, who, neutral = shape
+            if player:
+                if who:
+                    self._learn(slot)
+                return words if player == "beacon" else neutral
+            if not who or law.learnable(slot, self.ref.game_words(self.names)):
+                return neutral
+            return text
+        if player and text not in law.NAMELESS_OBJECTIVES:
+            self.session["withheld"] += 1
+            return law.WITHHELD_OBJECTIVE
+        return text
+
+    def _title_words(self, title):
+        """A contract title as the state keeps it: a player bounty's title worded without the
+        player, whose name is learned when it is one word (law.PLAYER_TITLES)."""
+        found = law.player_title(title) if title else None
+        if found is None:
+            return title
+        words, slot = found
+        self._learn(slot)                         # learnable() takes one word only
+        return words
 
     def _on_objective_new(self, ev):
         c = self._objective(ev, "active")
-        return (MINOR, "New objective: %s" % ev.text) if c else None
+        return (MINOR, "New objective: %s" % c[1]) if c else None
 
     def _on_objective_complete(self, ev):
         c = self._objective(ev, "complete")
-        return (MINOR, "Objective complete: %s" % ev.text) if c else None
+        return (MINOR, "Objective complete: %s" % c[1]) if c else None
 
     def _on_objective_failed(self, ev):
         # Not the contract's end: a patrol's optional objective can fail and the contract still
         # complete [ref: QuantumWake, SURVEY.md §1].
         c = self._objective(ev, "failed")
-        return (MAJOR, "Objective failed: %s" % ev.text) if c else None
+        return (MAJOR, "Objective failed: %s" % c[1]) if c else None
 
     def _on_objective_withdrawn(self, ev):
         c = self._objective(ev, "withdrawn")
-        return (MINOR, "Objective withdrawn: %s" % ev.text) if c else None
+        return (MINOR, "Objective withdrawn: %s" % c[1]) if c else None
 
     # From CSR sc_livelog.py lines 241-247 (<EndMission>): the authoritative end of a contract;
     # an abandon raises no HUD notice. Changed: a mission this log never announced gets a record
@@ -1330,12 +1509,16 @@ class State:
         self._law(ev, "crimestat", text, note=ev.up, up=ev.up)
         return (ALERT if ev.up else MINOR), text
 
-    def _learn(self, word):
-        """Learn a word from a law or comms notice as another player's name, only if it can be a
-        handle and is no word of the game (law.learnable): the victim of a crime is as often a
-        security force or a civilian ("Hurston Security" made the jurisdiction read "another
-        player Dynamics": stage 3 review, round 2). The notice's own text never holds it."""
-        w = law.learnable(word, self.ref.game_words(self.names)) if word else None
+    def _learn(self, word, guess=False):
+        """Learn a word from a notice as another player's name, only if it can be a handle and is
+        no word of the game (law.learnable): the victim of a crime is as often a security force or
+        a civilian ("Hurston Security" made the jurisdiction read "another player Dynamics":
+        stage 3 review, round 2). A `guess` (a candidate of a shape the parser does not read) must
+        also be no word of the game's notices (law.guessable: "Share is unavailable ..." taught
+        "Share", round 4). The notice's own text never holds it."""
+        if not word:
+            return
+        w = (law.guessable if guess else law.learnable)(word, self.ref.game_words(self.names))
         if w:
             self._other(w)
 
@@ -1531,10 +1714,26 @@ class State:
         return MINOR, "Screenshot %s" % ev.name
 
     def _on_notice(self, ev):
-        for name in getattr(ev, "names", ()) or ():    # a law or comms notice worded without a name
-            self._learn(name)
+        withheld = bool(getattr(ev, "withheld", ""))
+        for name in getattr(ev, "names", ()) or ():    # a notice worded without a name
+            self._learn(name, guess=withheld)
         if ev.hint:
+            if withheld:
+                # A tip-shaped notice of a family: never shown, as every tip, and counted apart, so
+                # `withheld` stays a count of feed lines (stage 3 review, round 4: the rescue
+                # beacon's toast landed here uncounted).
+                self.session["withheld_tips"] += 1
             return None
+        if withheld:
+            # A notice of a family that can name a player, in a shape the parser does not read:
+            # shown as the family's neutral text, and counted so `status` can show that shapes
+            # are being missed (stage 3 review, round 3).
+            self.session["withheld"] += 1
+        elif law.HANDLE_RE.match(ev.text) and law.guessable(ev.text, self.ref.game_words(self.names)):
+            # A notice that is one word that can be a handle (hud_law_InfractionWarning is "%ls",
+            # what fills it is not known): not shown, and counted (round 4). Nothing is learned.
+            self.session["withheld"] += 1
+            return MINOR, law.ONE_WORD_WITHHELD
         return MINOR, ev.text
 
     # ------------------------------------------------------------------ output
@@ -1592,9 +1791,10 @@ class State:
                         "world": s["world"], "ended": _times(s["ended"]),
                         "last_event": iso(s["last_t"]), "events": s["events"],
                         "spawns": s["spawns"], "in_game_s": round(s["in_game_s"], 1),
-                        "in_game_since": iso(s["in_game_since"]), "unreadable": s["unreadable"]},
-            "server": {"shard": self.server["shard"], "joined": iso(self.server["joined"]),
-                       "shards": list(self.server["shards"])},
+                        "in_game_since": iso(s["in_game_since"]), "unreadable": s["unreadable"],
+                        "withheld": s["withheld"], "withheld_tips": s["withheld_tips"]},
+            # The shard names (which servers the user was on) are in the private form only.
+            "server": {"joined": iso(self.server["joined"]), "count": len(self.server["shards"])},
             "joysticks": [dict(j, number=j["index"] + 1) for j in self.joysticks],
             "preflight": dict(self.preflight),
             "profile": _times(self.profile),
@@ -1640,6 +1840,7 @@ class State:
         }
         if private:
             d["me"] = dict(self.me)
+            d["server"].update(shard=self.server["shard"], shards=list(self.server["shards"]))
             return clean_all(d)
         return self.scrub(d)
 
@@ -1664,7 +1865,7 @@ def _jump(q, place):
 
 
 def _contract_out(c):
-    out = _times(c)
+    out = _times(c)                                # leaves out "_raw", the objectives as read
     out["objectives"] = [_times(o) for o in c["objectives"]]
     return out
 

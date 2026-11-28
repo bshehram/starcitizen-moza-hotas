@@ -5,7 +5,11 @@ dashboard only reads it. `PlanStore.refresh()` rereads it when its size or modif
 changes. A missing or invalid file keeps the last good copy and sets a short `notice`.
 
 Everything is bounded: the file's size, every list, every text, every number. An entry that does
-not fit the shape is left out (and counted in the notice), never allowed to break the rest.
+not fit the shape is left out, never allowed to break the rest, and what is left out or changed on
+the way is counted in the notice: entries of a list (past its cap or of the wrong shape), numbers
+out of range, values a list does not allow (a status, kind, view or id), unreadable times, fields
+of the wrong type, texts cut to length, a `current_run` that is no run's id. Not counted: control
+and bidi characters taken out of a text, and a run id given twice, which gets a "_" added.
 
 Times carry their offset (`2026-11-26T16:21:00-08:00`) and are read with
 `datetime.fromisoformat`, converted with `astimezone()` and no argument (`words.parse_time`):
@@ -64,20 +68,47 @@ REFERENCE = "reference"              # the rig's reference cards: only a hand pi
 ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,40}$")
 
 
-def _text(x, n=MAX_TEXT):
-    """A clean, bounded text, or None."""
+def _text(x, n=MAX_TEXT, cnt=None):
+    """A clean, bounded text, or None. With `cnt`, what is changed on the way is counted: a value
+    given that is not a text (TYPES), and a text cut to its length (CUT)."""
     if not isinstance(x, str):
+        if x is not None and cnt is not None:
+            cnt.skip(TYPES)
         return None
     t = clean_text(x).strip()
-    return t[:n] if t else None
+    if not t:
+        return None
+    if len(t) > n:
+        if cnt is not None:
+            cnt.skip(CUT)
+        return t[:n]
+    return t
 
 
-def _texts(x, n=MAX_NOTES, size=MAX_TEXT):
+def _texts(x, cnt=None, where="notes", n=MAX_NOTES, size=MAX_TEXT):
+    """A list of clean, bounded texts (one text is a list of one). With `cnt`: the entries past
+    `n` and the ones that are not a text are counted under `where`, a list that is not one under
+    TYPES."""
+    if x is None:
+        return []
     if isinstance(x, str):
         x = [x]
     if not isinstance(x, list):
+        if cnt is not None:
+            cnt.skip(TYPES)
         return []
-    return [t for t in (_text(v, size) for v in x[:n]) if t]
+    if cnt is not None and len(x) > n:
+        cnt.skip(where, len(x) - n)
+    out = []
+    for v in x[:n]:
+        if not isinstance(v, str):
+            if cnt is not None:
+                cnt.skip(where)
+            continue
+        t = _text(v, size, cnt)
+        if t:
+            out.append(t)
+    return out
 
 
 def _num(x, lo=0.0, hi=MAX_NUMBER):
@@ -103,63 +134,149 @@ def _val(x, cnt, lo=0.0, hi=MAX_NUMBER):
     return v
 
 
-NUMBERS = "numbers"                 # the notice's names for what is not an entry of a list
-CURRENT_RUN = "current_run"
+# The notice's names for what is not an entry of a list (stage 3 review, rounds 2 and 3: every
+# value the loader drops or changes is counted, by kind).
+NUMBERS = "numbers"                 # out of range or not a number
+CURRENT_RUN = "current_run"         # not the id of a run
+VALUES = "values"                   # a status, kind or view not in its list, an id of the wrong form
+TIMES = "times"                     # a time that cannot be read
+TYPES = "types"                     # a field of the wrong type (a list where text goes, ...)
+CUT = "cut"                         # a text over its length, cut
+KEYS = "keys"                       # a key the shape does not have (misspelled, unknown, `run` beside `runs`)
+
+# The keys each part of a plan may have; a key that starts with "_" is a comment ("_about").
+TOP_KEYS = frozenset(("schema", "updated", "preflight", "notes", "refine_method", "objectives", "runs",
+                      "run", "current_run", "timers", "sell"))
+RUN_KEYS = frozenset(("id", "name", "kind", "status", "ship", "note", "targets", "legs", "salvage",
+                      "trade", "combat"))
+LEG_KEYS = frozenset(("to", "codes", "place", "spot", "gm", "view", "do", "arrive", "refine", "leave",
+                      "method", "done"))
+TARGET_KEYS = frozenset(("ore", "min_quality", "skip_below"))
+OBJECTIVE_KEYS = frozenset(("id", "title", "status", "next_step", "materials"))
+MATERIAL_KEYS = frozenset(("name", "need_scu", "held_scu", "min_quality", "unit"))
+TIMER_KEYS = frozenset(("id", "kind", "label", "location", "ready_at", "started_at"))
+SELL_KEYS = frozenset(("what", "ore", "scu", "quality", "price", "where", "note"))
 
 
-def _ident(x, fallback):
+def _extra(d, allowed, cnt):
+    """Count the keys of `d` the shape does not have ("GM" for "gm", a misspelled field): each
+    is left out, and was silently (stage 3 review, round 4)."""
+    n = sum(1 for k in d if k not in allowed and not (isinstance(k, str) and k.startswith("_")))
+    if n:
+        cnt.skip(KEYS, n)
+
+
+def _ident(x, fallback, cnt=None):
     if isinstance(x, str) and ID_RE.match(x):
         return x
+    if x is not None and cnt is not None:
+        cnt.skip(VALUES)
     return fallback
+
+
+def _choice(x, allowed, default, cnt):
+    """`x` when it is one of `allowed`, else `default`; one given and not allowed is counted."""
+    if x is None:
+        return default
+    if isinstance(x, str) and x in allowed:
+        return x
+    cnt.skip(VALUES)
+    return default
+
+
+def _time(x, cnt):
+    """A time the plan gives (words.parse_time), or None; one given and unreadable is counted."""
+    if x is None:
+        return None
+    if not isinstance(x, str):
+        cnt.skip(TYPES)
+        return None
+    t = parse_time(x)
+    if t is None:
+        cnt.skip(TIMES)
+    return t
+
+
+def _items(x, cnt, where, n):
+    """The first `n` entries of a list the plan gives; the rest are counted under `where`, and a
+    value that is not a list under TYPES."""
+    if x is None:
+        return []
+    if not isinstance(x, list):
+        cnt.skip(TYPES)
+        return []
+    if len(x) > n:
+        cnt.skip(where, len(x) - n)
+    return x[:n]
 
 
 class _Count:
     def __init__(self):
         self.skipped = {}
 
-    def skip(self, where):
-        self.skipped[where] = self.skipped.get(where, 0) + 1
+    def skip(self, where, n=1):
+        self.skipped[where] = self.skipped.get(where, 0) + n
 
 
 def _material(m, cnt):
     if not isinstance(m, dict) or not _text(m.get("name"), MAX_LABEL):
         cnt.skip("materials")
         return None
-    return {"name": _text(m["name"], MAX_LABEL), "need_scu": _val(m.get("need_scu"), cnt),
+    _extra(m, MATERIAL_KEYS, cnt)
+    return {"name": _text(m["name"], MAX_LABEL, cnt), "need_scu": _val(m.get("need_scu"), cnt),
             "held_scu": _val(m.get("held_scu"), cnt), "min_quality": _val(m.get("min_quality"), cnt, 0, 1000),
-            "unit": _text(m.get("unit"), 12) or "SCU"}
+            "unit": _text(m.get("unit"), 12, cnt) or "SCU"}
 
 
 def _objective(o, i, cnt):
     if not isinstance(o, dict) or not _text(o.get("title")):
         cnt.skip("objectives")
         return None
-    status = o.get("status") if o.get("status") in STATUSES else "planned"
-    mats = [x for x in (_material(m, cnt) for m in (o.get("materials") or [])[:MAX_LIST]) if x] \
-        if isinstance(o.get("materials"), list) else []
-    return {"id": _ident(o.get("id"), "o%d" % (i + 1)), "title": _text(o["title"]), "status": status,
-            "next_step": _text(o.get("next_step")), "materials": mats}
+    _extra(o, OBJECTIVE_KEYS, cnt)
+    status = _choice(o.get("status"), STATUSES, "planned", cnt)
+    mats = [x for x in (_material(m, cnt) for m in _items(o.get("materials"), cnt, "materials", MAX_LIST)) if x]
+    return {"id": _ident(o.get("id"), "o%d" % (i + 1), cnt), "title": _text(o["title"], MAX_TEXT, cnt),
+            "status": status, "next_step": _text(o.get("next_step"), MAX_TEXT, cnt), "materials": mats}
 
 
-def _codes(x):
+def _codes(x, cnt=None):
+    """Location codes: no spaces, at most 8. With `cnt`, each one left out is counted."""
+    if x is None:
+        return []
     if isinstance(x, str):
         x = [x]
     if not isinstance(x, list):
+        if cnt is not None:
+            cnt.skip(TYPES)
         return []
-    return [c for c in (_text(v, 80) for v in x[:8]) if c and " " not in c]
+    if cnt is not None and len(x) > 8:
+        cnt.skip("codes", len(x) - 8)
+    out = []
+    for v in x[:8]:
+        c = _text(v, 80) if isinstance(v, str) else None
+        if c and " " not in c and len(v.strip()) <= 80:
+            out.append(c)
+        elif cnt is not None:               # an empty code too (round 4)
+            cnt.skip("codes")
+    return out
 
 
 def _leg(g, i, cnt):
     if not isinstance(g, dict) or not (_text(g.get("to")) or _codes(g.get("codes"))):
         cnt.skip("legs")
         return None
-    view = g.get("view") if g.get("view") in LEG_VIEWS else None
-    return {"index": i, "to": _text(g.get("to")) or _codes(g.get("codes"))[0],
-            "codes": _codes(g.get("codes")), "place": _text(g.get("place"), 80),
-            "spot": _text(g.get("spot"), 80), "gm": _val(g.get("gm"), cnt, 0, 1e6), "view": view,
-            "do": _text(g.get("do")), "arrive": _texts(g.get("arrive"), 6),
-            "refine": _texts(g.get("refine"), 8, MAX_LABEL), "leave": _texts(g.get("leave"), 8, MAX_LABEL),
-            "method": _text(g.get("method"), MAX_LABEL), "done": g.get("done") is True}
+    _extra(g, LEG_KEYS, cnt)
+    codes = _codes(g.get("codes"), cnt)
+    if "done" in g and g["done"] is not None and not isinstance(g["done"], bool):
+        cnt.skip(TYPES)
+    return {"index": i, "to": _text(g.get("to"), MAX_TEXT, cnt) or codes[0],
+            "codes": codes, "place": _text(g.get("place"), 80, cnt),
+            "spot": _text(g.get("spot"), 80, cnt), "gm": _val(g.get("gm"), cnt, 0, 1e6),
+            "view": _choice(g.get("view"), LEG_VIEWS, None, cnt),
+            "do": _text(g.get("do"), MAX_TEXT, cnt), "arrive": _texts(g.get("arrive"), cnt, "arrive", 6),
+            "refine": _texts(g.get("refine"), cnt, "refine", 8, MAX_LABEL),
+            "leave": _texts(g.get("leave"), cnt, "leave", 8, MAX_LABEL),
+            "method": _text(g.get("method"), MAX_LABEL, cnt), "done": g.get("done") is True}
 
 
 def _target(t, cnt):
@@ -168,25 +285,30 @@ def _target(t, cnt):
     if not isinstance(t, dict) or not _text(t.get("ore"), MAX_LABEL):
         cnt.skip("targets")
         return None
-    return {"ore": _text(t["ore"], MAX_LABEL), "min_quality": _val(t.get("min_quality"), cnt, 0, 1000),
+    _extra(t, TARGET_KEYS, cnt)
+    return {"ore": _text(t["ore"], MAX_LABEL, cnt), "min_quality": _val(t.get("min_quality"), cnt, 0, 1000),
             "skip_below": _val(t.get("skip_below"), cnt, 0, 1000)}
 
 
-def _block(d, fields, cnt):
+def _block(d, fields, cnt, where="block"):
     """A run's activity block: only the named fields, each as text, number or list of texts."""
-    if not isinstance(d, dict):
+    if d is None:
         return None
+    if not isinstance(d, dict):
+        cnt.skip(TYPES)
+        return None
+    _extra(d, fields, cnt)
     out = {}
     for name, kind in fields.items():
         v = d.get(name)
         if kind == "text":
-            out[name] = _text(v)
+            out[name] = _text(v, MAX_TEXT, cnt)
         elif kind == "num":
             out[name] = _val(v, cnt)
         elif kind == "texts":
-            out[name] = _texts(v, 8, MAX_LABEL)
+            out[name] = _texts(v, cnt, name, 8, MAX_LABEL)
         elif isinstance(kind, dict):
-            out[name] = _block(v, kind, cnt)
+            out[name] = _block(v, kind, cnt, name)
     return out
 
 
@@ -201,16 +323,15 @@ def _run(r, i, cnt):
     if not isinstance(r, dict) or not _text(r.get("name"), MAX_LABEL):
         cnt.skip("runs")
         return None
-    legs = [x for x in (_leg(g, j, cnt) for j, g in enumerate((r.get("legs") or [])[:MAX_LEGS])) if x] \
-        if isinstance(r.get("legs"), list) else []
+    _extra(r, RUN_KEYS, cnt)
+    legs = [x for x in (_leg(g, j, cnt) for j, g in enumerate(_items(r.get("legs"), cnt, "legs", MAX_LEGS))) if x]
     for j, g in enumerate(legs):
         g["index"] = j
-    targets = [x for x in (_target(t, cnt) for t in (r.get("targets") or [])[:6]) if x] \
-        if isinstance(r.get("targets"), list) else []
-    return {"id": _ident(r.get("id"), "run%d" % (i + 1)), "name": _text(r["name"], MAX_LABEL),
-            "kind": r.get("kind") if r.get("kind") in RUN_KINDS else ("mining" if targets else "other"),
-            "status": r.get("status") if r.get("status") in STATUSES else "planned",
-            "ship": _text(r.get("ship"), MAX_LABEL), "note": _text(r.get("note")),
+    targets = [x for x in (_target(t, cnt) for t in _items(r.get("targets"), cnt, "targets", 6)) if x]
+    return {"id": _ident(r.get("id"), "run%d" % (i + 1), cnt), "name": _text(r["name"], MAX_LABEL, cnt),
+            "kind": _choice(r.get("kind"), RUN_KINDS, "mining" if targets else "other", cnt),
+            "status": _choice(r.get("status"), STATUSES, "planned", cnt),
+            "ship": _text(r.get("ship"), MAX_LABEL, cnt), "note": _text(r.get("note"), MAX_TEXT, cnt),
             "targets": targets, "legs": legs,
             "salvage": _block(r.get("salvage"), SALVAGE, cnt), "trade": _block(r.get("trade"), TRADE, cnt),
             "combat": _block(r.get("combat"), COMBAT, cnt)}
@@ -221,41 +342,42 @@ def _timer(t, i, cnt):
     if ready is None or not _text(t.get("label"), MAX_LABEL):
         cnt.skip("timers")
         return None
-    return {"id": _ident(t.get("id"), "t%d" % (i + 1)),
-            "kind": t.get("kind") if t.get("kind") in TIMER_KINDS else "other",
-            "label": _text(t["label"], MAX_LABEL), "location": _text(t.get("location"), MAX_LABEL),
-            "ready_t": ready, "started_t": parse_time(t.get("started_at"))}
+    _extra(t, TIMER_KEYS, cnt)
+    return {"id": _ident(t.get("id"), "t%d" % (i + 1), cnt),
+            "kind": _choice(t.get("kind"), TIMER_KINDS, "other", cnt),
+            "label": _text(t["label"], MAX_LABEL, cnt), "location": _text(t.get("location"), MAX_LABEL, cnt),
+            "ready_t": ready, "started_t": _time(t.get("started_at"), cnt)}
 
 
 def _sell(s, cnt):
     if not isinstance(s, dict) or not _text(s.get("what") or s.get("ore"), MAX_LABEL):
         cnt.skip("sell")
         return None
-    return {"what": _text(s.get("what") or s.get("ore"), MAX_LABEL), "scu": _val(s.get("scu"), cnt),
+    _extra(s, SELL_KEYS, cnt)
+    return {"what": _text(s.get("what") or s.get("ore"), MAX_LABEL, cnt), "scu": _val(s.get("scu"), cnt),
             "quality": _val(s.get("quality"), cnt, 0, 1000), "price": _val(s.get("price"), cnt),
-            "where": _text(s.get("where"), MAX_LABEL), "note": _text(s.get("note"))}
+            "where": _text(s.get("where"), MAX_LABEL, cnt), "note": _text(s.get("note"), MAX_TEXT, cnt)}
 
 
 def normalize(raw):
-    """(plan, skipped): the plan in its settled shape, and {list name: entries left out}."""
+    """(plan, skipped): the plan in its settled shape, and {what: how many} of what was left out
+    or changed on the way (a list's name for its entries, or one of NUMBERS, CURRENT_RUN, VALUES,
+    TIMES, TYPES, CUT)."""
     if not isinstance(raw, dict):
         raise ValueError("not a JSON object")
     cnt = _Count()
 
     def items(name, n):
-        v = raw.get(name)
-        if v is None:
-            return []
-        if not isinstance(v, list):
-            cnt.skip(name)
-            return []
-        if len(v) > n:
-            cnt.skipped[name] = cnt.skipped.get(name, 0) + len(v) - n
-        return v[:n]
+        return _items(raw.get(name), cnt, name, n)
 
+    _extra(raw, TOP_KEYS, cnt)
+    if raw.get("schema", 1) != 1:
+        cnt.skip(VALUES)                 # a schema this loader does not know: read as the first
     runs_raw = items("runs", MAX_RUNS)
     if not runs_raw and isinstance(raw.get("run"), dict):
         runs_raw = [raw["run"]]
+    elif "run" in raw:
+        cnt.skip(KEYS)                   # `run` beside `runs`, or not an object: left out
     runs = [x for x in (_run(r, i, cnt) for i, r in enumerate(runs_raw)) if x]
     ids = set()
     for r in runs:                       # ids must be unique, or a hand pick could jump runs
@@ -268,10 +390,10 @@ def normalize(raw):
     plan = {
         "schema": 1,
         "updated": _text(raw.get("updated"), 40),
-        "updated_t": parse_time(raw.get("updated")),
-        "preflight": _texts(raw.get("preflight")),
-        "notes": _texts(raw.get("notes")),
-        "refine_method": _text(raw.get("refine_method"), MAX_LABEL),
+        "updated_t": _time(raw.get("updated"), cnt),
+        "preflight": _texts(raw.get("preflight"), cnt, "preflight"),
+        "notes": _texts(raw.get("notes"), cnt, "notes"),
+        "refine_method": _text(raw.get("refine_method"), MAX_LABEL, cnt),
         "objectives": [x for x in (_objective(o, i, cnt) for i, o in enumerate(items("objectives", MAX_LIST))) if x],
         "runs": runs,
         "current_run": raw["current_run"] if isinstance(raw.get("current_run"), str) and raw["current_run"] in ids else None,
@@ -281,12 +403,23 @@ def normalize(raw):
     return plan, cnt.skipped
 
 
+_KINDS_WORDED = {
+    NUMBERS: ("number", "numbers", "out of range or not a number"),
+    VALUES: ("value", "values", "a status, kind, view or id the shape does not allow"),
+    TIMES: ("time", "times", "not readable"),
+    TYPES: ("field", "fields", "of the wrong type"),
+    CUT: ("text", "texts", "cut to length"),
+    KEYS: ("key", "keys", "not in the plan's shape"),
+}
+
+
 def left_out(skipped):
     """'1 entry in legs, 2 numbers (out of range or not a number), current_run (not a run id)'."""
     parts = []
     for k, n in sorted(skipped.items()):
-        if k == NUMBERS:
-            parts.append("%d number%s (out of range or not a number)" % (n, "" if n == 1 else "s"))
+        if k in _KINDS_WORDED:
+            one, many, why = _KINDS_WORDED[k]
+            parts.append("%d %s (%s)" % (n, one if n == 1 else many, why))
         elif k == CURRENT_RUN:
             parts.append("current_run (not a run id)")
         else:

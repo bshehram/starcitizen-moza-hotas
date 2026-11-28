@@ -10,8 +10,10 @@ from datetime import datetime, timedelta, timezone
 # Characters a text from the log must not carry onto a screen or a console: the C0 and C1 control
 # characters (ESC sequences, a bell, a NUL) and the bidirectional controls, which can reverse the
 # order of the dashboard's own words after them (U+202A-202E, U+2066-2069, and the marks
-# U+200E/U+200F/U+061C). Tabs and line breaks become a space; the rest are dropped.
-_UNSAFE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩]")
+# U+200E/U+200F/U+061C), and lone surrogates (U+D800 to U+DFFF: a JSON file can hold one as
+# an escape, and it makes every UTF-8 encode raise; stage 3 review, round 3). Tabs and line
+# breaks become a space; the rest are dropped.
+_UNSAFE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩\ud800-\udfff]")
 _SPACES = re.compile("[\t\n\r]")
 
 

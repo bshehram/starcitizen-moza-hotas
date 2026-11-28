@@ -1126,7 +1126,7 @@ class Service:
                     "offset": f.offset, "sessions_read": f.sessions},
             "session": {"id": st["id"], "game": st["game"], "last_event": iso(st["last_t"]),
                         "events": st["events"], "unreadable": shown.get("unreadable", 0),
-                        "withheld": shown.get("withheld", 0)},
+                        "withheld": shown.get("withheld", 0), "withheld_tips": shown.get("withheld_tips", 0)},
             "memory": winutil.own_memory(), "cpu_s": round(t.user + t.system, 2),
             "pages": self.hub.clients, "publishes": self.publishes,
             "requests": self.server.requests if self.server else 0,

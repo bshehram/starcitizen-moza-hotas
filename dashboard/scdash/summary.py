@@ -73,7 +73,8 @@ def build_summary(state, complete=False, last_line_t=None):
                       "order": state.preflight.get("order"), "missing": list(state.preflight.get("missing") or []),
                       "joysticks": [j["name"] for j in state.joysticks]},
         "profile_loaded": state.profile["name"] if state.profile else None,
-        "servers": list(state.server["shards"]),
+        # how many servers were joined: their shard names stay in the private form (state.py)
+        "servers": len(state.server["shards"]),
         "left_server": [{"t": iso(x["t"]), "what": x["what"], "cause": x["cause"],
                          "reason": x["reason"]} for x in state.left_server],
         "places": [dict(place(p["code"]), t=iso(p["t"]), how=p["how"]) for p in state.places],
@@ -113,5 +114,9 @@ def build_summary(state, complete=False, last_line_t=None):
         "health_at_end": state.health["status"],
         "screenshots": len(state.screenshots),
         "unreadable": s["unreadable"],
+        # notices of a family that can name a player, in a shape the parser does not read
+        "withheld": s.get("withheld", 0),
+        # the same, tip-shaped ("Topic: a long sentence"): never shown, as every tip
+        "withheld_tips": s.get("withheld_tips", 0),
         "unmapped": state.unmapped(),
     })

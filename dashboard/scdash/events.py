@@ -26,6 +26,7 @@ import re
 from dataclasses import asdict, dataclass, fields
 from typing import ClassVar, Optional
 
+from . import law
 from .records import UNREADABLE, RecordReader
 
 
@@ -333,6 +334,7 @@ class Notice(Event):                # any notice without a kind of its own
     text: str
     hint: bool                      # a tutorial tip ("Topic: a long sentence")
     names: tuple = ()               # words that may be a player's name (a crime notice not read)
+    withheld: str = ""              # the family, when `text` is its neutral wording (FAMILIES)
 
 
 @_event("contract_accepted")
@@ -1024,59 +1026,225 @@ def _h_notice(rec, base):
     text = notice_text(raw)
     if not text:
         return None
+    for rx, words in BEFORE_KINDS:
+        k = rx.match(text)
+        if k:
+            return Notice(*base, words, False, tuple(g for g in k.groups() if g))
     for rx, make in NOTICE_KINDS:
         k = rx.match(text)
         if k:
             return make(base, k, mid, oid)
-    head, sep, body = text.partition(": ")
-    hint = bool(sep) and len(body) > 40
-    for rx, words in NAMED_NOTICES:
-        k = rx.match(text)
-        if k:
-            # A known shape with someone's name in it (law.py): worded without it. The slot is
-            # passed on as a word to learn, which the state does only under law.learnable().
-            return Notice(*base, words, hint, tuple(g for g in k.groups() if g))
-    if LAW_LIKE_RE.search(text):
-        # It looks like a crime notice but has a shape none of the patterns above reads: it may
-        # name a player in a place we cannot tell, so its text is not shown at all (fail closed).
-        return Notice(*base, REDACTED, hint, loose_names(text))
-    if COMMS_LIKE_RE.search(text) and not COMMS_SAFE_RE.match(text):
-        # A ship channel whose name is too long for the pattern, a cut record, or another comms
-        # notice: the owner or the member is a player (stage 3 review, round 2).
-        return Notice(*base, REDACTED_COMMS, hint, comms_names(text))
+    hint = False                                # a known shape naming someone is never a tip
+    toast = toast_title(text)                   # (title, description, family) or None
+    tries = (text, toast[1]) if toast else (text,)
+    for t in tries:
+        for rx, words in NAMED_NOTICES:
+            k = rx.match(t)
+            if k:
+                # A known shape with someone's name in it (law.py): worded without it. The slot is
+                # passed on as a word to learn, which the state does only under law.learnable().
+                return Notice(*base, words, hint, tuple(g for g in k.groups() if g))
+    head, sep, rest = text.partition(": ")
+    hint = bool(sep) and len(rest) > 40 and not toast      # a known toast is never a tip either
+    if any(law.nameless(t) for t in tries) or (hint and head in law.NAMELESS):
+        return Notice(*base, text, hint)          # the game's own text of these families, no name
+    if toast:
+        title, desc, family = toast
+        if BARE_NAME_RE.match(desc):
+            # "<title>: <one word>": a toast whose description the game fills in by code (the
+            # friend toasts' are empty in its text), read as the name alone [inferred, not seen].
+            return Notice(*base, "%s: another player" % title, False, (desc,))
+        # Any other description under a title of these families: the family's neutral text.
+        return Notice(*base, FAMILY_WORDS[family], False, FAMILY_CANDIDATES[family](desc), family)
+    for family, rx, words, candidates in FAMILIES:
+        # A tip-shaped text ("Topic: a long sentence") is matched on its topic only: the game's
+        # mission and journal texts carry the families' words in their long descriptions
+        # (stage 3 review, round 4). Tips are never shown, only counted (`withheld_tips`).
+        if rx.search(head if hint else text):
+            # A notice of a family that can name a player, in a shape none of the patterns above
+            # reads (a ship channel too long for its pattern, a cut record, a toast not seen yet):
+            # the name may be anywhere, so the text is not shown at all (fail closed). It is
+            # counted (Notice.withheld) so `status` can show that shapes are being missed. Its
+            # candidates are guesses: the state learns one only under law.guessable().
+            return Notice(*base, words, hint, candidates(text), family)
     return Notice(*base, text, hint)
 
 
-LAW_LIKE_RE = re.compile(r"\bcommitted\b|\bagainst you\b|^Crime Committed|^Victim:|'s Private Property|"
-                         r"^Party member\b", re.I)
 REDACTED = "A law notice the dashboard does not show (it may name a player)"
 REDACTED_COMMS = "A comms notice the dashboard does not show (it may name a player)"
+REDACTED_PARTY = "A party or group notice the dashboard does not show (it may name a player)"
+REDACTED_TRANSFER = "A money transfer notice the dashboard does not show (it may name a player)"
+REDACTED_BEACON = "A service beacon notice the dashboard does not show (it may name a player)"
 _PUNCT = ".,;:!?()[]{}\"'"
 
-# The known shapes that name someone in a fixed place [game, law.py]: each is shown worded
-# without the name. Bounded runs only (a notice is at most MAX_TEXT here).
-NAMED_NOTICES = [
-    (re.compile(r"^Victim:\s*(?:(\S{1,100})$)?"), "Victim: someone"),     # a name of one word is a candidate
-    (re.compile(r"^Trespassing on (\S{1,100})'s Private Property"), "Trespassing on another player's private property"),
-    (re.compile(r"^WARNING: (\S{1,100})'s Private Property"), "WARNING: someone's private property. Enter at own risk"),
-    (re.compile(r"^You have joined (\S{1,100})'s (?:party|group)"), "You have joined another player's party or group"),
-    (re.compile(r"^(\S{1,100}) has joined the (?:party|group)"), "Another player has joined the party or group"),
-    (re.compile(r"^(\S{1,100}) has left the (?:party|group)"), "Another player has left the party or group"),
-    (re.compile(r"^(\S{1,100}) has been kicked from the (?:party|group)"), "Another player has been kicked from the party or group"),
-    (re.compile(r"^(\S{1,100}) has declined invitation to "), "Another player has declined your invitation"),
-    (re.compile(r"^(\S{1,100}) has invited you to their "), "Another player has invited you"),
-    (re.compile(r"^The invitation you sent to (\S{1,100}) has timed out"), "The invitation you sent has timed out"),
-    (re.compile(r"^(\S{1,100}) is now .{0,60}\bleader\b"), "Another player is now the leader"),
+# A name slot. Handles have no space or quote; a notice is at most MAX_TEXT here, every run in
+# these patterns is bounded and every pattern is anchored (`match`), so each costs a bounded time.
+_N = r"(\S{1,100})"
+# A channel suffix as comms_suffix_ship_channel makes it, "channel '<ship> : <owner>'", with the
+# owner as a slot, or the bare word "channel". A quoted suffix this cannot read (a ship name over
+# 200 characters) is no match, so the notice goes to its family's fallback, which still finds the
+# owner (comms_names).
+_CH = r"channel(?: '[^']{0,200}? : ([^'\s]{1,100})'|\b(?! '))"
+# The owner of a ship channel named anywhere in the next 330 characters, as a slot (a look ahead,
+# so the rest of the pattern reads the text as if it were not there); empty when there is none.
+_OWNER = r"(?:(?=.{0,330}? : ([^'\s]{1,100})))?"
+
+# Shapes that must win over NOTICE_KINDS: a beacon's "Contract Complete" toast names the player
+# to rate, and would otherwise be taken for a contract's title [game, not seen].
+BEFORE_KINDS = [
+    (re.compile(r"^Contract Complete: (?:Your|The) .{0,80}?\bPlease rate (\S{1,100}?)\.?$"),
+     "Contract complete: a service beacon contract"),
 ]
 
-# The other comms_* templates, and the ship channel when its pattern did not read it [game]: a
-# channel's owner or a member is a player.
+# The known shapes that name someone in a fixed place (law.py lists them with their keys): each
+# is shown worded without the name, and its slots are passed on as candidates [game, not seen;
+# the ship channel's own notices are ChannelJoined and ChannelLeft, which are seen].
+NAMED_NOTICES = [(re.compile(p), words) for p, words in (
+    # the law
+    (r"^Victim: ?(?:(\S{1,100})$)?", "Victim: someone"),        # a name of one word is a candidate
+    (r"^Trespassing on %s's Private Property" % _N, "Trespassing on another player's private property"),
+    (r"^WARNING: %s's Private Property" % _N, "WARNING: someone's private property. Enter at own risk"),
+    # comms_local_player_*: the user joins, leaves or is kicked
+    (r"^You have joined %s's (?:party|group)" % _N, "You have joined another player's party or group"),
+    (r"^You have joined (?:the )?group '", "You have joined a group"),
+    (r"^You have joined (?:the )?%s" % _CH, "You have joined a channel"),
+    (r"^You have left the group '", "You have left a group"),
+    (r"^You have left the %s" % _CH, "You have left a channel"),
+    (r"^You have been kicked from the group '", "You have been kicked from a group"),
+    (r"^You have been kicked from the %s" % _CH, "You have been kicked from a channel"),
+    # comms_member_*, comms_invite_*, and the mobiGlas forms of them
+    (r"^%s has joined the (?:party|group)" % _N, "Another player has joined the party or group"),
+    (r"^%s has joined the %s" % (_N, _CH), "Another player has joined the channel"),
+    (r"^%s has left the (?:party|group)" % _N, "Another player has left the party or group"),
+    (r"^%s has left the %s" % (_N, _CH), "Another player has left the channel"),
+    (r"^%s has been kicked from the (?:party|group)" % _N, "Another player has been kicked from the party or group"),
+    (r"^%s has been kicked from the %s" % (_N, _CH), "Another player has been kicked from the channel"),
+    (r"^%s has declined %s(?:invitation to |your )" % (_N, _OWNER), "Another player has declined your invitation"),
+    (r"^%s has invited you to\b%s" % (_N, _OWNER), "Another player has invited you"),
+    (r"^%s has accepted your\b" % _N, "Another player has accepted your invitation"),
+    (r"^The invitation you sent to %s has timed out" % _N, "The invitation you sent has timed out"),
+    (r"^Target player invited to %s" % _OWNER, "Invitation sent"),
+    (r"^%s invited to %s" % (_N, _OWNER), "Invitation sent to another player"),
+    # comms_leader_changed: its suffix can be a ship channel of 300 characters (stage 3 review,
+    # round 3: a 60-character bound showed the name behind a group name of 52 or more)
+    (r"^%s is now (?:the )?%s.{0,330}? ?leader\b" % (_N, _OWNER), "Another player is now the leader"),
+    (r"^%s is already in a party" % _N, "Another player is already in a party"),
+    # comms_group_created / _disbanded, comms_channel_*, comms_target_contact
+    (r"^Created (?:the )?(?:channel|group|party)\b%s" % _OWNER, "A group or channel was created"),
+    (r"^The (?:channel|group|party)\b%s.{0,330}? has been disbanded" % _OWNER, "A group or channel has been disbanded"),
+    (r"^Comms Channel Joined: %s" % _OWNER, "Joined a comms channel"),
+    (r"^Comms Channel Disconnected: %s" % _OWNER, "Disconnected from a comms channel"),
+    (r"^Invited to Comms Channel: %s" % _OWNER, "Invited to a comms channel"),
+    (r"^Hail Target: ?(?:(\S{1,100})$)?", "Hailing a contact"),  # the one-word contact, not "Hail"
+    # contacts and hangars (mobiGlas_ui_notification_*)
+    (r"^%s has sent you a contact request" % _N, "Another player has sent you a contact request"),
+    (r"^You have added %s to your Contacts" % _N, "You have added another player to your contacts"),
+    (r"^Sent contact request to %s" % _N, "Sent a contact request"),
+    (r"^%s has granted you access to their hangar" % _N, "Another player has given you access to their hangar"),
+    (r"^%s has revoked your access to their hangar" % _N, "Another player has taken back your access to their hangar"),
+    # party toasts (notification_party_*, notification_leader_toPU, notification_calibration_*)
+    (r"^(?:Party Launching: )?Initiated by (?:party leader )?%s" % _N, "Party launch started by the party leader"),
+    (r"^Party launch received from party leader %s" % _N, "Party launch received from the party leader"),
+    (r"^(?:Party Launch: )?%s is already in your instance" % _N, "A party member is already in your instance"),
+    (r"^%s connected\.$" % _N, "A party member connected"),
+    (r"^%s disconnected\.$" % _N, "A party member disconnected"),
+    (r"^%s canceled their join queue" % _N, "A party member canceled their join queue"),
+    (r"^Join queue canceled by party leader %s" % _N, "The party leader canceled the join queue"),
+    (r"^%s has started to QT to your current location" % _N, "A party member has started quantum travel to your location"),
+    (r"^Quantum Travel Calibration Started By %s" % _N, "Quantum travel calibration started by a party member"),
+    (r"^Quantum Travel Calibration Complete By %s" % _N, "Quantum travel calibration completed by a party member"),
+    (r"^Quantum Travel Calibration Cancelled By %s" % _N, "Quantum travel calibration canceled by a party member"),
+    (r"^%s is starting to calibrate coordinates" % _N, "A party member is calibrating quantum travel"),
+    (r"^%s has completed calibrating coordinates" % _N, "A party member has calibrated quantum travel"),
+    (r"^%s has failed to calibrate coordinates" % _N, "A party member's quantum travel calibration failed"),
+    # money between players (notification_PlayerTrade_*)
+    (r"^(?:Currency Transfer Request: )?%s wants to send you\b" % _N, "Another player wants to send you money"),
+    (r"^(?:Transfer Rec(?:ie|ei)ved: )?(\S{1,100}?) has sent you:", "Another player has sent you money"),
+    (r"^(?:Transfer Sent: )?You sent (\S{1,100}?):", "You sent money to another player"),
+    (r"^(?:Transfer Failed: )?Your transfer to %s has failed" % _N, "Your transfer to another player has failed"),
+    (r"^(?:Transfer Failed: )?The transfer from %s has failed" % _N, "A transfer from another player has failed"),
+    # service beacons (notification_beacon_*, ServiceBeacon_*)
+    (r"^(?:Beacon Accepted: )?%s accepted your .{0,60}?\bcontract" % _N, "Another player accepted your beacon contract"),
+    (r"^(?:Provider Arrived: )?%s has arrived at your location" % _N, "Your service provider has arrived"),
+    (r"^(?:[A-Za-z ]{1,40}: )?(?:\[[A-Z ]{1,20}\] )?[A-Za-z ]{1,40} Request [Ff]rom: (\S{1,100}?)[.\s]",
+     "A service beacon from another player"),
+    # ServiceBeacon_Revive_Detected_Notification and hud_incapacitated_downedReviveRequestAccepted
+    # (stage 3 review, round 4: the first was taken for a tip and taught nothing)
+    (r"^Rescue Beacon Activated By: (\S{1,100}?)(?:[.\s]|$)", "A rescue beacon from another player"),
+    (r"^%s accepted the Rescue Beacon\b" % _N, "Another player accepted your rescue beacon"),
+    # notification_beacon_complete_*_desc without its title (BEFORE_KINDS has it with the title)
+    (r"^(?:Your|The) .{0,80}? contract.s complete\. ?Please rate (\S{1,100}?)\.?$",
+     "Contract complete: a service beacon contract"),
+    # an organization's area (hud_law_OrganizationControlledWarning, _OrgControlledHostileWarning,
+    # _AreaAnnouncement): the organization's name is not shown and not learned [game, not seen]
+    (r"^Trespassing in .{1,100}?-Controlled Area\b", "Trespassing in an organization's area: leave or risk prosecution"),
+    (r"^Entering .{1,100}?-Controlled Territory\b", "Entering an organization's territory: proceed at your own risk"),
+    (r"^.{1,100}?-Controlled Area$", "An organization's area"),
+)]
+
+# The toast titles of the families [game: notification_*_Title, ServiceBeacon_*_Detected_Title,
+# SB_Refuel_Detected_Title, notification_PlayerTrade_*_Title, mobiGlas_ui_notification_*_Title].
+# When the log joins a title to its description ("New Member Joined: X has joined the party."),
+# the description is matched against the shapes above too, and a description no pattern reads is
+# the title's family's neutral text: every text under a known title belongs to a family (stage 3
+# review, round 4: "Friend Request: X" was shown raw). How a toast is logged is not seen.
+TOAST_TITLES = {t: "party" for t in (
+    "New Member Joined", "Member Left", "Member Kicked", "Party Invite Received", "Invitation Declined",
+    "Invite Sent", "Invite Sent To", "Invite Expired", "Invite Failed", "Invited To Lobby",
+    "New Party Leader", "You have joined", "You have created", "Party Launching", "Party Launch",
+    "Party Launch Accepted", "Party Launch Declined", "Party Launch Failed", "Party Launch Sent",
+    "Party Disbanded", "Session Full", "Friend Added", "Friend Request", "Friend Request Declined",
+    "Hangar invite", "Party")}
+TOAST_TITLES.update((t, "transfer") for t in (
+    "Currency Transfer Request", "Transfer Recieved", "Transfer Received", "Transfer Sent", "Transfer Failed"))
+TOAST_TITLES.update((t, "beacon") for t in (
+    "Combat Assist Detected", "Transport Beacon Detected", "Beacon Accepted", "Beacon Cancelled",
+    "Provider Arrived", "Medical Rescue Requested", "Medical Assistance Requested", "Escort Detected",
+    "Personal Transport Detected.", "Refuel Detected."))
+TOAST_TITLE_RE = re.compile(r"^(%s): (.{1,%d})$" % (
+    "|".join(re.escape(t) for t in sorted(TOAST_TITLES, key=len, reverse=True)), MAX_TEXT), re.S)
+BARE_NAME_RE = re.compile(r"^\S{1,100}$")
+
+
+def toast_title(text):
+    """(title, description, family) of a toast logged with its title, else None."""
+    m = TOAST_TITLE_RE.match(text)
+    return (m.group(1), m.group(2), TOAST_TITLES[m.group(1)]) if m else None
+
+
+def toast_body(text):
+    """The description of a toast logged with its title, else None."""
+    m = TOAST_TITLE_RE.match(text)
+    return m.group(2) if m else None
+
+
+# The families of notices that can name a player [game: the keys in law.py]. A notice that no
+# pattern above reads and that carries one of a family's cues is shown as the family's neutral
+# wording (FAMILIES, below). The cues are broad on purpose: a notice that names nobody but has a
+# cue only loses its wording.
+LAW_LIKE_RE = re.compile(r"\bcommitted\b|\bagainst you\b|^Crime Committed|^Victim:|'s Private Property|"
+                         r"^Party member\b", re.I)
+# The other comms_* templates, and the ship channel when its pattern did not read it: a channel's
+# owner or a member is a player.
 COMMS_LIKE_RE = re.compile(
     r"^You have (?:joined|left|been kicked from) (?:the )?(?:channel|group|party)\b|"
     r"^(?:Comms Channel \w{1,20}|Invited to Comms Channel|Hail Target):|"
-    r"^\S{1,100} (?:has (?:joined|left|invited|declined|been kicked)|invited to)\b")
-# The ones that name nobody (comms_local_player_left and _kicked with the party or group).
-COMMS_SAFE_RE = re.compile(r"^You have (?:left|been kicked from) the (?:group|party)\.?$")
+    r"^\S{1,100} (?:has (?:joined|left|invited|declined|been kicked)|invited to)\b|"
+    r"\bchannel '|\bgroup '|\bhas been disbanded\b|^Created (?:the )?(?:channel|group|party)\b|\bleader\b|"
+    r"^Hail\b|\bComms Channel\b")
+# Every text of these families that names nobody is the game's own: law.NAMELESS_TEXTS, keyed by
+# global.ini key, shown as it is (law.nameless()).
+PARTY_LIKE_RE = re.compile(
+    r"\b(?:party|parties|group|groups)\b|\binvit(?:e|ed|es|ation|ations)\b|\bjoin queue\b|"
+    r"\byour instance\b|\bQT to your\b|\bQuantum Travel Calibration\b|\bcalibrat\w{0,10} coordinates\b|"
+    r"\bcontact request\b|\bto your Contacts\b|\bconversation\b|\btheir hangar\b|\bhangar invite\b|"
+    r"^\S{1,100} (?:dis)?connected\.$", re.I)
+TRANSFER_LIKE_RE = re.compile(
+    r"\bTransfer (?:Request|Rec(?:ie|ei)ved|Sent|Failed)\b|\bwants to send you\b|\bhas sent you\b|"
+    r"^You sent\b|\byour transfer to\b|\bthe transfer from\b", re.I)
+BEACON_LIKE_RE = re.compile(
+    r"\bbeacon\b|\bRequest From:|\bProvider Arrived\b|\bhas arrived at your location\b|"
+    r"\baccepted your\b|\bPlease rate\b", re.I)
 
 
 def loose_names(text):
@@ -1098,16 +1266,58 @@ def loose_names(text):
 
 
 def comms_names(text):
-    """Candidates in a comms notice: the channel owner (after " : "), else the first word when
-    the notice starts with a member's name."""
+    """Candidates in a comms notice: the channel owner (after " : "), the contact of a hail, and
+    the first word when the notice starts with a member's name ("Hail Target: X" gave "Hail":
+    stage 3 review, round 3)."""
+    out = []
     i = text.rfind(" : ")
     if i >= 0:
         rest = text[i + 3:].split("'")[0].split()
-        return (rest[0].strip(_PUNCT),) if rest else ()
-    if text.startswith(("You have", "Comms Channel", "Invited to")):
-        return ()
-    first = text.split(maxsplit=1)
-    return (first[0].strip(_PUNCT),) if first else ()
+        if rest:
+            out.append(rest[0].strip(_PUNCT))
+    if text.startswith("Hail Target:"):
+        rest = text[len("Hail Target:"):].split()
+        if len(rest) == 1:
+            out.append(rest[0].strip(_PUNCT))
+    elif not text.startswith(("You have", "Comms Channel", "Invited to", "Created", "The ", "Target player",
+                              "Hail")):
+        first = text.split(maxsplit=1)
+        if first:
+            out.append(first[0].strip(_PUNCT))
+    return tuple(w for w in out if w)
+
+
+_SOCIAL_NAME_RES = [re.compile(p) for p in (
+    r"\b[Bb]y:? (?:party leader )?(\S{1,100})",
+    r"\b[Ff]rom: (\S{1,100})",
+    r"\b(?:[Yy]our transfer to|[Yy]ou sent|[Pp]lease rate|party leader|request to|added) (\S{1,100})",
+    r"^(\S{1,100}) (?:has|is|wants|canceled|connected|disconnected|accepted|invited)\b")]
+
+
+def social_names(text):
+    """Candidates in a party, transfer or beacon notice of a shape we do not read: the word after
+    "by", "From:", "transfer to", "You sent", "Please rate", "party leader", and the first word
+    when a verb follows it. Only candidates, learned under law.learnable() alone."""
+    out = []
+    for rx in _SOCIAL_NAME_RES:
+        m = rx.search(text)
+        if m:
+            w = m.group(1).strip(_PUNCT)
+            if w and w not in out:
+                out.append(w)
+    return tuple(out)
+
+
+# (family, cue, neutral wording, where its candidates are): the first whose cue the text carries.
+FAMILIES = [
+    ("law", LAW_LIKE_RE, REDACTED, loose_names),
+    ("comms", COMMS_LIKE_RE, REDACTED_COMMS, comms_names),
+    ("party", PARTY_LIKE_RE, REDACTED_PARTY, social_names),
+    ("transfer", TRANSFER_LIKE_RE, REDACTED_TRANSFER, social_names),
+    ("beacon", BEACON_LIKE_RE, REDACTED_BEACON, social_names),
+]
+FAMILY_WORDS = {f: w for f, _, w, _ in FAMILIES}
+FAMILY_CANDIDATES = {f: c for f, _, _, c in FAMILIES}
 
 
 # The table (PLAN §9): key -> handler. Only lines whose key is here are ever decoded.

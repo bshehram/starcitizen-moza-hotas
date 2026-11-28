@@ -86,7 +86,7 @@ class Stage3LinesTest(unittest.TestCase):
         self.assertEqual(sm["tally"]["destroyed"], 2)
         reader, sm = timeline.run(lib.sample_path("built_law.log"), names)
         text = timeline.render_text(reader, sm, tz=PACIFIC)
-        self.assertIn("Law         Crime committed: Assault against someone", text)
+        self.assertIn("Law         Crime committed: Aggravated Assault against someone", text)
         self.assertIn("Pay         50,250 aUEC (11:09:00 PM)", text)
         self.assertNotIn("Fined 1,500 UEC (11:06:00 PM); Vehicle", text.split("Notices")[-1])   # not twice
         js = json.dumps(timeline.render_json(reader, sm, tz=PACIFIC))

@@ -1787,6 +1787,7 @@ class StatusPrivacy(FixCase):
         self.assertEqual(service.shown_path(os.path.join(home + "x", "y")), os.path.join(home + "x", "y"),
                          "only the folder itself, not a name that starts like it")
         self.assertIn("withheld", st["session"])
+        self.assertEqual(st["session"]["withheld_tips"], 0)       # the tip-shaped ones (round 5)
 
 
 if __name__ == "__main__":

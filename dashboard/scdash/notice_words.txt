@@ -1,0 +1,263 @@
+# The words of the game's notice texts (stage 3 review, round 4): a word the dashboard only
+# guesses is a player's name (a notice of a shape it does not read) is never learned when it is
+# one of these. Read from global.ini of build 4.10.201.48085 (Alpha 4.10.3), every text of at
+# most 400 characters of the hud_, notification_, mobiGlas_ui_, comms_, Frontend_, PlayerTrade,
+# SB_, ServiceBeacon_ and ui_ keys and the other notification keys, lower case, without the
+# words law.fixed_words() already has [game]; eight more from the review's probes [mine].
+abandon abandoned ability abort aborted about above abs absolute accel accelerate acceleration
+accelerometer accept acceptable accepted accepting accessible accommodate account accuracy ace
+achieve acknowledged acknowledgment acquire across action action-map actions activate activated
+activates activation active activists activities activity actor acts add added additional adipiscing
+adira adjust adjustable admin administrator adp-mk4 adrenapen ads advanced adventure advised aegis
+aeh aeha aehad aerospace afb affair affiliation affordable after afterburner again ago agree ahead
+aiiiii aim aiming air airlock alert alerted align aligned aligning alignment aliqua aliquip
+all-night allocation allow allowed allowing allows almost alongside alpha alphabetical already also
+altitude always amalgamated amb amenities amet ammo ammunition amount amplification analog analysis
+and angle angry anim anomalies anomaly anti anti-virus anticheat anvil aopoa aparelli apex aphorite
+app applied apply applying appointment appointments approach appropriate aquariums arbitrator
+archetype architects architectural architecture archon are area18 arena arenas argo argument
+arguments arm armada armed armor armory armoury arms around arrange arresting arrived articles asia
+aspect aspectratiolibrary assets assigned assignment assignments assist assistance assisted assists
+associates asteroid astro astro-armada async-spawns atacamite atc atf atm atmos atmosphere
+atmospheric atomic atrium attach attached attaching attachment attachments attack attempt attempting
+attention attire attributes audio auec augmented august aus aute auth authentication authorities
+authorizing auto auto-dock auto-lock auto-renew auto-stored autocomplete autoland automated
+automatic automatically autopilot auxiliary availability available avatar avenge average avg avi
+avionics avoid awaiting away axial axis axisxy b-type b10 babbage back back-end backend background
+backpack backpacks backspace backup backward backwards bad badge balance balcony ballistic band
+banned banu bar barely barter base basement basic basics bat battaglia battle battles bay beacon
+beacons beam beautiful because become bed been before begin beginner begun behavior behaviour behind
+being believe below best between beverages bevic beyond bind bindings bit blacjac black blah blast
+blend blending block blocked blood blue blueprint bluetriangle board body bomb bombs bonuses
+bookings boost boot boots border bored botanical bottom bound bounty bow box brake braking brand
+brandt breach break breaking breaks breath breathtaking bricked bricking bridge bring broadcast
+broken broker brow brows browser bubble buff bug build building built bunk bunker bunkers burp burst
+business busy but button buy bypass c-type c547 c5b342 cab caf calculating calibrate calibrated
+calibrating calibration calico call callback called caller calls cam cam-xwk-a camera cameras can
+cancel canceled cancelled canister cannons cannot canopy capable capacity capital capture captured
+captures cargo carriage carry cart cartography casaba cast casts catalog categories category
+caterpillar catwalk cause caused causes causing caution cdb-qus-a cell cend center centering
+centermass certain challenging change changed changes changing channels char character characters
+charge charged charging chat cheap cheat cheating check checking checkmate checkpoint cheeks cheer
+chicken child chip choose cig cillum cinematic circle city civ ckq-kfl-a claimed clap classification
+claw clear cleared click client climb clinic clock close closed closely closer closest closeup
+closing clothing cloud clouds cloudview club cluster clustering cmj-rrt-a co-helm co-op cockpit code
+collect collecting collection colonialism color com combat combination combine combined combining
+come comm command commands commercial commlink commodities commodity commodo comms communication
+communications companies company compare compartment compatible compensation competed complete
+completed completion complex component components composition comprised comstab condition conditions
+conduct cone config configuration configurations confirm confirmation confirmed confirms conflict
+confluence connect connected connecting connection connections connectivity conscientious
+consectetur consequat consider consistent consists console consolidated constore constructed
+consumable consumables consumption contact contacting contacts container containerd containers
+contains content contents context contextual continue contract contracted contracts control
+controller controls convention convergence conversation cool cooldown cooler coolers cooling coord
+coordinate coordinates copilot copy copyright cordy core core-analyser coronal corporate corpse
+correctly correlation corridor corrupt corrupted corticopen cost could couldn council count
+countermeasure countermeasures couple coupled course cousin covalex cover craft crash crashed create
+created creating creation creativity credentials crewmembers crimestat critical crossing crouch crow
+crown crowns cruise cry crypto_key cryptokeys csm ctrl cubby cube culpa cupidatat currency current
+currently currentnodestate cursor curve curves custom customization customize cut cutter cutting
+cycle cycles cycling cymhleth damaged dampener dance danger dashboard data database datacore date
+day db_connection ddos deactivate deadline deadzone deal dealing dealt dear death deaths debris
+debuff debug decay decelerate deck deck-a deck-b deck-c decks decline declined decommissioned
+decompression deconpen decorations decouple decoupled decoy decrease decreases decrypt decrypted
+decrypting decrypts dedicated deep default defaults defeated defend defense defensecon defiance
+defined degrees delete deleted deliverable delivered delivery denial denied depart depleting deploy
+deployables deployed deploying deploys deposit deposits depot depressurized descriptions deselect
+deserunt design designed desired desktop desmond dest destination destroy destroyed destruct detach
+detaching detachment details detected detection determine detonates deutsch dev developer device
+dg56 dgs dgss diagnostics did die different difficult difficulty dilapidated direction directions
+directx disable disabled disables disagree disarm disbanded discard disconnected disconnecting
+disconnection discovery disengage disintegrate disintegration disk dismiss dismount display displays
+disposal dist distance distributed distro disturb dmg dock docking document dodge does doesn dof
+dogfighter dogfights dolivine dolor dolore domed don done door doors dose double down download
+downloading drag dragging drain draining drake drawer drawn draws dried drink drive driver drivers
+drives drop dropdown dropped drug drugs dual due duis dumper dumpers dunlow duplicate durable
+duration during dustup dynamic e-type each early earned ears ease easier easy easyshop eat ecla ecn
+edge edh edit editing editor effect effective effects efficiency egalitarian ehackingnodevisualstate
+either eiusmod eject ejection elapsed electro electronic elevator eligibility eligible eliminate
+eliminating elimination elit elsewhere email emergency emissions emotes emp employees employer emps
+empty en-us enable enabled enables encountered encountering encrytion encumbrance end ended endured
+energy enforcement engage engages engine engineering engines english enhancement enim enough ensure
+enter entered entering entertainment entire entities entitlement entity entrance entries entry
+env-qcn-a environment eponymous equip equipped erase err erroneously error errorcode errors escort
+esp esperia esse est establish established establisher estimate etvth eva evac evade event every
+everything evolved excavation exceeded excellence except excepteur exception exchange exchangers
+execute executed executing executive exercitation exhibition exist existing exists exit exited
+exiting exits exotic expand expanded expanding expands expecting expense experience experienced
+experiences experimental expired expires expiring exploit exploiting explore expo exponent export
+exposed ext extend extended extension extensive exterior external extract extraction eye eyes
+eyewear f7a f7c faces facility faction factor factory fade fading failed fall falls famed famously
+far farm farther fast fastest faulty favorite featured features featuring fee feel felsic fetch
+fetchall few fidelity field fierce fight file files filled filling filter filtering filters final
+finally find finding fined fire firearm fired firefights firewall firing firm firms fists fit
+fitness five fixed flagged flair flare flares flashlight flex flight flight_general flip flirt float
+floating floods floor floor-to-ceiling floors flow flt flying focal focus focused foes foip follow
+following font food foot footwear for fora force forced forces forcibly forel forgive forgiven
+formation formatting fortitude forward forwards found four fov foyer fps fracture fracturing
+fragment fragments free freecam freelook freezing freight frequently friend friendlies friendly
+friends front frs ftl fuel fugiat full fullscreen fully-stocked function functioning funds further
+future fwd fxd fxd-pre g-force g-loc g-safe g1haa g940 gadget gadgets galaxy galleria gallon game
+gameglass gamepad gameplay games gang garage gardens garrity gasp gateway gather gear geid gel
+gender general generate generation generator get getrole getsparenodeid ggr4 gifted gilly gimbal
+gimbals gimbled give gladiator glaive gloat global globally globe gloves gmb gneiss good got goto
+grab grace grade grand granite grant granted graph graphics gravity greet grenade grenades grey grid
+grim grip ground grouping groups gsafe guide gun gunnery guns gyro h-fuel habitation habs hack
+hacking hadanite hail hailing hailtarget hair hairstyle half hall hand handcrafted handed handle
+handler hangar hangars happen hard harder hardware hardwood hari harvestable harvested has hash
+hashdb hashing hauling have haxx-2000 hazardous hc_v hcn head header heading headlights headquarters
+heads headset headwear heal healing health heart heartbeat heat heavy held helm helmet helmet_state
+helmets help helper helpers here hidden hide hides hierarchy high high-speed high-tech highest
+highlight hip history hit hold holding holdings holds hollowed holo holster home horizontal horn
+hornets host hostilities hosting hotas hotfixes hours housing how hpwr https hub hud hull hunger
+hvtah hydration hydraulics hydrogen i-type iae icu identification identified identifiers identify
+idle ido idris ifcs igneous ignore illegally image immediate imminent impact imperium import
+importing impossible impounded improve in-game inactive inactivity inbound inc incapacitated
+incididunt includes including incoming increase increases increasing ind index indication indicative
+indicator individual industrial ineligible inert inertia infamous infected infinite influence info
+information inhabitable inhospitable iniative initial initialised initialization initializing
+initially initiate initiated initiative initiator injc inject inject_login injecting injection
+injects injury inner innovative inoperable input input_nominal267 input_nominal84d inputs inputted
+inrt insert insertion inside inspect inspiration inspire inspired instability installation instance
+instances instant insufficient int integrity intended intense intensity interact interaction
+interactions interface intergalactic interior internal internet interplanetary interrupted
+interstellar into intro intrusion inventory inversion invert inverts investigate investigation
+invitation invitations invite invited invites invoke invokes io-north ipsum irure issue issues
+itching item items iter itinerary iyhh jacket jackets jammed jammers javelin jaw jaws jettison
+jettisoned job jobs join joined joining journal joystick jt65 jump jumppoint jumpworks junctions
+just justice kctrending keep kel-to key keyboard keycard keys kick kicked kill killer kills kind
+kinds know known kruger l19 lab labels labore laboris labors laborum ladder lag lagrange land landed
+landing landscape landscape-double-widescreen landscape-narrow landscape-super-wide
+landscape-triple-widescreen lanes lap laps large large-scale largest laser last lat later lateral
+latest latticework laugh launch launched launcher launchers launches launching layout lead leader
+leaderboard leaderboards leading lean learn least leave leaving ledges left leg legacy legal legs
+legwear length less let lethal level levels levski liberty life lifeforms lifeline lifesigns light
+lights like likely lim limit limited limiter limits line lines link linked linking links list live
+livefire liveries liveworks living lmb load loading loadout loadouts lobbies lobby loc local locals
+located location locations lock lock-on lockdown locked locker locks log logged login logistics
+logitech lon long longer longitudinal look looking lookout looks loot looted looting lorem lorville
+loss losses lost lounge love low low-tech lower lpwr lshift luxurious luxury lvl lz-01 lz-02 lz-03
+lz-04 lz-05 lz-06 lz-07 lz-08 lz-09 lz-10 lz-l lz-s m-type m79 m89 machine machines made magazine
+magazines magna magnetic magnification magnify magnitude main maintain maintenance major make makes
+making malformed malfunction malicious malicous man man-pre manage management manager manifestation
+manners mantle manual manufacture manufacturer manufacturers many map mapping marine marines mark
+marker market mask mass master mat match matches matching matchmaking material materials matrix max
+maximise maximum may mayhem mdf means med med-gun med-tool medbed medical medicalunit medium medpen
+meets melee memorable memorial memory mention menu menus mesh message messages met mfd mfds mid-game
+might mil mile military military-constructed million min mind mineable mined minim minimize minimum
+mining minor minute minutes misaligned misc misdemeanor misdemeanors misl mismatch missed missile
+missiles missing mission missions mixed mmb mobiglas mobisql mode model models moderate modes
+modification modifier modifiers modify modular module modules mollit moment monitor more morning
+mount mouse mouth mouths move movement moving msl much multi multiplayer multiple musain music must
+mute mvp n677 naccess nacl nagainst nalign name names nan nare narmistice narrow nat nattributes nav
+navigate navigating navigation navigational nawaiting nbis nclick ncnct ncommand nconnecting
+nconnection ncould ncurrent ncursor ndecreases ndied ndisconnected ndisconnection ndistance ndivert
+ndo nduplicate nduration near nearby nearest need needed needs negative nest nestimated neta network
+networks neutral neutrality neutralizing never new newest nexample next nfetching nfires nfluctuates
+nfor ngame ngoto nhostile nhotkey nice nif nimpounding nin nincreases ninjc ninject_login nisi nit
+nkey nlarge nleave nloading nmedium nmove nnavigate nnote node nodeallegiance nodeid nodepos nodes
+noise nominal non non-final non-lethal nor nose nostrud not note notes notice notification
+notifications notify notifying now nping nplaying nplease nproceed nreceived nreduces nrepair nrun
+nsmall nstabilizes nstar nswap nsynchronizing nthanks nthe nthis ntigerclaw ntime-out ntimeout nto
+ntransferring ntype nub nudge nulla number nunable nusage nuse nuser nuses nvent nvoid nwhen nwhile
+nxh nxl nxt nyou nyour nyx object objective objectives objects obsidian obstructed obstructing
+obstruction obtained occaecat occasion occupied occured occurred oem off offboard offense offer
+offered offers officia official offline offscreen offset old oldest olisar omega once one online
+only onto open opened opening operated operational opiopen opportunities opposite optics optimal
+optimum option optional options orbit orbital orc-mkx order ordnance organization organizations
+orientation origin originally orison out outgoing outlet output over overall overarm overch
+overcharge overdosed overdrive overflow overheat overloaded overpower override overview overwhelmed
+overwrite overwritten ovr own owned oxg oxygen oxygenate oxypen p-type p4k packages packet packets
+pad padlock pads page pagent pages paid painting pairing panel paneling panic parameter parent
+pariatur part parts pass pass_candidates passed passive password paste path paths patient patrolled
+pattern pause pavilion payload payment pct-01 pedals pen pending per percentage perfect performance
+performed period permanent permanently permission permissions permitted persistence persistent
+persists person personal personalized petty phase photo pht physical pick picked picking pierc
+pillars piloting pin ping pinging pings pinned pinsertionslot pip pips pit pitch place placeholder
+placement planet planetary plants platform platforms play playing plaza please pledge plus pockets
+pod point pointer points polished political poor population popup port port-a port-b port-c portrait
+portrait-tall portrait_very_tall ports position positive possible possibly potentially power powered
+pre precision prediction predominately prefabricated preferred premium presence present presentation
+preset presets press pressure pressurized preview previous price prides primary prime primed priming
+principles prior priority privileges pro problem proceed process processed processing processor
+product production productivity profile profiles program programs progress proident prompt prone
+propagate propagation proper properties prosecution protect protocol provide providence provider
+providers providing prox proximity proxy public pulling pulse purchase purchased purchases push
+pushing put pvp pwr pyro pyrotechnic q-fuel q-type qed qeds qids qigs qty quality quantainium
+quantity quantum quarantined quarterdeck quartzite query queue queued qui quick quickly quis quit
+quitting r-alt race races racing racks radar radial radiation radr rails raise ramp randomize range
+ranged rank rapid rate rates rating ratings ratio rawtoken re-connect re-enter re-queue re-select
+re-spawn reach read read-only reading readme ready reality rear rebind rebinding recalibrate
+recalibrator recall receive received receiver receivers receiving recenter recenters recently
+recharge recieved recipient reclaim reclamation recognized recommended reconnect reconnecting record
+recovery red reduce reduces reducing ref refer refill refinement refinery reflex refrain refresh
+refuel refueler refueling refueller refugees regal regen region register registered registration
+registry reject rejoining rel relation relations relative relax release releases reliable reload
+relocated remain remaining remanded rematch remember remote remove removed removing rename render
+renderer rendezvous rent rental rentals rented rep repair repairable repaired repairing repairs
+replace replicated repool report reported repositioning repossessed reprehenderit represents req
+reqeust request requested requesting require required requirement requirements requires rescue
+rescuer rescuers research reserved reset resets resetting residence residences resistance resolution
+resolve resolver resolving resource resources respawn respond responding response rest restart
+restarting restoration restored restoring restrain result results resume resumed reticle retract
+retracted retracting retracts retries retrieval retrieve retrieving retry return returned returning
+reveal reveals revel revert review revival revive revoke revoked reward rewards reyo rfl rheolydd
+rifles right rights riker rime risk risks rmc rmq rng robertsspaceindustries rock role roll roof
+room root roots rot rotate rotating rotation rotation-lock rotational rotations rough route rplc rsi
+rudder rudders rude rules rules-of-conduct run running runtime s-type safe safely safeties safety
+saitek salute salvagable salvage salvageable salvaging same sanction sandbox sataball saturation
+save saved saving scan scanned scanning scatter scg schedule scheme science scm scn scope score
+scoreboard scrambling scrap scrape scraping screen scu sdf sdfs se-da-frag seao search searching
+season seat seated seats sec secondary seconds secret secure sed sedafrag sedative see seeding
+seeing seek seen segment sela select selected selection selections self self-land self-sustaining
+selfie send sens sensitive sensitivity sensitvity sensor sensors sent sequence serialize serializer
+serve server server-only servers service services session sessiondelete sessionend set sets setting
+settings setup several severe sgnl shaft shale shape shard share shared shatter shelter shield
+shielded shields shift shipyards shirt shirts shld shop shopping shops short shortly shots should
+show showcase showing showroom shows shubin shut shutdown shuts shuttle side sidearm sidearms siege
+sight sighting sights sign signal signaling signature signs sim simulated single singleplayer sink
+sint sip sit site-b size skills skim skin skip skutters slash sleep slide slider sliders slot slots
+slow slowdown slower slowing slowly small smallest smell smp snap snaps snare snares social society
+socket software solar somewhere sons soo soon sorry sound sounds source sources spacebrake spaceport
+spaces spaceship spacing spare spawn spawned spawning special species specification specifications
+specified specify spectator spectrum speed spire spirit split spo2 spooled spooling spot spree
+sprint squad squadron square sta stab stabilise stability stabilization stable staggered stampede
+stance stand standard standby stanton star start started starting state states static_cast stations
+statistics stats status stay std ste stealth steer stellar step stgr stick sticks still stop stops
+storage store stored stow strafe stranded strategic streamables streamed streaming strength strike
+strong structural structure structures stunned style sub sub-basement sub-item sub-target subitems
+subject sublevel submit subscribed subscriber subtype success successful successfully such
+sufficient suggests suit sunt super-modernism supervise supplies supply support supported suppress
+supress sure surface surge surrounding survey survival suspected suspended suspension suspicious
+sustaining sustenance svg swap swapping swaps switch switches switching symbology symptoms
+synchronization synchronize syncing sys system systems t-junction t16000m tab table tactical tag
+take take-off takedown takedowns taken takeoff taking talk tammany tank tannoy tap targeted
+targeting targets targetted task tasks taunt tdd teach team teams teasa tech technical technology
+technotic temp temperature temperatures tempor temporarily temporary terminal terminals terminate
+terminated terms terra territory test test_password_hash testing tether text than thanks thc theater
+themselves then there thing third thought thr threat threaten threats three throtte throttle through
+throughout throughput throw throwable throwables thrust thrusters thrustmaster thumb thumbstick
+ticket tied tier tigerclaw tigersclaw time time-out timed timeout tobin today todo tog together
+toggle toggles toilet token tokens tolerated too took tool tools tooltips top top-class torpedo
+torpid torso total totals touch touchdown tour tourist tours towards town track tracked tracker
+tracking trackir tractor tractoring trade traffic transaction transfer transferring transfers
+transformed transient transition transmission transport transportation trauma travel traveling
+traversal traverse treat treatment tremor trg trgt triangle trigger triggered trim trivial trojan
+trt trusted try try_match trying tumbril turn turned tutorial twcs two two-handed type type-k types
+uec uee-aegs-2560-6503-9845 ullamco unable unaccessible unarmed unauthorised unavailable unbind
+unbinds under underarm underbarrel understand undersuits undock unequip unequipped unexpected
+unfortunately unhandled unidentified uninitialized unique unit universe unkown unlock unlocked
+unowned unpin unpredictable unranked unreachable unread unrecognized unresponsive unselect
+unspecified unstow unstowed unstowing unstreamable unstreamables until untrack unused update updated
+updating upgrade uploading upon upper urgent usa usage use used useful user username users uses
+using utilitarian utility vacuum valet valid validation value values valve vanduul variable variety
+various vast vault vector vel velit velocity vending veniam venue verification verify version
+vertical very vfg vfgi viable video view viewer violated violations violator virtual virus
+visibility vision visit visiting visor visualization vital vjoy vkb voip volatile volume volumes
+voluptate voyager vrs vrt vs64 vsi vtol vulture wait waiting walk walleffect wallscreens wally want
+wanted wants warehouse warnings warp warthog was watch wave waveform waves way weak weap weapons
+wear website week welcome well went what wheel wheels when where whether which while whistle whole
+why widest will win wind window wins wipe wish wishing with withdrawn within without wood work
+workload world would wrap wreckage write wrong x01 x52 x55 x56 xecla xeno xpos xxx y02 yaehadhh yaw
+yc35 years yellow yes yet york ypos zenith zero zero-g zeroing zoom

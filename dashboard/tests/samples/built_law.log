@@ -10,13 +10,13 @@
 <2026-11-28T07:01:30.000Z> [CSessionManager::ConnectCmd] Connect started!
 <2026-11-28T07:02:00.010Z> [CSessionManager::OnClientSpawned] Spawned!
 <2026-11-28T07:03:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Monitored Space Down: " [1] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
-<2026-11-28T07:04:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Crime Committed: Assault
+<2026-11-28T07:04:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Crime Committed: Aggravated Assault
 <2026-11-28T07:04:00.000Z> against OtherPilot_2: " [2] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
-<2026-11-28T07:04:00.000Z>    "Crime Committed: Assault
+<2026-11-28T07:04:00.000Z>    "Crime Committed: Aggravated Assault
 <2026-11-28T07:04:00.000Z> against OtherPilot_2: " [2]
 <2026-11-28T07:04:01.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "CrimeStat Rating Increased: " [3] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
-<2026-11-28T07:05:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "OtherPilot_3 committed Assault against you: " [4] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
-<2026-11-28T07:05:00.000Z>    "OtherPilot_3 committed Assault against you: " [4]
+<2026-11-28T07:05:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "OtherPilot_3 committed Battery (First Degree) against you: " [4] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-28T07:05:00.000Z>    "OtherPilot_3 committed Battery (First Degree) against you: " [4]
 <2026-11-28T07:06:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Fined 1500 UEC: " [5] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
 <2026-11-28T07:07:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Vehicle Impounded: Drake Golem: " [6] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
 <2026-11-28T07:08:00.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Monitored Space Restored: " [7] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
