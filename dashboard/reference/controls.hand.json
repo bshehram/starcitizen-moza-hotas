@@ -14,8 +14,9 @@
     {"where": "Left hat right / left", "controls": ["js1 8", "js1 10"]},
     {"where": "Left hat press", "controls": ["js1 11"]},
     {"where": "COM hat right", "controls": ["js2 58"], "status": "unverified", "note": "On the COM hat since 2026-11-23; not yet reported from a flight (CLAUDE.md section 6, item 20)."},
-    {"where": "COM hat press (tap / hold)", "controls": ["js2 57"], "status": "unverified", "note": "Moved here 2026-11-26 and accepted by the game on load; not yet reported from a flight (CLAUDE.md section 6, items 21 and 23)."},
-    {"where": "Right wing 1 / 2 / 3", "controls": ["js1 53", "js1 54", "js1 55"], "status": "unverified", "note": "The power toggles moved here from the left wing on 2026-11-28; written, not yet loaded in the game or flown (CLAUDE.md section 6, item 29)."},
+    {"where": "COM hat press", "controls": ["js2 57"], "status": "unverified", "note": "Pin the selected target with a tap, since 2026-11-28; written, not yet loaded in the game or flown (CLAUDE.md section 6, item 30)."},
+    {"where": "Left wing 1 / 2 / 3", "controls": ["js1 49", "js1 50", "js1 51"], "status": "unverified", "note": "The power-assignment taps, which the user uses far more than the power toggles. On the left wing since 2026-11-28; written, not yet loaded in the game or flown (CLAUDE.md section 6, items 29 and 30)."},
+    {"where": "Left wing 4", "controls": ["js1 52"], "status": "flown", "note": "Resets the power assignment to even. Part of the power panel, which worked on the first load of 2026-11-26; not moved by the swap of 2026-11-28 (CLAUDE.md section 6, items 23 and 29)."},
     {"where": "Right wing 4 (hold)", "controls": ["js1 56"], "status": "flown", "note": "Part of the power panel, which worked on the first load of 2026-11-26; not moved by the swap of 2026-11-28 (CLAUDE.md section 6, items 23 and 29)."}
    ]
   },

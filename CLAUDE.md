@@ -272,7 +272,7 @@ Button indices come directly from the MOZA configurator diagrams (`diagrams/MOZA
 
 ## 4. Complete binding reference
 
-Every binding currently in `MOZA.xml`, grouped by action map, with the official in-game label and what it does. **Input** = the XML `input=` value; **Control** = where that is on the hardware. The file holds **120 bindings + 10 cleared game defaults across 21 actionmaps**, one `<rebind>` per action (the clears have their own table at the end of this section).
+Every binding currently in `MOZA.xml`, grouped by action map, with the official in-game label and what it does. **Input** = the XML `input=` value; **Control** = where that is on the hardware. The file holds **119 bindings + 12 clears across 21 actionmaps** (10 clears of game defaults, and 2 that empty slots an earlier version of this profile filled), one `<rebind>` per action (the clears have their own tables at the end of this section).
 
 > **Labels are the exact strings the 4.10 Keybindings menu shows** (from `global.ini`), so you can find an action in-game by searching for it. Two are worth knowing because the game's wording is unhelpful: `v_starmap` is listed simply as *Map*, and the game labels **both** `v_lights_on` and `v_lights_off` *Headlights (Enable)* - a CIG label slip; the tables below keep "Off" for the second one.
 
@@ -332,14 +332,13 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button15` | MTQ lower encoder CW | `v_accel_range_increment` → *Acceleration Limiter - Step Up (tap)* | Raises the acceleration (G-force) cap - snappier, harsher Gs. |
 | `js2_button14` | MTQ lower encoder CCW | `v_accel_range_decrement` → *Acceleration Limiter - Step Down (tap)* | Lowers the G-force cap - smoother, safer from blackout. |
 | `js2_button16` | MTQ lower encoder **center press** | `v_ifcs_toggle_gforce_safety` → *G-Force Safety On/Off (Toggle / Hold)* | G-Safe - caps maneuvers to stop the pilot blacking out; off = full performance, blackout risk. Self-contained dial: turn 14/15 to set the accel/G cap, push 16 to toggle the safety that governs it. **Moved here from `js1_button51`.** |
-| `js2_button57` | MTQ "COM" hat - **press, tap** | `v_ifcs_vector_decoupling_toggle` → *Enable / Disable decoupled mode* | Coupled ↔ decoupled. **Moved here 2026-11-26**: the user wanted it on the throttle, and its MHG stick-press spot became full reverse. Stock mode `tap`; a **hold** on the same press is *Pin Selected Target (Hold)* (see *Targeting*), so neither needs an attribute. It sat on keypad A4 for an hour first, but the user uses LAMP there far more. Earlier spots: MHG stick press `js1_button29` (2026-11-23 to 11-26), this same COM hat press before that, AB6 left wing 1 `js1_button49`. Kept **off** the MTQ 3-pos switch (49/50) - its rest re-fires on every brake (would force-recouple). |
 | `js2_button8` | MTQ keypad **"ALT"** (right-mid) - **tap** | `v_atc_request` → *Request Landing* | Hails ATC for a pad/hangar; opens doors/forcefields when in range. **Swapped onto "ALT" from "AP"/10.** Moved off `js1_button53` (now free). Stock mode `tap`, so a quick press. |
 | `js2_button8` | MTQ keypad **"ALT"** - **hold** (~0.25 s) | `v_atc_loading_area_request` → *Request Cargo Loading* | Hails for a cargo-loading slot (Golem OX hauling). **Re-added 2026-11** for the cargo fleet (it had been removed in June as never used). Carries `activationMode="delayed_press"` - the one explicit activation mode in the file - because its stock mode is also `tap`. |
 | `js2_button29` | MTQ **toggle C** up (gear lever) | `v_retract_landing_system` → *Landing System (Retract)* | Gear **up**. Gear-shaped plastic lever - its position mirrors gear state. |
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing System (Deploy)* | Gear **down**. Lever down = gear down (aircraft convention). |
 | `js2_button10` | MTQ keypad **"AP"** (right-bottom) - **hold** (~0.25 s) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. **Swapped onto "AP" from "ALT"/8.** Stock mode is `delayed_press`, so it needs a short **hold** - a quick tap is the docking action (see *Quantum travel, navigation & docking*). Gear toggle is now **only** on the gear lever (29/30); the stock `js1_button12` gear toggle is cleared (see *Cleared game defaults*). This one rebind also replaces the stock Autoland on `js1_button12` (the right hat UP), because an action has a single joystick binding. A `js1_ ` clear added beside it on 2026-11-26 wiped the binding (the last rebind wins) and was removed the same day (§2.5). **Confirmed in flight by the user** (2026-11-28: Autoland worked on the Golem runs of 2026-11-27). |
 | `js2_button50` | MTQ Right Module switch - **forward-latch** | `v_vtol_on` → *Enable VTOL* | Engages VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. Flick the switch forward; it stays latched. |
-| `js2_button49` | MTQ Right Module switch - **rest/default** | `v_vtol_off` → *Disable VTOL* | Disengages VTOL. As a discrete idempotent SET it re-fires on every space-brake release (51 springs back through 49) with no ill effect, so the switch position always reflects true VTOL state. Moved here off the COM-hat press (`js2_button57`; since 2026-11-26 a **tap** there is the decoupled toggle and a **hold** is *Pin Selected Target (Hold)*). |
+| `js2_button49` | MTQ Right Module switch - **rest/default** | `v_vtol_off` → *Disable VTOL* | Disengages VTOL. As a discrete idempotent SET it re-fires on every space-brake release (51 springs back through 49) with no ill effect, so the switch position always reflects true VTOL state. Moved here off the COM-hat press (`js2_button57`; since 2026-11-28 a **tap** there is *Pin Selected Target*). |
 
 ### Quantum travel, navigation & docking - `spaceship_quantum`, `spaceship_hud`, `spaceship_docking`
 
@@ -380,11 +379,11 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button60` | MTQ "COM" hat ↓ | `v_target_cycle_all_back` → *Cycle Lock - All - Back* | Cycles all contacts back. |
 | `js2_button58` | MTQ "COM" hat → | `v_target_cycle_hostile_reset` → *Cycle Lock - Hostiles - Reset to Closest* | **Snap-lock the closest hostile** - the best panic-target button in a furball. |
 | `js2_button59` | MTQ "COM" hat ← | `v_target_cycle_pinned_fwd` → *Cycle Lock - Pinned - Forward* | Cycles through **pinned** targets. |
-| `js2_button57` | MTQ "COM" hat - **press, hold** (~0.25 s) | `v_target_pin_selected_hold` → *Pin Selected Target (Hold)* | **Pins** the current target so you can cycle back to it (COM hat ←). Since 2026-11-26 the game's own hold version of pin (stock `delayed_press`): a **tap** on this press is the decoupled toggle. In `spaceship_targeting`, not `_advanced` (see the note below). |
+| `js2_button57` | MTQ "COM" hat - **press, tap** | `v_target_pin_selected` → *Pin Selected Target* | **Pins** the current target so you can cycle back to it (COM hat ←). Stock mode `tap`, no attribute, and nothing else on this press. **Back on a tap since 2026-11-28** (§6 item 30): from 2026-11-26 it was the hold version and a tap here was the decoupled toggle, which is now off the rig. In `spaceship_targeting`, not `_advanced` (see the note below). |
 
 > **The MHG right hat is a multi-mode bank (since 2026-11-26):** sub-target / attacker cycling in combat; in **Mining** / **Salvage** operator mode the same five inputs become those modes' banks (see *Mining* / *Salvage*). Safe because targeting maps go inactive in mining/salvage - the same gating the left hat relies on (hostile cycle in combat, salvage beams in salvage). The AB6 wings that used to do this job are now the always-live power panel, and their combat target-cycle set was deleted.
 
-> **Targeting layout:** the **left hat** (lock + hostile cycle) and **right hat** (sub-target/attacker cycle ↑↓/→← + gimbal press) carry the core combat targeting; the MTQ **"COM" hat** adds an **acquisition cluster** - cycle-all, closest-hostile snap, and pin/cycle-pinned - complementing rather than duplicating the hats. (That cluster sat on the MHG top mini-stick until 2026-11-23, when it swapped places with strafe because it was rarely used.) Since 2026-11-26 the hat **press** is a **tap** for the decoupled toggle and a **hold** to pin. **✅ Action-map (resolved):** pin (`v_target_pin_selected`, now its hold twin `v_target_pin_selected_hold`) lives in `spaceship_targeting` (alongside `v_target_lock_selected`), **not** `spaceship_targeting_advanced` - the game's own exported `actionmaps.xml` *drops* pin from the *advanced* map (so pinning did nothing there), confirming it belongs with the basic lock action (see §10).
+> **Targeting layout:** the **left hat** (lock + hostile cycle) and **right hat** (sub-target/attacker cycle ↑↓/→← + gimbal press) carry the core combat targeting; the MTQ **"COM" hat** adds an **acquisition cluster** - cycle-all, closest-hostile snap, and pin/cycle-pinned - complementing rather than duplicating the hats. (That cluster sat on the MHG top mini-stick until 2026-11-23, when it swapped places with strafe because it was rarely used.) Since 2026-11-28 the hat **press** is a **tap** to pin and nothing else; from 2026-11-26 it was a tap for the decoupled toggle and a hold to pin (§6 item 30). **✅ Action-map (resolved):** pin (`v_target_pin_selected`; its hold twin `v_target_pin_selected_hold` was used from 2026-11-26 to 11-28) lives in `spaceship_targeting` (alongside `v_target_lock_selected`), **not** `spaceship_targeting_advanced` - the game's own exported `actionmaps.xml` *drops* pin from the *advanced* map (so pinning did nothing there), confirming it belongs with the basic lock action (see §10).
 
 ### Radar & scanning - `spaceship_radar`, `spaceship_scanning`
 
@@ -492,7 +491,7 @@ These reuse MHG controls; active only in **Salvage** operator mode.
 
 > **Salvage bank on the MHG right hat (since 2026-11-26):** ↑ focus all · ← / → focus left / right · ↓ flip the beam axis · press = gimbal reset, with fire left / right on MTQ A2 / A3. Head focus now sits on the same hand as the left hat's fracture / disintegrate fire and modifier cycle. The bank used to be on the AB6 wings, which are now the always-live power panel. The MHG rocker is the salvage tool cluster: ↑/↓ (22/23) step the beam spacing, complementing the SPEEDBRAKE absolute axis, and the center press (24) cycles the structural field's mode. None of the bank's functions has been confirmed in-ship in its new place (nor was it on the wings).
 
-### Cleared game defaults - `spaceship_movement`, `player_choice`, `vehicle_general`, `vehicle_driver`
+### Cleared game defaults and old bindings - `spaceship_movement`, `spaceship_targeting`, `player_choice`, `vehicle_general`, `vehicle_driver`
 
 These ten entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which removes a stock joystick binding that would otherwise stay live on `js1` underneath this profile (the mechanism is in §2.5). They were identified from the 4.10 `defaultProfile.xml` with `tools/gamedata.py check` on 2026-11-20; the game accepted all ten on the first 4.10.3 load (each is listed as `js1_ ` in its export, §10.3). Their in-flight effect has not been checked one by one. A clear only belongs on an action the profile does **not** bind: an eleventh, placed beside the *Autoland* binding on 2026-11-26, replaced that binding and was removed (§2.5).
 
@@ -508,6 +507,13 @@ These ten entries bind **nothing**. Each is `<rebind input="js1_ "/>`, which rem
 | `v_pitch` → *Pitch Up / Down (Axis / HOTAS)* | `vehicle_driver` | `js1_y` | stick Y | Same. The ship's `v_pitch` is untouched. |
 | `v_brake` → *Brake* | `vehicle_driver` | `js1_button7` (hold) | MHG left hat ↑ | Same. |
 | `v_boost` → *Boost* | `vehicle_driver` | `js1_button8` | MHG left hat → | Same. |
+
+**Two more clears empty slots this profile filled before** (2026-11-28, §6 item 30). Neither action has a stock joystick binding **[game]**, so nothing stock comes back: each clear only empties the one joystick slot, which the game still held from the 2026-11-26 load (loading is an overlay, §2.5). They stay in the file so that any load leaves the slot empty.
+
+| Cleared action → In-game label | Actionmap | What the game held | Why it is cleared |
+| --- | --- | --- | --- |
+| `v_ifcs_vector_decoupling_toggle` → *Enable / Disable decoupled mode* | `spaceship_movement` | `js2_button57` (COM hat press, tap) | Off the rig at the user's request: on the press it could be hit by mistake while pinning a target in combat. The keyboard's stock key (`C`) still toggles it. |
+| `v_target_pin_selected_hold` → *Pin Selected Target (Hold)* | `spaceship_targeting` | `js2_button57` (COM hat press, hold) | Pin is back on a tap (`v_target_pin_selected`); the hold version would otherwise stay live on the same press. |
 
 **Stock joystick defaults deliberately left in place** (still reported as `GHOST` by the check - that is expected):
 
@@ -581,6 +587,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - Clicking the stick in while strafing toggles decoupled mode.
     - **Loaded and validated in-game on 2026-11-26** (`validate_actionmaps.py` after each load of that day, §10.3). **Not reported from a flight since.**
     - *Update 2026-11-26 (item 21):* the stick press 29 is now full reverse, and the decoupled toggle went back to the MTQ "COM" hat press (tap; hold = pin).
+    - *Update 2026-11-28 (item 30):* the decoupled toggle left the rig, and the COM hat press is a tap to pin.
 
 21. **✅ Full reverse on the MHG stick press; decoupled back on the MTQ "COM" hat press (2026-11-26). The two-rebind reverse described here failed on load - see item 23.** The user asked for three things:
     - **Reverse on button 29.** The user wanted **both**: full reverse instantly on the stick press, and the proportional reverse on the throttle lever behind the detent (item 16).
@@ -597,6 +604,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Not yet loaded in-game or flown.** After loading, run `validate_actionmaps.py` and check the export:
       - `v_strafe_back` should be listed with **both** `js2_rotz` and `js1_button29`. If only one survives, the game does limit an action to one joystick input after all, and this needs rethinking.
       - The decoupled toggle and `v_target_pin_selected_hold` should both be on `js2_button57`, and LAMP on `js2_button4` with no activation mode.
+    - *Update 2026-11-28 (item 30):* the decoupled toggle is off the rig, and the COM hat press is pin on a tap again.
 
 22. **✅ AB6 wings became a power panel; mining / salvage banks moved to the MHG right hat (2026-11-26).**
     - **The user's decisions:**
@@ -713,6 +721,23 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Carried over to** the cards, `reference/MOZA_BINDINGS.html`, `README.md` and the dashboard's rig data. The dashboard's combat strip lists the power toggles and shields to max, so it now names right wing 1 / 2 / 3 and right wing 4.
     - **Status.** The six moved bindings were written 2026-11-28, not yet loaded in game or flown. Buttons 52 and 56 did not change and keep the user's 2026-11-26 report (item 23).
     - **After the user loads the profile and quits,** `validate_actionmaps.py` should give 0 input-diff and 0 leftover, with the six actions on their new buttons. Until that load it reports an `INPUT-DIFF` on each of the six, which is expected (§10.3).
+
+30. **✅ The COM hat press is pin on a tap, and the decoupled toggle is off the rig (2026-11-28).**
+    - **The user's words (about 10:40 AM):** "i dont think having decoupled mode on button 57 is right place, it can be mistakenly pressed during combat when trying to pin a selected target ... i think we should remove the binding for decoupled mode from button 57 for now as i really dont go into that advanced racing mode even in combat." Asked whether pin should go back to a tap: "yes that pin should go back on quick tap as its tricky to do hold on coolie hats".
+    - **Lesson (the user's):** telling a tap from a short hold on a hat press is awkward for them, so a tap / hold split does not belong on a hat press. A plain held button, such as reverse on the MHG stick press, is a different case and works for them (item 24).
+    - **Change:**
+      - `js2_button57` = *Pin Selected Target* (`v_target_pin_selected`, in `spaceship_targeting`, stock mode `tap`, no attribute), alone on the press.
+      - *Enable / Disable decoupled mode* (`v_ifcs_vector_decoupling_toggle`) is no longer bound on the rig. The keyboard's stock key (`C`) still toggles it.
+      - *Pin Selected Target (Hold)* (`v_target_pin_selected_hold`) left the profile.
+    - **Why the file clears both old actions:**
+      - **[seen]** The game's saved profile, written at 10:16 AM that day, held both of them on `js2_button57`.
+      - Loading a profile is an overlay (§2.5). Had the file simply dropped them, both would have stayed, and a tap would toggle decoupled as well as pin: the mistake the user wanted gone.
+      - **[game]** Neither action has a stock joystick binding in the 4.10 catalog. So a `js1_ ` clear brings nothing stock back; it only empties the one joystick slot.
+      - Both clears stay in the file, so that any load leaves the slot empty. The other ways would have been clearing them by hand in the game's Keybindings menu, or deleting them from the saved profile with the game closed (that needs the user's OK each time).
+    - **Counts:** 119 bindings + 12 clears (10 of game defaults, 2 of old bindings) across 21 actionmaps. `gamedata.py check`: 131 OK, 0 unknown, 0 wrong-map, 0 multi-bind, and the same ghost list.
+    - **Status.** Pin on the tap of js2 57 was written 2026-11-28, not yet loaded in game or flown.
+    - **After the next load,** which also carries the wing swap (item 29), `validate_actionmaps.py` should give 0 mismatch, 0 input-diff and 0 leftover, with `v_target_pin_selected` on `js2_button57`. Each of the two clears should come out as `OK` (the game lists `js1_ `) or as `NOT-IN-EXPORT` (an empty slot equals stock, and the export lists only what differs from stock). Which of the two is not known yet. A clear the game did not take would show as an `INPUT-DIFF`, still on `js2_button57`.
+    - **The dashboard's Combat strip** changed in the same commit, at the user's request: it shows the assignment taps (left wing 1 / 2 / 3) and the reset (left wing 4) instead of the power toggles, which they use far less. Shields to max stays, and the COM hat press entry is now pin on a tap.
 
 ---
 
@@ -997,7 +1022,10 @@ python tools/validate_actionmaps.py
 
   Non-zero exit on `MISMATCH`, `INPUT-DIFF` or `LEFTOVER`. A **cleared** default (`js1_ `) differs
   from stock, so it should be listed in the export after a load - one that shows up as
-  `NOT-IN-EXPORT` means the game did not take the clear.
+  `NOT-IN-EXPORT` means the game did not take the clear. The two clears of old bindings (§6 item
+  30) are different: their actions have no stock joystick binding, so an emptied slot equals stock
+  and may go unlisted (`NOT-IN-EXPORT` is then fine), while a clear the game did not take shows as
+  `INPUT-DIFF`, with the old input still held.
 
 Workflow when adding/moving a binding: look the action up in the catalog (its section heading is the
 actionmap) → edit `MOZA.xml` → `gamedata.py check` → load it in-game → quit → `validate_actionmaps.py`.
@@ -1031,6 +1059,12 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 > any load: 121 OK, 0 mismatch, 6 input-diff (the six moved actions, each still on its old button in
 > the game), 0 leftover, and the same 3 stock-equal `NOT-IN-EXPORT`. Loading the profile clears the
 > six.
+>
+> **Later on 2026-11-28:** the COM hat press became pin on a tap and the two old actions on it are
+> cleared (§6 item 30). Step 1 passes (131 OK). Step 2, still before any load: 119 OK, 0 mismatch,
+> 8 input-diff (the six wing actions, and the two clears, which the game still holds as
+> `js2_button57`), 0 leftover, and 4 `NOT-IN-EXPORT` (the usual 3, and the new
+> `v_target_pin_selected`, which the game does not hold yet). One load clears all of it.
 
 ---
 

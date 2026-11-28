@@ -3,7 +3,7 @@
 [![XML parsing](https://img.shields.io/badge/XML_parsing-passing-brightgreen)](MOZA.xml)
 [![Validated](https://img.shields.io/badge/validated-against_4.10_game_data-brightgreen)](#status)
 [![Star Citizen](https://img.shields.io/badge/Star_Citizen-Alpha_4.10.3-1f6fb2)](https://robertsspaceindustries.com/)
-[![Bindings](https://img.shields.io/badge/bindings-120_%2B_10_cleared_defaults-informational)](MOZA.xml)
+[![Bindings](https://img.shields.io/badge/bindings-119_%2B_12_clears-informational)](MOZA.xml)
 [![Devices](https://img.shields.io/badge/devices-MHG_%C2%B7_AB6_%C2%B7_MTQ-orange)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Windows_%7C_DirectInput-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-success)](LICENSE)
@@ -162,8 +162,9 @@ on a Mac.
 ## Status
 
 - **XML parsing — passing.** `MOZA.xml` is well-formed (`xmllint --noout MOZA.xml` is clean):
-  130 actions, each with one `<rebind>`, across 21 action maps — 120 bindings plus 10 cleared
-  game defaults. The game keeps a single joystick input per action, so no action carries two.
+  131 actions, each with one `<rebind>`, across 21 action maps — 119 bindings plus 12 clears
+  (10 of game defaults, and 2 that empty slots an earlier version of the profile filled). The
+  game keeps a single joystick input per action, so no action carries two.
   Buttons that appear in several maps (the trigger, rocker and stick hats) are intentional
   **operator-mode reuse** — only one of those maps is live at a time, depending on whether the
   seat is in flight, mining, or salvage mode. The AB6 base wings are a power panel that works the
@@ -191,10 +192,12 @@ on a Mac.
   flight. On November 27 the throttle was recalibrated on the device so that the forward detent is
   full power; the profile itself did not change. Since then the shield faces (raises and reset)
   have been confirmed in a Corsair, and the right hat's mining module slots 1 and 2 in a Golem;
-  module slot 3 and the right hat's salvage bank have not been tried in a ship yet. On November 28 the top three buttons of the two AB6 wings swapped places, so
-  the power-assignment taps sit together with the reset on the left wing and the power toggles
-  above shields-to-max on the right. That change passes the game-data check but has not been
-  loaded in the game or flown yet.
+  module slot 3 and the right hat's salvage bank have not been tried in a ship yet. On November
+  28 the top three buttons of the two AB6 wings swapped places, so the power-assignment taps sit
+  together with the reset on the left wing and the power toggles above shields-to-max on the
+  right. The same day the decoupled toggle came off the rig (it was too easy to hit while pinning
+  a target), and the COM hat press went back to pinning the target with a quick tap. Both changes
+  pass the game-data check but have not been loaded in the game or flown yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data

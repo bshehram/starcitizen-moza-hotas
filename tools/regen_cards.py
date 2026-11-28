@@ -597,10 +597,8 @@ MTQ_R = [
      'Screen': 'Cycle pinned targets forward', 'Where': 'COM hat left', 'Group': 'COM hat', 'Actions': ['v_target_cycle_pinned_fwd']},
     {'Label': '58', 'Primary': 'Lock closest hostile', 'Hint': 'COM hat right',
      'Screen': 'Lock the closest hostile', 'Where': 'COM hat right', 'Group': 'COM hat', 'Actions': ['v_target_cycle_hostile_reset']},
-    {'Label': '57', 'Primary': 'Decoupled / hold: pin', 'Hint': 'COM hat press',
-     'Screen': 'Decoupled flight on / off (tap); pin the selected target (hold)', 'Where': 'COM hat press', 'Group': 'COM hat', 'Actions': ['v_ifcs_vector_decoupling_toggle', 'v_target_pin_selected_hold'],
-     'Jobs': [{'Press': 'tap', 'Screen': 'Decoupled flight on / off', 'Actions': ['v_ifcs_vector_decoupling_toggle']},
-              {'Press': 'hold', 'Screen': 'Pin the selected target', 'Actions': ['v_target_pin_selected_hold']}]},
+    {'Label': '57', 'Primary': 'Pin selected target', 'Hint': 'COM hat press',
+     'Screen': 'Pin the selected target', 'Where': 'COM hat press', 'Group': 'COM hat', 'Actions': ['v_target_pin_selected']},
     {'Label': '62', 'Primary': 'Cycle camera view', 'Hint': 'mini-stick press',
      'Screen': 'Cycle the camera view', 'Where': 'Left module mini-stick press', 'Group': 'left module mini-stick', 'Actions': ['v_view_cycle_fwd']},
     {'Label': '63', 'Primary': 'Zoom in - cockpit', 'Hint': 'throttle dial fwd',
@@ -694,7 +692,7 @@ _ALWAYS = {'File': _C, 'In': '§5', 'Text': ("Always-active maps (power, defensi
 _XML_ALWAYS = {'File': _X, 'In': 'DUPE/REUSE POLICY', 'Text': (
     'spaceship_power/defensive/movement/view/general, seat_general and lights are ALWAYS active, so their controls '
     '(AB6-wing power panel, WPN-hat shield faces, left-hat countermeasures, MTQ throttle/strafe/encoders) carry nothing '
-    'else, except a stock tap/hold split ("AP" key, "ALT" key, COM hat press).')}
+    'else, except a stock tap/hold split ("AP" key, "ALT" key).')}
 _XML_GATED = {'File': _X, 'In': 'DUPE/REUSE POLICY', 'Text': (
     'DUPE/REUSE POLICY: a physical button carrying several actions is fine ONLY when they sit in operator-gated maps '
     'that are never simultaneously active - guns/missiles/mining/salvage/targeting/scanning are gated by operator mode, '
@@ -907,7 +905,7 @@ STATUS = [
         {'In': '§6 item 14', 'Text': ("Update 2026-11-28: all five work in the Corsair, by the user's report: the four "
                                      'raises (js2 53 to 56) and the reset on the hat press (js2 52).')}]},
     {'Control': 'js2 57', 'Part': None, 'Status': 'unverified', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'Autoland on the "AP" hold and the rest of the rework were not reported then.'}]},
+        {'In': '§6 item 30', 'Text': 'Pin on the tap of js2 57 was written 2026-11-28, not yet loaded in game or flown.'}]},
     {'Control': 'js2 58', 'Part': None, 'Status': 'unverified', 'Quote': [
         {'In': '§6 item 20', 'Text': ('Loaded and validated in-game on 2026-11-26 (validate_actionmaps.py after each load '
                                      'of that day, §10.3).')},

@@ -150,7 +150,7 @@ under 18 px. There is no ninth image of the whole throttle panel: the cards' `ca
 | `status` | string or absent | The primary function's status: `flown`, `unverified` or `trial` (`_meta.status` says what each means). Absent = the docs record neither a flight report nor a doubt about how that binding behaves (doubts about which physical control carries a number, and about the game defaults the profile clears, are not statuses). On a row with `jobs`, the more doubtful of its jobs' statuses (flown < absent < unverified < trial). | `STATUS` in the script, each entry quoting whole sentences of root `CLAUDE.md`. |
 | `status_ref` | string or absent | Where the status's sentences sit in root `CLAUDE.md` ("§6 item 24", "§4 Mining; §11.1"); present with `status`, except on a row whose jobs carry their own (read the jobs'). | The quotes' places in `STATUS`. |
 | `status_when` | string or absent | When a `flown` confirmation was made, where the docs say: a date ("2026-11-26") or a month and build ("June 2026, Alpha 4.8"). Absent = the docs give no date. So a page can say how old a confirmation is. | `STATUS` (`When`), checked to sit beside a quote. |
-| `jobs` | list or absent | Only where a tap and a hold on one press do different things (js2 8, js2 10, js2 57): `[{press: "tap" or "hold", text, actions: [action], modes: {mode: "live" / "none" / "unknown"}, status?, status_ref?, status_when?}]`. | Table (`Jobs`), checked against the actions' activation modes. |
+| `jobs` | list or absent | Only where a tap and a hold on one press do different things (js2 8, js2 10): `[{press: "tap" or "hold", text, actions: [action], modes: {mode: "live" / "none" / "unknown"}, status?, status_ref?, status_when?}]`. | Table (`Jobs`), checked against the actions' activation modes. |
 | `variants` | list or absent | The other operator modes' jobs on the same press: `[{mode, text, card, status?, status_ref?, status_when?}]`, in card order. `text` is the screen wording ("Salvage beam spacing wider (step)"), `card` the printed one ("gap +"). | Table (`ScreenVariants`, `Variants`, `VariantActions`), `STATUS`. |
 | `card` | object | The printed card's wording: `{primary, hint?}` (hint absent when the card prints none). The card's variants are `variants[].card`. | Table. |
 | `modes` | object | For each mode id: what the press does there (below). | `MOZA.xml` actionmaps and `maps`. |
@@ -180,11 +180,11 @@ when it is `"none"` in all of them.
 
 So under a Mining filter: `variant` = changes job, `primary` with `modes.combat == "primary"` =
 keeps its job, `primary` with `modes.combat != "primary"` = a job of this mode, `none` = does
-nothing, `unknown` = say nothing. A tap / hold row's `jobs[].modes` tell which half acts (js2 57
-in Mining: the tap, decoupled, is live; the hold, pin, is not).
+nothing, `unknown` = say nothing. A tap / hold row's `jobs[].modes` tell which half acts (js2 10
+in Mining: the hold, Autoland, is live; for the tap, docking, the docs do not say).
 
-Counts (2026-11-28): combat 78 primary / 15 none / 3 unknown; missile 61 / 2 variant / 18 / 15;
-scan 63 / 0 / 18 / 15; mining 62 / 7 / 24 / 3; salvage 63 / 15 / 15 / 3. Under the Flight filter:
+Counts (2026-11-28): combat 78 primary / 15 none / 3 unknown; missile 60 / 2 variant / 18 / 16;
+scan 62 / 0 / 18 / 16; mining 61 / 7 / 25 / 3; salvage 62 / 15 / 16 / 3. Under the Flight filter:
 82 rows live, 11 do nothing, 3 unknown (the star map, the quantum drive, the radar ping).
 
 ## Status values (counted on 96 rows and 24 variants, 2026-11-28)

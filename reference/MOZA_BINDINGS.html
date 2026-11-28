@@ -235,7 +235,7 @@
         <tr><td class="btn"><span class="n">60</span> Down</td><td class="fn"><span class="tag t-combat">C</span> Cycle ALL contacts — back</td></tr>
         <tr><td class="btn"><span class="n">58</span> Right</td><td class="fn"><span class="tag t-combat">C</span> Snap closest hostile</td></tr>
         <tr><td class="btn"><span class="n">59</span> Left</td><td class="fn"><span class="tag t-combat">C</span> Cycle pinned — forward</td></tr>
-        <tr><td class="btn"><span class="n">57</span> Press</td><td class="fn"><span class="tag t-util">A</span> Tap: decoupled toggle · <span class="tag t-combat">C</span> Hold: pin current target</td></tr>
+        <tr><td class="btn"><span class="n">57</span> Press</td><td class="fn"><span class="tag t-combat">C</span> Pin current target (tap)</td></tr>
       </table></div>
 
       <div class="card"><h3>Throttle &amp; 3-pos switch</h3><table>
@@ -275,7 +275,7 @@
     <b>Notes.</b> Operator mode (Guns / Missile / Scan / Mining / Salvage) is set on the MTQ mode knob (17–21); it decides which action a multi-mode button fires.
     <b>Power management</b> (the AB6 wing panel) works on every ship. Since November 28 the power-assignment taps sit on the left wing with the reset, and the power toggles on the right wing above shields to MAX; that swap is written but not yet loaded in the game or flown. The <b>WPN-hat shield faces</b> act only on Size 3 Quadrant shields (Liberator, Perseus, Ironclad Assault, Corsair). The raises and the reset work in the Corsair (confirmed November 28); whether the pilot seat owns the faces on the crewed ships is not checked yet.
     On foot you use an Xbox controller, not this rig.
-    <b>Action-maps validated</b> against the game's own export: the power-assignment actions (<code>v_engineering_assignment_*</code>, now on the AB6 wings) sit in <code>spaceship_power</code> and Pin Target (<code>v_target_pin_selected_hold</code>) in <code>spaceship_targeting</code> — both accepted by the game on load. The game keeps one joystick input per action, so reverse sits on one control only: the stick's mini-stick press, held for full reverse. The throttle lever is calibrated on the device so that its power band lies between the two detents: zero at the idle detent, full at the forward detent, nothing outside them.
+    <b>Action-maps validated</b> against the game's own export: the power-assignment actions (<code>v_engineering_assignment_*</code>, now on the AB6 wings) sit in <code>spaceship_power</code> and Pin Target in <code>spaceship_targeting</code> — both accepted by the game on load (pin as its hold version, <code>v_target_pin_selected_hold</code>). Since November 28 pin is the tap version again (<code>v_target_pin_selected</code>) and the decoupled toggle is off the rig; that change is not yet loaded in the game. The game keeps one joystick input per action, so reverse sits on one control only: the stick's mini-stick press, held for full reverse. The throttle lever is calibrated on the device so that its power band lies between the two detents: zero at the idle detent, full at the forward detent, nothing outside them.
   </div>
 
 </div>
