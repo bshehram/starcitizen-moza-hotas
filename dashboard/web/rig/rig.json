@@ -1,11 +1,11 @@
 {
  "_meta": {
-  "generated": "2026-11-27",
+  "generated": "2026-11-28",
   "generated_by": "tools/regen_cards.py (or --dashboard-only); do not edit by hand",
   "source": "The card tables, CARDS, MODES, VIEWS and RIG_ART in tools/regen_cards.py; the art in diagrams/; status marks from dashboard/reference/controls.hand.json.",
-  "hash": {"tables": "d4dee41bf775", "diagrams": {"MOZA_AB6.png": "89033ca3dc4b", "MOZA_MHG.png": "990a8b841e3b", "MOZA_MTQ.png": "1439c9e6eaab"}, "marks": "f9497e3dbb14"},
-  "lookup": "views: in card order, js1 then js2. A view holds the card rows whose button numbers its image draws (`buttons`); `image` is a file beside this one, `w` x `h` its native pixels (at 1:1 the number discs are 14-19 px across with 7-10 px digits, so about 2x brings them to 18 px). mtq_axes has no image: `drawn_on` names the view an axis is drawn on. Row: `label` as printed on the diagram, `primary` (the combat / default function), `hint` (where the control is), `variants` [{mode, text}] for other operator modes, `unbound`, and `status` (flown / unverified / trial, from controls.hand.json) on the primary or on the variant it is about. A missing key means none.",
-  "counts": {"rows": 93, "views": 7}
+  "hash": {"tables": "2d4a83b6a1c1", "diagrams": {"MOZA_AB6.png": "89033ca3dc4b", "MOZA_MHG.png": "990a8b841e3b", "MOZA_MTQ.png": "1439c9e6eaab"}, "marks": "f9497e3dbb14"},
+  "lookup": "views: in card order, js1 then js2. A view holds the card rows whose button numbers its image draws (`buttons`); `image` is a file beside this one, `w` x `h` its native pixels (at 1:1 the number discs are 14-19 px across with 7-10 px digits, so about 2x brings them to 18 px). The axes views (stick_axes, mtq_axes) have no image: `drawn_on` names the view an axis is drawn on, where one draws it. Row: `label` as printed on the diagram, `primary` (the combat / default function), `hint` (where the control is), `variants` [{mode, text}] for other operator modes, `unbound`, and `status` (flown / unverified / trial, from controls.hand.json) on the primary or on the variant it is about. A missing key means none.",
+  "counts": {"rows": 96, "views": 8}
  },
  "modes": [
   {"mode": "combat", "tag": null, "name": "Combat (default)"},
@@ -14,7 +14,7 @@
   {"mode": "salvage", "tag": "Salv:", "name": "Salvage"}
  ],
  "devices": [
-  {"id": "js1", "name": "Stick: MHG grip + AB6 base", "title": "MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)", "sub": "MHG grip 1-29 mounted on the AB6 base 49-62  ·  trigger / hats / rocker / wings reused per operator mode", "legend": "Combat (default)  ·  Msl: Missile  ·  Mine: Mining  ·  Salv: Salvage.  One control = a different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining modules and salvage bank. AB6 wings 49-56 = power panel in every mode."},
+  {"id": "js1", "name": "Stick: MHG grip + AB6 base", "title": "MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)", "sub": "MHG grip 1-29 mounted on the AB6 base 49-62, plus the stick axes  ·  trigger / hats / rocker reused per operator mode", "legend": "Combat (default)  ·  Msl: Missile  ·  Mine: Mining  ·  Salv: Salvage.  One control = a different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining modules and salvage bank. AB6 wings 49-56 = power panel in every mode."},
   {"id": "js2", "name": "Throttle: MTQ", "title": "MOZA MTQ Throttle Panel  -  Button Reference  (js2)", "sub": "throttle 1-65 + axes  ·  buttons 44-48 are absent on the device", "legend": "Throttle forward = axis RY, idle detent = 0, forward detent = full; reverse = MHG stick press 29, held. Nothing is output outside the two detents.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial)."}
  ],
  "views": [
@@ -31,9 +31,9 @@
    {"label": "14", "primary": "Cycle sub-target back", "variants": [{"mode": "mining", "text": "module 3", "status": "unverified"}, {"mode": "salvage", "text": "beam axis H/V", "status": "unverified"}]},
    {"label": "15", "primary": "Cycle attackers back", "variants": [{"mode": "salvage", "text": "focus left", "status": "unverified"}]},
    {"label": "16", "primary": "Gimbal lock toggle", "variants": [{"mode": "salvage", "text": "reset gimbal"}]},
-   {"label": "17", "primary": "Scan angle - narrow", "variants": [{"mode": "salvage", "text": "tractor dist + (trial)", "status": "trial"}]},
+   {"label": "17", "primary": "Scan angle +", "variants": [{"mode": "salvage", "text": "tractor dist + (trial)", "status": "trial"}]},
    {"label": "18", "primary": "Activate scanning (hold)"},
-   {"label": "19", "primary": "Scan angle - widen", "variants": [{"mode": "salvage", "text": "tractor dist - (trial)", "status": "trial"}]},
+   {"label": "19", "primary": "Scan angle -", "variants": [{"mode": "salvage", "text": "tractor dist - (trial)", "status": "trial"}]},
    {"label": "20", "primary": "Radar ping"},
    {"label": "21", "primary": "ADS / cockpit zoom toggle"},
    {"label": "25", "primary": "Strafe up"},
@@ -43,7 +43,7 @@
    {"label": "29", "primary": "Full reverse (hold)", "status": "flown"}
   ]},
   {"id": "mhg_side", "device": "js1", "title": "MHG grip - side", "image": "mhg_side.png", "w": 307, "h": 474, "buttons": "1, 3-4, 6, 22-24", "rows": [
-   {"label": "1", "primary": "Fire Guns - Group 1", "variants": [{"mode": "mining", "text": "fire laser"}, {"mode": "salvage", "text": "focused beam"}]},
+   {"label": "1", "primary": "Fire Guns - Group 1 + selected preset", "variants": [{"mode": "mining", "text": "fire laser"}, {"mode": "salvage", "text": "focused beam"}]},
    {"label": "3", "primary": "Look behind (hold)"},
    {"label": "4", "primary": "Missile-mode toggle"},
    {"label": "6", "primary": "Fire Guns - Group 2", "variants": [{"mode": "salvage", "text": "salvage gimbal"}]},
@@ -63,6 +63,11 @@
    {"label": "57-59", "primary": "Left \"Slider\" lever", "hint": "unbound - reserved", "unbound": true},
    {"label": "60-62", "primary": "Right \"Dial\" lever", "hint": "unbound - reserved", "unbound": true}
   ]},
+  {"id": "stick_axes", "device": "js1", "title": "Stick axes", "rows": [
+   {"label": "X", "primary": "Roll", "hint": "stick left / right"},
+   {"label": "Y", "primary": "Pitch (pull = nose up)", "hint": "stick fwd / back"},
+   {"label": "RZ", "primary": "Yaw", "hint": "grip twist"}
+  ]},
   {"id": "mtq_panel", "device": "js2", "title": "MTQ throttle panel", "image": "mtq_panel.png", "w": 488, "h": 614, "buttons": "1-43", "rows": [
    {"label": "1", "primary": "Jettison cargo (hold)", "hint": "keypad A1, Mining", "status": "unverified"},
    {"label": "2", "primary": "Fire left salvage beam", "hint": "A2, Salvage", "status": "unverified"},
@@ -70,7 +75,7 @@
    {"label": "4", "primary": "LAMP night-vision toggle", "hint": "A4"},
    {"label": "5", "primary": "Master mode SCM / NAV", "hint": "NAV key"},
    {"label": "6", "primary": "Starmap", "hint": "HDG key"},
-   {"label": "7", "primary": "Engage quantum drive", "hint": "SPD key"},
+   {"label": "7", "primary": "Engage quantum drive (hold)", "hint": "SPD key"},
    {"label": "8", "primary": "Landing req / hold: cargo", "hint": "ALT key"},
    {"label": "9", "primary": "Jump - inter-system", "hint": "FD key"},
    {"label": "10", "primary": "Dock (tap) / autoland (hold)", "hint": "AP key", "status": "unverified"},
@@ -94,17 +99,17 @@
    {"label": "28", "primary": "Lights off", "hint": "toggle B down"},
    {"label": "29", "primary": "Landing gear retract", "hint": "gear lever up"},
    {"label": "30", "primary": "Landing gear deploy", "hint": "gear lever down"},
-   {"label": "31-43", "primary": "unbound (analog axes)", "unbound": true}
+   {"label": "31-43", "primary": "Lever detent buttons", "hint": "unbound", "unbound": true}
   ]},
   {"id": "mtq_right", "device": "js2", "title": "MTQ right module", "image": "mtq_right.png", "w": 362, "h": 372, "buttons": "49-61", "rows": [
    {"label": "49", "primary": "VTOL off", "hint": "3-pos switch rest"},
    {"label": "50", "primary": "VTOL on", "hint": "3-pos switch fwd-latch"},
    {"label": "51", "primary": "Space brake", "hint": "3-pos switch back"},
-   {"label": "56", "primary": "Shield face: front", "hint": "WPN hat up"},
-   {"label": "55", "primary": "Shield face: rear", "hint": "WPN hat down"},
-   {"label": "54", "primary": "Shield face: left", "hint": "WPN hat left"},
-   {"label": "53", "primary": "Shield face: right", "hint": "WPN hat right"},
-   {"label": "52", "primary": "Shield faces reset", "hint": "WPN hat press"},
+   {"label": "56", "primary": "Shield face: front (trial)", "hint": "WPN hat up"},
+   {"label": "55", "primary": "Shield face: rear (trial)", "hint": "WPN hat down"},
+   {"label": "54", "primary": "Shield face: left (trial)", "hint": "WPN hat left"},
+   {"label": "53", "primary": "Shield face: right (trial)", "hint": "WPN hat right"},
+   {"label": "52", "primary": "Shield faces reset (trial)", "hint": "WPN hat press"},
    {"label": "61", "primary": "Cycle all contacts fwd", "hint": "COM hat up"},
    {"label": "60", "primary": "Cycle all contacts back", "hint": "COM hat down"},
    {"label": "59", "primary": "Cycle pinned forward", "hint": "COM hat left"},
@@ -119,11 +124,11 @@
   ]},
   {"id": "mtq_axes", "device": "js2", "title": "MTQ axes", "rows": [
    {"label": "RY", "primary": "Main throttle - forward", "hint": "detent to detent", "drawn_on": "mtq_panel"},
-   {"label": "RZ", "primary": "Reverse axis - off", "hint": "not output", "unbound": true},
+   {"label": "Z / RZ", "primary": "Reverse pair - off", "hint": "not output", "unbound": true},
    {"label": "Slider", "primary": "Mining laser power", "hint": "FLAPS, Mining", "status": "flown", "drawn_on": "mtq_panel"},
    {"label": "Dial", "primary": "Salvage beam spacing", "hint": "S-brake, Salvage", "status": "flown", "drawn_on": "mtq_panel"},
    {"label": "X / Y", "primary": "Camera look (yaw / pitch)", "hint": "mini-stick", "drawn_on": "mtq_left"},
-   {"label": "RX / Z", "primary": "Throttle twins", "hint": "unbound", "unbound": true, "drawn_on": "mtq_panel"}
+   {"label": "RX", "primary": "Throttle twin of RY", "hint": "unbound", "unbound": true, "drawn_on": "mtq_panel"}
   ]}
  ]
 }

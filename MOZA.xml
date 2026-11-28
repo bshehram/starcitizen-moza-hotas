@@ -181,7 +181,7 @@
     <action name="v_toggle_landing_system">
       <rebind input="js1_ "/>  <!-- clears the stock js1_button12 gear toggle - gear stays on the gear lever only -->
     </action>
-    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57, now pin target). -->
+    <!-- VTOL as a MAINTAINED 2-position state on the MTQ Right Module 3-pos switch (rest 49 / forward-latch 50): discrete on/off (NOT the toggle) so the switch position ALWAYS mirrors true VTOL state. Rest (49) re-fires v_vtol_off on every space-brake release (51 springs back through 49) - harmless because _off is idempotent; pulling back to brake therefore cleanly drops VTOL (an "abort to normal flight" gesture). Moved off the COM-hat press (js2_button57: since 2026-11-26 a TAP there is the decoupling toggle and a HOLD pins the target). -->
     <action name="v_vtol_on">
       <rebind input="js2_button50"/>  <!-- MTQ 3-pos switch FORWARD-LATCH - VTOL ON (flick forward, stays latched) -->
     </action>
@@ -195,7 +195,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_quantum">
     <action name="v_toggle_qdrive_engagement">
-      <rebind input="js2_button7"/>  <!-- MTQ keypad "SPD" - engage/disengage quantum drive for IN-SYSTEM travel (needs NAV mode + an aligned marker). "SPD"/speed label = loose quantum match. -->
+      <rebind input="js2_button7"/>  <!-- MTQ keypad "SPD", HOLD (~0.25 s; the action's stock mode is delayed_press, label "Engage Quantum Drive (Hold)") - engage/disengage quantum drive for IN-SYSTEM travel (needs NAV mode + an aligned marker). "SPD"/speed label = loose quantum match. -->
     </action>
   </actionmap>
 
@@ -310,10 +310,10 @@
       <rebind input="js1_button18"/>  <!-- MHG lower hat RIGHT - HOLD to scan the target/area under the reticle (Scan operator mode) -->
     </action>
     <action name="v_inc_scan_focus_level">
-      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - narrow the scan cone (stronger/longer-range read). Salvage mode: vehicle tractor distance + (trial) -->
+      <rebind input="js1_button17"/>  <!-- MHG lower hat UP - Increase Scanning Angle (the game's description: "Increase the angle of the Scanning Cone"). Which way the cone goes is NOT checked in a ship (CLAUDE.md section 6 item 26). Salvage mode: vehicle tractor distance + (trial) -->
     </action>
     <action name="v_dec_scan_focus_level">
-      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - widen the scan cone (broader sweep). Salvage mode: vehicle tractor distance - (trial) -->
+      <rebind input="js1_button19"/>  <!-- MHG lower hat DOWN - Decrease Scanning Angle (the game's description: "Decrease the angle of the Scanning Cone"; direction unchecked, as above). Salvage mode: vehicle tractor distance - (trial) -->
     </action>
   </actionmap>
 
@@ -322,7 +322,7 @@
   <!-- ================================================================ -->
   <actionmap name="spaceship_weapons">
     <action name="v_weapon_preset_fire_guns0">
-      <rebind input="js1_button1"/>  <!-- MHG main TRIGGER (stage 1) - fire weapon group 1 (0/1 suffix = weapon GROUP, not trigger stage). Same trigger = mining laser / salvage focused beam in those modes. -->
+      <rebind input="js1_button1"/>  <!-- MHG main TRIGGER (stage 1) - fire weapon group 1 (0/1 suffix = weapon GROUP, not trigger stage). The game's stock "Weapon Preset - Fire" (v_weapon_preset_attack) stays on this trigger on purpose, so it also fires the SELECTED weapon preset (CLAUDE.md section 4, Weapons note). Same trigger = mining laser / salvage focused beam in those modes. -->
     </action>
     <action name="v_weapon_preset_fire_guns1">
       <rebind input="js1_button6"/>  <!-- MHG trigger STAGE 2 (front pull) - fire weapon group 2. Same control = toggle salvage gimbal in Salvage mode. -->

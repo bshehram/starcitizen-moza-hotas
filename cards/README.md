@@ -12,7 +12,7 @@ These are **generated artifacts**, not hand-drawn. Rebuild them with the card ge
 
 | File | What it is |
 | --- | --- |
-| `MOZA_MHG_AB6_ref.png` | **`js1` card (raster).** MHG grip (1–29) **+** AB6 base (49–62) combined, with the grip-front / grip-side / base sub-views stacked beside the lookup table. This is the one embedded in the root [README](../README.md), and the one to print. |
+| `MOZA_MHG_AB6_ref.png` | **`js1` card (raster).** MHG grip (1–29) **+** AB6 base (49–62) combined, plus the stick axes, with the grip-front / grip-side / base sub-views stacked beside the lookup table. This is the one embedded in the root [README](../README.md), and the one to print. |
 | `MOZA_MHG_AB6_ref.svg` | **`js1` card (editable source).** Self-contained vector source for the PNG above — each recolored sub-view is embedded as a base64 PNG, so there are no sidecar files. The PNG is rasterized from this at 2× (≈330 DPI) by headless Chrome/Edge. |
 | `MOZA_MTQ_ref.png` | **`js2` card (raster).** MTQ throttle panel (1–65) plus axes, with the Right Module / Left Module / throttle-panel sub-views stacked beside the lookup table. |
 | `MOZA_MTQ_ref.svg` | **`js2` card (editable source).** Self-contained vector source for the MTQ PNG, same build pipeline as above. |
@@ -21,7 +21,7 @@ These are **generated artifacts**, not hand-drawn. Rebuild them with the card ge
 
 | Card | Device | Top band (two views side by side) | Bottom band (one big view) |
 | --- | --- | --- | --- |
-| `MOZA_MHG_AB6_ref` | `js1` — grip 1–29 + base 49–62 | MHG grip front · MHG grip side | AB6 base |
+| `MOZA_MHG_AB6_ref` | `js1` — grip 1–29 + base 49–62 + stick axes | MHG grip front · MHG grip side | AB6 base |
 | `MOZA_MTQ_ref` | `js2` — throttle 1–65 + axes | Right Module · Left Module | Throttle panel |
 
 ## Printing

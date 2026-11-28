@@ -3,7 +3,7 @@
 Produces the TWO reference cards, sized to fill a US-Letter sheet in LANDSCAPE
 (11 x 8.5 in, aspect 1.294) for printing in hand:
 
-    cards/MOZA_MHG_AB6_ref.png / .svg   (js1: MHG grip 1-29 + AB6 base 49-62)
+    cards/MOZA_MHG_AB6_ref.png / .svg   (js1: MHG grip 1-29 + AB6 base 49-62 + stick axes)
     cards/MOZA_MTQ_ref.png     / .svg   (js2: MTQ throttle 1-65 + axes)
 
 and, in the same run, the dashboard's rig reference, from the same tables and crops:
@@ -295,10 +295,12 @@ AB6 = [
     {'Label': '60-62', 'Primary': 'Right "Dial" lever', 'Hint': 'unbound - reserved', 'Unbound': True},
 ]
 
-# ================================================================ MHG (js1 1-29)
+# ================================================================ MHG (js1 1-29) + the stick axes
+# The stick axes sit under GRIP 1-15 because that column has the room; in rig.json they go to the
+# stick_axes view (no diagram view draws them).
 MHG_L = [
     {'Header': 'GRIP 1-15'},
-    {'Label': '1', 'Primary': 'Fire Guns - Group 1', 'Variants': [V('Mine:', 'fire laser', C_MINE), V('Salv:', 'focused beam', C_SALV)]},
+    {'Label': '1', 'Primary': 'Fire Guns - Group 1 + selected preset', 'Variants': [V('Mine:', 'fire laser', C_MINE), V('Salv:', 'focused beam', C_SALV)]},
     {'Label': '2', 'Primary': 'Launch missiles'},
     {'Label': '3', 'Primary': 'Look behind (hold)'},
     {'Label': '4', 'Primary': 'Missile-mode toggle'},
@@ -313,13 +315,17 @@ MHG_L = [
     {'Label': '13', 'Primary': 'Cycle attackers forward', 'Variants': [V('Mine:', 'module 2', C_MINE), V('Salv:', 'focus right', C_SALV)]},
     {'Label': '14', 'Primary': 'Cycle sub-target back', 'Variants': [V('Mine:', 'module 3', C_MINE), V('Salv:', 'beam axis H/V', C_SALV)]},
     {'Label': '15', 'Primary': 'Cycle attackers back', 'Variants': [V('Salv:', 'focus left', C_SALV)]},
+    {'Header': 'STICK AXES'},
+    {'Label': 'X', 'Primary': 'Roll', 'Hint': 'stick left / right'},
+    {'Label': 'Y', 'Primary': 'Pitch (pull = nose up)', 'Hint': 'stick fwd / back'},
+    {'Label': 'RZ', 'Primary': 'Yaw', 'Hint': 'grip twist'},
 ]
 MHG_R = [
     {'Header': 'GRIP 16-29'},
     {'Label': '16', 'Primary': 'Gimbal lock toggle', 'Variants': [V('Salv:', 'reset gimbal', C_SALV)]},
-    {'Label': '17', 'Primary': 'Scan angle - narrow', 'Variants': [V('Salv:', 'tractor dist + (trial)', C_SALV)]},
+    {'Label': '17', 'Primary': 'Scan angle +', 'Variants': [V('Salv:', 'tractor dist + (trial)', C_SALV)]},
     {'Label': '18', 'Primary': 'Activate scanning (hold)'},
-    {'Label': '19', 'Primary': 'Scan angle - widen', 'Variants': [V('Salv:', 'tractor dist - (trial)', C_SALV)]},
+    {'Label': '19', 'Primary': 'Scan angle -', 'Variants': [V('Salv:', 'tractor dist - (trial)', C_SALV)]},
     {'Label': '20', 'Primary': 'Radar ping'},
     {'Label': '21', 'Primary': 'ADS / cockpit zoom toggle'},
     {'Label': '22', 'Primary': 'Weapon preset - next', 'Variants': [V('Msl:', 'type +', C_NOTE), V('Mine:', 'pwr +', C_MINE), V('Salv:', 'gap +', C_SALV)]},
@@ -341,7 +347,7 @@ MTQ_L = [
     {'Label': '4', 'Primary': 'LAMP night-vision toggle', 'Hint': 'A4'},
     {'Label': '5', 'Primary': 'Master mode SCM / NAV', 'Hint': 'NAV key'},
     {'Label': '6', 'Primary': 'Starmap', 'Hint': 'HDG key'},
-    {'Label': '7', 'Primary': 'Engage quantum drive', 'Hint': 'SPD key'},
+    {'Label': '7', 'Primary': 'Engage quantum drive (hold)', 'Hint': 'SPD key'},
     {'Label': '8', 'Primary': 'Landing req / hold: cargo', 'Hint': 'ALT key'},
     {'Label': '9', 'Primary': 'Jump - inter-system', 'Hint': 'FD key'},
     {'Label': '10', 'Primary': 'Dock (tap) / autoland (hold)', 'Hint': 'AP key'},
@@ -368,15 +374,15 @@ MTQ_L = [
 ]
 MTQ_R = [
     {'Header': 'BUTTONS 31-65'},
-    {'Label': '31-43', 'Primary': 'unbound (analog axes)', 'Unbound': True},
+    {'Label': '31-43', 'Primary': 'Lever detent buttons', 'Hint': 'unbound', 'Unbound': True},
     {'Label': '49', 'Primary': 'VTOL off', 'Hint': '3-pos switch rest'},
     {'Label': '50', 'Primary': 'VTOL on', 'Hint': '3-pos switch fwd-latch'},
     {'Label': '51', 'Primary': 'Space brake', 'Hint': '3-pos switch back'},
-    {'Label': '56', 'Primary': 'Shield face: front', 'Hint': 'WPN hat up'},
-    {'Label': '55', 'Primary': 'Shield face: rear', 'Hint': 'WPN hat down'},
-    {'Label': '54', 'Primary': 'Shield face: left', 'Hint': 'WPN hat left'},
-    {'Label': '53', 'Primary': 'Shield face: right', 'Hint': 'WPN hat right'},
-    {'Label': '52', 'Primary': 'Shield faces reset', 'Hint': 'WPN hat press'},
+    {'Label': '56', 'Primary': 'Shield face: front (trial)', 'Hint': 'WPN hat up'},
+    {'Label': '55', 'Primary': 'Shield face: rear (trial)', 'Hint': 'WPN hat down'},
+    {'Label': '54', 'Primary': 'Shield face: left (trial)', 'Hint': 'WPN hat left'},
+    {'Label': '53', 'Primary': 'Shield face: right (trial)', 'Hint': 'WPN hat right'},
+    {'Label': '52', 'Primary': 'Shield faces reset (trial)', 'Hint': 'WPN hat press'},
     {'Label': '61', 'Primary': 'Cycle all contacts fwd', 'Hint': 'COM hat up'},
     {'Label': '60', 'Primary': 'Cycle all contacts back', 'Hint': 'COM hat down'},
     {'Label': '59', 'Primary': 'Cycle pinned forward', 'Hint': 'COM hat left'},
@@ -388,11 +394,11 @@ MTQ_R = [
     {'Label': '65', 'Primary': 'Boost / afterburner', 'Hint': 'L-Module button'},
     {'Header': 'AXES'},
     {'Label': 'RY', 'Primary': 'Main throttle - forward', 'Hint': 'detent to detent'},
-    {'Label': 'RZ', 'Primary': 'Reverse axis - off', 'Hint': 'not output', 'Unbound': True},
+    {'Label': 'Z / RZ', 'Primary': 'Reverse pair - off', 'Hint': 'not output', 'Unbound': True},
     {'Label': 'Slider', 'Primary': 'Mining laser power', 'Hint': 'FLAPS, Mining'},
     {'Label': 'Dial', 'Primary': 'Salvage beam spacing', 'Hint': 'S-brake, Salvage'},
     {'Label': 'X / Y', 'Primary': 'Camera look (yaw / pitch)', 'Hint': 'mini-stick'},
-    {'Label': 'RX / Z', 'Primary': 'Throttle twins', 'Hint': 'unbound', 'Unbound': True},
+    {'Label': 'RX', 'Primary': 'Throttle twin of RY', 'Hint': 'unbound', 'Unbound': True},
 ]
 
 # ================================================================ shared by the cards and the dashboard
@@ -404,7 +410,7 @@ CARDS = [
     {'Name': 'MOZA_MHG_AB6_ref', 'Device': 'js1', 'Short': 'Stick: MHG grip + AB6 base',
      'Tables': ['MHG_L', 'MHG_R', 'AB6'],
      'Title': 'MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)',
-     'Sub': 'MHG grip 1-29 mounted on the AB6 base 49-62  ·  trigger / hats / rocker / wings reused per operator mode',
+     'Sub': 'MHG grip 1-29 mounted on the AB6 base 49-62, plus the stick axes  ·  trigger / hats / rocker reused per operator mode',
      'Legend': ('Combat (default)  ·  Msl: Missile  ·  Mine: Mining  ·  Salv: Salvage.  One control = a '
                 'different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining '
                 'modules and salvage bank. AB6 wings 49-56 = power panel in every mode.')},
@@ -438,6 +444,10 @@ VIEWS = [
      'File': 'MOZA_MHG.png', 'Box': (100, 168, 460, 770), 'Buttons': '1, 3-4, 6, 22-24'},
     {'Id': 'ab6_base', 'Device': 'js1', 'Title': 'AB6 base', 'Caption': 'AB6 base - wings & levers',
      'File': 'MOZA_AB6.png', 'Box': (250, 110, 785, 650), 'Buttons': '49-62'},
+    # The stick's own axes. None is drawn in a cropped view: MOZA's art shows the twist (RZ) only
+    # below the grip, outside the mhg_front crop, and the AB6 art shows no X / Y.
+    {'Id': 'stick_axes', 'Device': 'js1', 'Title': 'Stick axes', 'Caption': None, 'File': None, 'Box': None,
+     'Axes': {}},
     {'Id': 'mtq_panel', 'Device': 'js2', 'Title': 'MTQ throttle panel', 'Caption': 'Throttle panel',
      'File': 'MOZA_MTQ.png', 'Box': (60, 90, 612, 818), 'Buttons': '1-43'},
     {'Id': 'mtq_right', 'Device': 'js2', 'Title': 'MTQ right module', 'Caption': None,
@@ -445,7 +455,7 @@ VIEWS = [
     {'Id': 'mtq_left', 'Device': 'js2', 'Title': 'MTQ left module', 'Caption': None,
      'File': 'MOZA_MTQ.png', 'Box': (620, 488, 1045, 818), 'Buttons': '62-65'},
     {'Id': 'mtq_axes', 'Device': 'js2', 'Title': 'MTQ axes', 'Caption': None, 'File': None, 'Box': None,
-     'Axes': {'RY': 'mtq_panel', 'Slider': 'mtq_panel', 'Dial': 'mtq_panel', 'RX / Z': 'mtq_panel', 'X / Y': 'mtq_left'}},
+     'Axes': {'RY': 'mtq_panel', 'Slider': 'mtq_panel', 'Dial': 'mtq_panel', 'RX': 'mtq_panel', 'X / Y': 'mtq_left'}},
 ]
 
 # How the dashboard copies of the sub-views are drawn (the page is dark; the cards are dark on white).
@@ -611,8 +621,9 @@ def rig_doc(images):
                  'marks': digest(sorted([d, l, m or '', s] for (d, l, m), s in marks.items()))},
         'lookup': 'views: in card order, js1 then js2. A view holds the card rows whose button numbers its image '
                   'draws (`buttons`); `image` is a file beside this one, `w` x `h` its native pixels (at 1:1 the '
-                  'number discs are 14-19 px across with 7-10 px digits, so about 2x brings them to 18 px). mtq_axes '
-                  'has no image: `drawn_on` names the view an axis is drawn on. Row: `label` as printed on the diagram, `primary` (the combat / default function), `hint` '
+                  'number discs are 14-19 px across with 7-10 px digits, so about 2x brings them to 18 px). The axes '
+                  'views (stick_axes, mtq_axes) have no image: `drawn_on` names the view an axis is drawn on, '
+                  'where one draws it. Row: `label` as printed on the diagram, `primary` (the combat / default function), `hint` '
                   '(where the control is), `variants` [{mode, text}] for other operator modes, `unbound`, and '
                   '`status` (flown / unverified / trial, from controls.hand.json) on the primary or on the variant '
                   'it is about. A missing key means none.',

@@ -334,7 +334,7 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | `js2_button30` | MTQ **toggle C** down (gear lever) | `v_deploy_landing_system` → *Landing System (Deploy)* | Gear **down**. Lever down = gear down (aircraft convention). |
 | `js2_button10` | MTQ keypad **"AP"** (right-bottom) - **hold** (~0.25 s) | `v_autoland` → *Autoland* | Autopilot lands on an ATC-assigned pad when gear is down and you're close. **Swapped onto "AP" from "ALT"/8.** Stock mode is `delayed_press`, so it needs a short **hold** - a quick tap is the docking action (see *Quantum travel, navigation & docking*). Gear toggle is now **only** on the gear lever (29/30); the stock `js1_button12` gear toggle is cleared (see *Cleared game defaults*). This one rebind also replaces the stock Autoland on `js1_button12` (the right hat UP), because an action has a single joystick binding. A `js1_ ` clear added beside it on 2026-11-26 wiped the binding (the last rebind wins) and was removed the same day (§2.5). |
 | `js2_button50` | MTQ Right Module switch - **forward-latch** | `v_vtol_on` → *Enable VTOL* | Engages VTOL thrust mode (rotates/redirects thrusters for vertical lift) on VTOL-capable ships. Flick the switch forward; it stays latched. |
-| `js2_button49` | MTQ Right Module switch - **rest/default** | `v_vtol_off` → *Disable VTOL* | Disengages VTOL. As a discrete idempotent SET it re-fires on every space-brake release (51 springs back through 49) with no ill effect, so the switch position always reflects true VTOL state. Moved here off the COM-hat press (`js2_button57`, now *Pin Selected Target*). |
+| `js2_button49` | MTQ Right Module switch - **rest/default** | `v_vtol_off` → *Disable VTOL* | Disengages VTOL. As a discrete idempotent SET it re-fires on every space-brake release (51 springs back through 49) with no ill effect, so the switch position always reflects true VTOL state. Moved here off the COM-hat press (`js2_button57`; since 2026-11-26 a **tap** there is the decoupled toggle and a **hold** is *Pin Selected Target (Hold)*). |
 
 ### Quantum travel, navigation & docking - `spaceship_quantum`, `spaceship_hud`, `spaceship_docking`
 
@@ -387,14 +387,14 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 | --- | --- | --- | --- |
 | `js1_button20` | MHG lower hat ← | `v_invoke_ping` → *Activate Ping (Hold & Release)* | Active radar ping - reveals/marks contacts by their cross-section (also gives away your position). |
 | `js1_button18` | MHG lower hat → | `v_scanning_trigger_scan` → *Activate Scanning* | **Hold** to scan the target under the reticle for detailed info (requires Scan operator mode). |
-| `js1_button17` | MHG lower hat ↑ | `v_inc_scan_focus_level` → *Increase Scanning Angle* | Narrows the scan cone - stronger/longer-range read on one target. **Salvage:** vehicle tractor distance + (trial, see *Salvage*). |
-| `js1_button19` | MHG lower hat ↓ | `v_dec_scan_focus_level` → *Decrease Scanning Angle* | Widens the scan cone - sweep a broader area. **Salvage:** vehicle tractor distance − (trial). |
+| `js1_button17` | MHG lower hat ↑ | `v_inc_scan_focus_level` → *Increase Scanning Angle* | The game's description: *Increase the angle of the Scanning Cone*. **Which way the cone actually goes is unverified** - nobody has checked in a ship, and this row used to say the opposite ("narrows the cone"), §6 item 26. **Salvage:** vehicle tractor distance + (trial, see *Salvage*). |
+| `js1_button19` | MHG lower hat ↓ | `v_dec_scan_focus_level` → *Decrease Scanning Angle* | The game's description: *Decrease the angle of the Scanning Cone*. Direction unverified, as above (this row used to say "widens the cone"). **Salvage:** vehicle tractor distance − (trial). |
 
 ### Weapons - `spaceship_weapons`
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js1_button1` | MHG main trigger | `v_weapon_preset_fire_guns0` → *Weapon Presets - Fire Guns Group 1* | Fires **weapon group 1**. |
+| `js1_button1` | MHG main trigger | `v_weapon_preset_fire_guns0` → *Weapon Presets - Fire Guns Group 1* | Fires **weapon group 1** - and the **selected preset** too, through the stock *Weapon Preset - Fire* left on this trigger (see the note below). |
 | `js1_button6` | MHG trigger stage 2 | `v_weapon_preset_fire_guns1` → *Weapon Presets - Fire Guns Group 2* | Fires **weapon group 2**. |
 | `js1_button22` | MHG upper rocker ↑ | `v_weapon_preset_next` → *Weapon Presets - Next* | Cycles weapon grouping/preset forward. |
 | `js1_button23` | MHG upper rocker ↓ | `v_weapon_preset_prev` → *Weapon Presets - Previous* | Cycles weapon grouping/preset backward. |
@@ -522,7 +522,7 @@ The MHG trigger and hats are deliberately **shared** across flight, mining, and 
 
 | Physical control | Flight/SCM | Mining mode | Salvage mode |
 | --- | --- | --- | --- |
-| `js1_button1` (trigger) | Fire Guns Group 1 | Fire Mining Laser | Fire Focused Salvage Beam |
+| `js1_button1` (trigger) | Fire Guns Group 1 + the selected preset | Fire Mining Laser | Fire Focused Salvage Beam |
 | `js1_button6` (trigger 2) | Fire Guns Group 2 | - | Toggle Salvage Gimbal |
 | `js1_button22/23` (rocker) | Weapon/missile cycle | Mining power ± | Beam spacing ± |
 | `js1_button24` (rocker center) | Aim-type cycle | Fracture ↔ extraction | Structural field mode (fracture / disintegration / suction) |
@@ -672,6 +672,15 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Fallback that was not needed:** a response curve on the throttle axis in the profile's `<options>` block. Untested; SC's axis options are symmetric about the middle of an axis, so it might also have added a dead band above idle.
     - **Also seen that evening:** the *Throttle Detent Setup* dialog showed X = Y = 11227 with the levers at 29.6 % of travel, and the same figure in a later screenshot with them at 13.0 %. So those two readouts do not always refresh: don't read a live value off a still of that dialog.
 
+26. **Open - which way the scan-angle buttons move the scan cone (2026-11-28; wording only, no binding changed).**
+    - **The conflict:** MHG lower hat ↑ (`js1_button17`) is `v_inc_scan_focus_level` and ↓ (`js1_button19`) is `v_dec_scan_focus_level`. From the first commit (June 22, 2026) until now, the card, §4, the `MOZA.xml` comments and `reference/MOZA_BINDINGS.html` said that ↑ **narrows** the scan cone and ↓ **widens** it.
+    - **Where each wording came from:**
+      - "Narrows / widens" was the first session's own reading. The starbinder catalog of the time gave only the labels (*Increase / Decrease Scanning Angle*) with no description, and the first `MOZA.xml` comment read "Narrow scan angle (more focused)". That reads like an inference from the action's internal name (`..._focus_level`), not from anything the game says.
+      - **[game]** The 4.10 catalog, read from the game's `global.ini`: *Increase Scanning Angle*, described as "Increase the angle of the Scanning Cone", and *Decrease Scanning Angle*, "Decrease the angle of the Scanning Cone". A larger cone angle reads as a **wider** cone: the opposite of the old wording.
+    - **Found by** an independent review that compared the card tables with `MOZA.xml` and the catalog row by row (2026-11-28).
+    - **Change:** the card now says *Scan angle +* / *Scan angle -*, and §4, the XML comments, the binding sheet and the dashboard's rig data give the game's wording. None of them claims a direction any more.
+    - **Not checked in a ship, and only the user can settle it:** in Scan operator mode (knob detent 3), press lower hat ↑ a few times and watch whether the scan cone on the HUD gets wider or narrower. Then put the direction back on the card (`tools/regen_cards.py`) and in §4.
+
 ---
 
 ## 7. Refreshing the keybind database
@@ -733,7 +742,7 @@ The two cards - `MOZA_MHG_AB6_ref.png` (js1) and `MOZA_MTQ_ref.png` (js2) - are 
 
 | Card | Device | Top-left band (two views side by side) | Bottom-left band (one big view) |
 | --- | --- | --- | --- |
-| `MOZA_MHG_AB6_ref` | js1 - grip 1-29 + base 49-62 | MHG grip front (head + hats) · MHG grip side | AB6 base (smaller - far fewer buttons) |
+| `MOZA_MHG_AB6_ref` | js1 - grip 1-29 + base 49-62 + stick axes | MHG grip front (head + hats) · MHG grip side | AB6 base (smaller - far fewer buttons) |
 | `MOZA_MTQ_ref` | js2 - throttle 1-65 + axes | Right Module · Left Module | Throttle panel (the button-dense view) |
 
 ### 8.1 Rebuild them (one command)
@@ -793,8 +802,9 @@ diagram images for the dashboard's "Rig reference" section (the user asked for t
 the dashboard; [`dashboard/PLAN.md`](dashboard/PLAN.md) §4 item 18). It is the same content as the
 cards, so the screen cannot drift from the paper.
 
-- **`rig.json`:** every card row (93), placed in one of seven views: grip front, grip side, base,
-  throttle panel, right module, left module, and the axes. The `VIEWS` list in the script says
+- **`rig.json`:** every card row (96), placed in one of eight views: grip front, grip side, base,
+  the stick's axes, throttle panel, right module, left module, and the throttle's axes (the two
+  axes views have no image). The `VIEWS` list in the script says
   which button numbers each view's drawing shows. A row carries its label, primary function,
   hint, mode variants, the unbound flag, and a flown / unverified / trial mark where
   `dashboard/reference/controls.hand.json` has one.

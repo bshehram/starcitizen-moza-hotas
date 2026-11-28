@@ -49,7 +49,7 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
   - Needs Pillow and a Chromium-family browser (Chrome, Edge or Chromium; `CARD_BROWSER`
     overrides the search). Look at both PNGs after a run for clipped text.
   - **The same run also writes the dashboard's rig reference** into `../dashboard/web/rig/`
-    (since 2026-11-27): `rig.json`, every card row placed in one of seven views, and six diagram
+    (since 2026-11-27): `rig.json`, every card row placed in one of eight views, and six diagram
     images in the page's colors (light line work on a transparent ground). The `VIEWS` list in
     the script says which button numbers each view's drawing shows and holds its crop box;
     `RIG_ART` holds the recolor settings. `python tools/regen_cards.py --dashboard-only` writes
