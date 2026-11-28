@@ -1479,7 +1479,7 @@ wins:
 | Quantum target chosen, until arrival | Travel |
 | Arrived at a leg of the current run | The view that leg names: Mining, Salvage, Combat, Cargo, Refinery or Selling |
 | At a place with a sell list | Selling |
-| An active contract | Combat, Cargo or Salvage when its kind is one of those; Mission for any other kind, known or not. The kind comes from the contract-kinds table (§4), which reads the generator name in the mission marker line (§3) **[verify: which names occur]**. |
+| An active contract | Combat, Cargo, Salvage or Mining when its kind is one of those (Mining was added when the contract table turned out to hold 178 mining contracts); Mission for any other kind, known or not. The kind comes from the contract-kinds table (§4), which reads the generator name in the mission marker line (§3) **[verify: which names occur]**. |
 | In the pilot seat of a ship that has one job | That job's view: the Golem is Mining, the Salvation Salvage, the Golem OX Cargo, the M80 Combat. A ship with two jobs (the Hyūn mines and salvages) decides nothing. The ship-to-job table is in `reference/`, with the fleet in [`../CLAUDE.md`](../CLAUDE.md) §11 as its source. |
 | Anything else in game | Now, for the current location |
 
