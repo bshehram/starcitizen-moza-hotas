@@ -749,7 +749,7 @@ It writes the four card files into `cards/` - `MOZA_MHG_AB6_ref.png/.svg` and `M
 ### 8.2 How a card is built (split diagrams + table, composited in SVG)
 
 1. **Diagram layer - comes straight from the manufacturer PNG, never edited by hand.** `diagrams/MOZA_AB6.png` / `MOZA_MHG.png` / `MOZA_MTQ.png` already show every button numbered with a leader line. The script does **not** move, add, or relabel a single number - they're the manufacturer's own numbers riding along inside the image. Three helpers process them:
-   - **`get_sub_diagram`** crops a **sub-rectangle** out of a source PNG so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop boxes (`x0, y0, x1, y1` in source pixels) are listed in the script header; re-verify only if MOZA ships new device art.
+   - **`get_sub_diagram`** crops a **sub-rectangle** out of a source PNG so each packed view - throttle panel, Right/Left Module, grip head, grip side, base - is shown big on its own. The crop boxes (`x0, y0, x1, y1` in source pixels) are in the script's `VIEWS` list, which the dashboard's rig reference shares (§8.5); re-verify only if MOZA ships new device art.
    - It then recolors the crop to white-background line work. Recolor math = **grayscale → invert → levels stretch** (Pillow `point`): `out = -k·luma + k·(1−black)`, `k = 1/(white−black)`, tuned `black=0.45`, `white=0.85` (navy bg → white, faint line-art → crisp dark).
    - **`add_diagram_stack`** lays the sub-views into the left ~60% as a column of **bands**: each band gets a height share (`HFrac`, equal by default) and holds one or more images placed **side by side**, each owning a cell = `Frac` of the zone width, fit/centered (optional caption under it). Resize a view by changing its `Frac` - e.g. the AB6 base's `Frac` is kept below the grips' so it reads smaller.
 2. **Table layer - the part you edit.** Five Python lists - `AB6`, `MHG_L`/`MHG_R`, `MTQ_L`/`MTQ_R` - hold one dict per row. `add_row` / `new_card` draw each as a dark number badge + function text with alternating row shading, and `render_png` rasterizes via headless Chrome. The combined card's right column is `MHG_R + AB6`.
@@ -785,6 +785,25 @@ The mode-tag colors are fixed: **`Mine:`** = amber `C_MINE`, **`Salv:`** = teal 
 - **Fonts.** The SVG asks for *Segoe UI*, then *Arial*. On a Mac it renders in Arial, which runs slightly wider - look at the PNG for clipped table text after regenerating there.
 - **Rounding.** `rnd` / `r1` round half-to-even, the rule the original PowerShell (.NET `Math.Round`) used, so the port reproduces its geometry exactly. Verified 2026-11-23: the SVG markup matched the PowerShell output byte for byte apart from the embedded images, and the PNGs differed by at most 2/255 per pixel.
 - SVGs are written UTF-8 **without BOM**.
+
+### 8.5 The dashboard's rig reference (written by the same run)
+
+Since 2026-11-27 `python tools/regen_cards.py` also writes `dashboard/web/rig/`: the data and
+diagram images for the dashboard's "Rig reference" section (the user asked for the cards inside
+the dashboard; [`dashboard/PLAN.md`](dashboard/PLAN.md) §4 item 18). It is the same content as the
+cards, so the screen cannot drift from the paper.
+
+- **`rig.json`:** every card row (93), placed in one of seven views: grip front, grip side, base,
+  throttle panel, right module, left module, and the axes. The `VIEWS` list in the script says
+  which button numbers each view's drawing shows. A row carries its label, primary function,
+  hint, mode variants, the unbound flag, and a flown / unverified / trial mark where
+  `dashboard/reference/controls.hand.json` has one.
+- **Six PNGs:** the cards' own crops in the page's colors, light line work on a transparent
+  ground (`RIG_ART` holds the settings), at native size.
+- **`--dashboard-only`** writes just these files and needs no browser.
+- **`dashboard/tests/test_rig.py` fails until you regenerate** after a card row, a status mark
+  or a source diagram changes. So §8.3 gains a step: commit `dashboard/web/rig/` with the cards.
+- The page that shows them is not built yet (2026-11-27).
 
 ---
 

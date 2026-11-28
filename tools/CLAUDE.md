@@ -48,6 +48,16 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     edit the matching row in this script *and* the XML, then re-run. See [`../CLAUDE.md` §8.3](../CLAUDE.md).
   - Needs Pillow and a Chromium-family browser (Chrome, Edge or Chromium; `CARD_BROWSER`
     overrides the search). Look at both PNGs after a run for clipped text.
+  - **The same run also writes the dashboard's rig reference** into `../dashboard/web/rig/`
+    (since 2026-11-27): `rig.json`, every card row placed in one of seven views, and six diagram
+    images in the page's colors (light line work on a transparent ground). The `VIEWS` list in
+    the script says which button numbers each view's drawing shows and holds its crop box;
+    `RIG_ART` holds the recolor settings. `python tools/regen_cards.py --dashboard-only` writes
+    just those files, without the browser.
+  - `dashboard/tests/test_rig.py` reads the tables with `ast` and **fails when a card row, a
+    status mark in `dashboard/reference/controls.hand.json` or a source diagram has changed and
+    the rig files were not regenerated**. So after any card edit, run the generator and commit
+    `dashboard/web/rig/` with the cards.
   - The rounding helpers (`rnd`, `r1`) round half-to-even on purpose, to reproduce the original
     geometry exactly. Read [`../CLAUDE.md` §8.4](../CLAUDE.md) before changing the render code.
 

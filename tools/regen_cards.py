@@ -6,6 +6,14 @@ Produces the TWO reference cards, sized to fill a US-Letter sheet in LANDSCAPE
     cards/MOZA_MHG_AB6_ref.png / .svg   (js1: MHG grip 1-29 + AB6 base 49-62)
     cards/MOZA_MTQ_ref.png     / .svg   (js2: MTQ throttle 1-65 + axes)
 
+and, in the same run, the dashboard's rig reference, from the same tables and crops:
+
+    dashboard/web/rig/rig.json          every card row, grouped by device and diagram view
+    dashboard/web/rig/<view>.png        the six sub-views, light line work on transparency
+
+The dashboard files need no browser: `--dashboard-only` writes just those.
+dashboard/tests/test_rig.py fails when a card row changes and they were not rewritten.
+
 LAYOUT (60 / 40)
   The manufacturer diagrams are COMPOSITES - several views packed into one image
   (MTQ = throttle panel + Right Module + Left Module; MHG = side profile + front
@@ -25,21 +33,27 @@ EDITING
   matching row here (and MOZA.xml / CLAUDE.md), then re-run. Labels here are
   deliberately terser than MOZA.xml to fit the 40% columns.
 
-CROP RECTANGLES (x0, y0, x1, y1 in source-PNG pixels) - re-verify if MOZA ships new
-device art (sources: AB6 890x691, MHG 1037x822, MTQ 1049x820):
+CROP RECTANGLES (x0, y0, x1, y1 in source-PNG pixels) live in VIEWS below, one entry per
+sub-view, with the button numbers each view draws - re-verify if MOZA ships new device
+art (sources: AB6 890x691, MHG 1037x822, MTQ 1049x820):
   MTQ main   60, 90,612,818     MTQ right 615, 72,1045,486   MTQ left 620,488,1045,818
   MHG front 515, 90,985,575     MHG side  100,168, 460,770   AB6 base 250,110, 785,650
 
 REQUIREMENTS: Python 3.8+, Pillow (`python -m pip install Pillow`), and Chrome, Edge or
 Chromium for the SVG -> PNG render (found automatically on Windows, macOS and Linux;
-set CARD_BROWSER=<path> to pick one).
+set CARD_BROWSER=<path> to pick one). `--dashboard-only` needs Pillow alone.
 RUN (from the project root):
-    python tools/regen_cards.py
+    python tools/regen_cards.py                    # cards + dashboard rig files
+    python tools/regen_cards.py --dashboard-only   # dashboard rig files only, no browser
 """
 
 import base64
+import datetime
+import hashlib
 import io
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -47,14 +61,15 @@ import tempfile
 from pathlib import Path
 
 try:
-    from PIL import Image
+    from PIL import Image, ImageChops
 except ImportError:
     sys.exit('regen_cards: Pillow is required.  Run:  python -m pip install Pillow')
 
 REPO = Path(__file__).resolve().parent.parent
 DIAG_DIR = REPO / 'diagrams'
 CARD_DIR = REPO / 'cards'
-MID = '·'
+RIG_DIR = REPO / 'dashboard' / 'web' / 'rig'
+HAND_MARKS = REPO / 'dashboard' / 'reference' / 'controls.hand.json'
 
 # ---- palette ----
 C_TITLE = '#0f1720'; C_SUB = '#5b6b7a'; C_PRIM = '#16202b'; C_VARTXT = '#5b6b7a'; C_HINT = '#8a96a2'
@@ -380,23 +395,321 @@ MTQ_R = [
     {'Label': 'RX / Z', 'Primary': 'Throttle twins', 'Hint': 'unbound', 'Unbound': True},
 ]
 
+# ================================================================ shared by the cards and the dashboard
+# Everything below is plain literals so dashboard/tests/test_rig.py can read it with `ast`
+# (without running this file) and tell when dashboard/web/rig/ is stale.
+
+# The two cards: which tables they print, in card order, and their heading and legend text.
+CARDS = [
+    {'Name': 'MOZA_MHG_AB6_ref', 'Device': 'js1', 'Short': 'Stick: MHG grip + AB6 base',
+     'Tables': ['MHG_L', 'MHG_R', 'AB6'],
+     'Title': 'MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)',
+     'Sub': 'MHG grip 1-29 mounted on the AB6 base 49-62  ·  trigger / hats / rocker / wings reused per operator mode',
+     'Legend': ('Combat (default)  ·  Msl: Missile  ·  Mine: Mining  ·  Salv: Salvage.  One control = a '
+                'different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining '
+                'modules and salvage bank. AB6 wings 49-56 = power panel in every mode.')},
+    {'Name': 'MOZA_MTQ_ref', 'Device': 'js2', 'Short': 'Throttle: MTQ',
+     'Tables': ['MTQ_L', 'MTQ_R'],
+     'Title': 'MOZA MTQ Throttle Panel  -  Button Reference  (js2)',
+     'Sub': 'throttle 1-65 + axes  ·  buttons 44-48 are absent on the device',
+     'Legend': ('Throttle forward = axis RY, idle detent = 0, forward detent = full; reverse = MHG stick press 29, held. '
+                'Nothing is output outside the two detents.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
+                'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial).')},
+]
+
+# The operator modes behind the variant tags (the legend's "Msl: Missile  ·  Mine: Mining ...").
+MODES = [
+    {'Mode': 'combat', 'Tag': None, 'Name': 'Combat (default)'},
+    {'Mode': 'missile', 'Tag': 'Msl:', 'Name': 'Missile'},
+    {'Mode': 'mining', 'Tag': 'Mine:', 'Name': 'Mining'},
+    {'Mode': 'salvage', 'Tag': 'Salv:', 'Name': 'Salvage'},
+]
+
+# The diagram sub-views. Box = crop out of File (the cards and the dashboard use the same crops).
+# Buttons = the numbers drawn in that view, read off the manufacturer art (CLAUDE.md section 3): a
+# card row goes to the view that draws all of its numbers. The grip's side view draws the trigger,
+# pinky, thumb button and rocker (1, 3, 4, 6, 22-24); everything else on the grip is on the front.
+# A row whose label is not a number (RY, Slider, X / Y ...) goes to its device's view with 'Axes',
+# which has no image; 'Axes' names the view each axis is drawn on, where it is drawn at all.
+VIEWS = [
+    {'Id': 'mhg_front', 'Device': 'js1', 'Title': 'MHG grip - front', 'Caption': 'MHG grip - front (hats & buttons)',
+     'File': 'MOZA_MHG.png', 'Box': (515, 90, 985, 575), 'Buttons': '2, 5, 7-21, 25-29'},
+    {'Id': 'mhg_side', 'Device': 'js1', 'Title': 'MHG grip - side', 'Caption': 'MHG grip - side',
+     'File': 'MOZA_MHG.png', 'Box': (100, 168, 460, 770), 'Buttons': '1, 3-4, 6, 22-24'},
+    {'Id': 'ab6_base', 'Device': 'js1', 'Title': 'AB6 base', 'Caption': 'AB6 base - wings & levers',
+     'File': 'MOZA_AB6.png', 'Box': (250, 110, 785, 650), 'Buttons': '49-62'},
+    {'Id': 'mtq_panel', 'Device': 'js2', 'Title': 'MTQ throttle panel', 'Caption': 'Throttle panel',
+     'File': 'MOZA_MTQ.png', 'Box': (60, 90, 612, 818), 'Buttons': '1-43'},
+    {'Id': 'mtq_right', 'Device': 'js2', 'Title': 'MTQ right module', 'Caption': None,
+     'File': 'MOZA_MTQ.png', 'Box': (615, 72, 1045, 486), 'Buttons': '49-61'},
+    {'Id': 'mtq_left', 'Device': 'js2', 'Title': 'MTQ left module', 'Caption': None,
+     'File': 'MOZA_MTQ.png', 'Box': (620, 488, 1045, 818), 'Buttons': '62-65'},
+    {'Id': 'mtq_axes', 'Device': 'js2', 'Title': 'MTQ axes', 'Caption': None, 'File': None, 'Box': None,
+     'Axes': {'RY': 'mtq_panel', 'Slider': 'mtq_panel', 'Dial': 'mtq_panel', 'RX / Z': 'mtq_panel', 'X / Y': 'mtq_left'}},
+]
+
+# How the dashboard copies of the sub-views are drawn (the page is dark; the cards are dark on white).
+# Brightness is the source's brightest channel, mapped to opacity: below Ground is the navy backdrop
+# (fully transparent), Full and above (the number discs) fully opaque, the faint line work in between,
+# so the numbers stand out from the outline. Levels = opacity steps; 16 fits a 4-bit PNG and looks the
+# same as 256 next to it. Bump Version after changing get_screen_art itself, so the test sees it.
+RIG_ART = {'Version': 1, 'Color': '#E4ECF2', 'Ground': 0.25, 'Full': 0.82, 'Gamma': 0.8, 'Levels': 16, 'Pad': 2}
+
+
+# ================================================================ dashboard rig reference
+def screen_art(file, box):
+    """Crop box out of a source diagram for the dark dashboard page: one light color whose opacity
+    follows the art's brightness, trimmed to the drawn part. Native pixels, never scaled."""
+    a = RIG_ART
+    src = Image.open(DIAG_DIR / file).convert('RGBA').crop(box)
+    r, g, b, alpha = src.split()
+    # The brightest channel, not luma: MOZA's green "pressed" discs (a state at capture time, not a
+    # binding) then come out as bright as the gray ones, where luma would dim them to about 3/4.
+    val = ImageChops.multiply(ImageChops.lighter(ImageChops.lighter(r, g), b), alpha)
+    n, lo, hi = a['Levels'], a['Ground'] * 255, a['Full'] * 255
+    lut = [round(max(0.0, min(1.0, (v - lo) / (hi - lo))) ** a['Gamma'] * (n - 1)) for v in range(256)]
+    idx = val.point(lut)
+    x0, y0, x1, y1 = idx.getbbox()
+    p = a['Pad']
+    idx = idx.crop((max(0, x0 - p), max(0, y0 - p), min(idx.width, x1 + p), min(idx.height, y1 + p)))
+    out = Image.frombytes('P', idx.size, idx.tobytes())
+    rgb = [int(a['Color'][i:i + 2], 16) for i in (1, 3, 5)]
+    out.putpalette(rgb * n)                       # n entries -> Pillow writes a 4-bit PNG for n <= 16
+    return out, bytes(round(i * 255 / (n - 1)) for i in range(n))
+
+
+def parse_buttons(spec):
+    """'2, 5, 7-21' -> {2, 5, 7, ..., 21}."""
+    out = set()
+    for part in spec.split(','):
+        lo, _, hi = part.strip().partition('-')
+        out.update(range(int(lo), int(hi or lo) + 1))
+    return out
+
+
+def label_numbers(label):
+    """The button numbers a card label names ('12' -> {12}, '57-59' -> {57, 58, 59}); None for an axis."""
+    m = re.fullmatch(r'(\d+)(?:-(\d+))?', label)
+    if not m:
+        return None
+    return set(range(int(m.group(1)), int(m.group(2) or m.group(1)) + 1))
+
+
+def digest(obj):
+    """Short hash of a JSON-able value; test_rig.py computes the same from its `ast` read."""
+    raw = json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+
+def card_sources():
+    """Everything rig.json is made from that lives in this file."""
+    return {'AB6': AB6, 'MHG_L': MHG_L, 'MHG_R': MHG_R, 'MTQ_L': MTQ_L, 'MTQ_R': MTQ_R,
+            'CARDS': CARDS, 'MODES': MODES, 'VIEWS': VIEWS, 'RIG_ART': RIG_ART}
+
+
+STATUS_RANK = {'flown': 0, 'unverified': 1, 'trial': 2}
+
+
+def hand_marks(rows_by_dev):
+    """The flown / unverified / trial marks of dashboard/reference/controls.hand.json, keyed by
+    (device, label, mode). mode None = the row's primary function. The file marks a control within an
+    operator mode's strip; the mark belongs to that mode's variant when the row has one, otherwise to
+    the primary (the same rule as reference/build_reference.py). Two marks on one function: the more
+    doubtful wins."""
+    if not HAND_MARKS.is_file():
+        return {}
+    hand = json.loads(HAND_MARKS.read_text(encoding='utf-8'))
+    tag_of = {m['Mode']: m['Tag'] for m in MODES}
+    marks = {}
+    for mode_name, m in sorted((hand.get('modes') or {}).items()):
+        for it in m.get('items') or []:
+            status = it.get('status')
+            if not status:
+                continue
+            variant = it.get('variant', m.get('variant'))
+            for ref in it.get('controls') or []:
+                dev, _, label = ref.partition(' ')
+                row = rows_by_dev.get(dev, {}).get(label)
+                if row is None:
+                    print('  note: controls.hand.json names %r (mode %s), which is not on the cards' % (ref, mode_name))
+                    continue
+                tag = tag_of.get(variant)
+                on_variant = tag is not None and any(v['Tag'] == tag for v in row.get('Variants') or [])
+                key = (dev, label, variant if on_variant else None)
+                if key not in marks or STATUS_RANK.get(status, 9) > STATUS_RANK.get(marks[key], 9):
+                    marks[key] = status
+    return marks
+
+
+def rig_doc(images):
+    """rig.json as a dict. images = {view id: (file name, w, h)}."""
+    mode_of = {m['Tag']: m['Mode'] for m in MODES if m['Tag']}
+    tables = card_sources()
+    rows_by_dev = {}
+    for card in CARDS:
+        rows_by_dev[card['Device']] = {r['Label']: r for t in card['Tables'] for r in tables[t] if 'Label' in r}
+    marks = hand_marks(rows_by_dev)
+
+    views, placed, problems = [], {}, []
+    for v in VIEWS:
+        e = {'id': v['Id'], 'device': v['Device'], 'title': v['Title']}
+        if v['Id'] in images:
+            e['image'], e['w'], e['h'] = images[v['Id']]
+        if v.get('Buttons'):
+            e['buttons'] = v['Buttons']
+        e['rows'] = []
+        views.append(e)
+    by_id = {e['id']: e for e in views}
+    for card in CARDS:
+        dev = card['Device']
+        for t in card['Tables']:
+            for r in tables[t]:
+                if 'Label' not in r:
+                    continue                                    # a column header on the card
+                label = r['Label']
+                nums = label_numbers(label)
+                home = [v for v in VIEWS if v['Device'] == dev and (
+                    (nums is not None and v.get('Buttons') and nums <= parse_buttons(v['Buttons']))
+                    or (nums is None and 'Axes' in v))]
+                if len(home) != 1:
+                    problems.append('%s %s (%d views fit)' % (dev, label, len(home)))
+                    continue
+                row = {'label': label, 'primary': r['Primary']}
+                if r.get('Hint'):
+                    row['hint'] = r['Hint']
+                if r.get('Unbound'):
+                    row['unbound'] = True
+                if marks.get((dev, label, None)):
+                    row['status'] = marks[(dev, label, None)]
+                if r.get('Variants'):
+                    row['variants'] = []
+                    for var in r['Variants']:
+                        mode = mode_of.get(var['Tag'])
+                        if mode is None:
+                            problems.append('%s %s: variant tag %r is not in MODES' % (dev, label, var['Tag']))
+                            continue
+                        ve = {'mode': mode, 'text': var['Text']}
+                        if marks.get((dev, label, mode)):
+                            ve['status'] = marks[(dev, label, mode)]
+                        row['variants'].append(ve)
+                drawn = (home[0].get('Axes') or {}).get(label)
+                if drawn:
+                    row['drawn_on'] = drawn
+                by_id[home[0]['Id']]['rows'].append(row)
+                placed[(dev, label)] = home[0]['Id']
+    if problems:
+        sys.exit('regen_cards: card rows that fit no single diagram view:\n  ' + '\n  '.join(problems))
+
+    files = sorted({v['File'] for v in VIEWS if v['File']})
+    meta = {
+        'generated': None,
+        'generated_by': 'tools/regen_cards.py (or --dashboard-only); do not edit by hand',
+        'source': 'The card tables, CARDS, MODES, VIEWS and RIG_ART in tools/regen_cards.py; the art in diagrams/; '
+                  'status marks from dashboard/reference/controls.hand.json.',
+        'hash': {'tables': digest(tables),
+                 'diagrams': {f: hashlib.sha256((DIAG_DIR / f).read_bytes()).hexdigest()[:12] for f in files},
+                 'marks': digest(sorted([d, l, m or '', s] for (d, l, m), s in marks.items()))},
+        'lookup': 'views: in card order, js1 then js2. A view holds the card rows whose button numbers its image '
+                  'draws (`buttons`); `image` is a file beside this one, `w` x `h` its native pixels (at 1:1 the '
+                  'number discs are 14-19 px across with 7-10 px digits, so about 2x brings them to 18 px). mtq_axes '
+                  'has no image: `drawn_on` names the view an axis is drawn on. Row: `label` as printed on the diagram, `primary` (the combat / default function), `hint` '
+                  '(where the control is), `variants` [{mode, text}] for other operator modes, `unbound`, and '
+                  '`status` (flown / unverified / trial, from controls.hand.json) on the primary or on the variant '
+                  'it is about. A missing key means none.',
+        'counts': {'rows': len(placed), 'views': len(views)},
+    }
+    devices = [{'id': c['Device'], 'name': c['Short'], 'title': c['Title'], 'sub': c['Sub'], 'legend': c['Legend']}
+               for c in CARDS]
+    modes = [{'mode': m['Mode'], 'tag': m['Tag'], 'name': m['Name']} for m in MODES]
+    return {'_meta': meta, 'modes': modes, 'devices': devices, 'views': views}
+
+
+def dump_rig(doc):
+    """rig.json text: small, one card row per line so a changed row is a one-line diff."""
+    d = lambda o: json.dumps(o, ensure_ascii=False)
+    out = ['{', ' "_meta": {']
+    meta = list(doc['_meta'].items())
+    out += ['  %s: %s%s' % (d(k), d(v), ',' if i < len(meta) - 1 else '') for i, (k, v) in enumerate(meta)]
+    out.append(' },')
+    for key in ('modes', 'devices'):
+        out.append(' %s: [' % d(key))
+        out += ['  %s%s' % (d(x), ',' if i < len(doc[key]) - 1 else '') for i, x in enumerate(doc[key])]
+        out.append(' ],')
+    out.append(' "views": [')
+    for i, v in enumerate(doc['views']):
+        head = {k: x for k, x in v.items() if k != 'rows'}
+        out.append('  %s, "rows": [' % d(head)[:-1])
+        out += ['   %s%s' % (d(r), ',' if j < len(v['rows']) - 1 else '') for j, r in enumerate(v['rows'])]
+        out.append('  ]}%s' % (',' if i < len(doc['views']) - 1 else ''))
+    out.append(' ]')
+    out.append('}')
+    return '\n'.join(out) + '\n'
+
+
+def write_rig():
+    """dashboard/web/rig/: the six sub-views in the page's colors and rig.json. Deterministic: the same
+    tables and art give the same bytes, and the date only moves when a hash does."""
+    RIG_DIR.mkdir(parents=True, exist_ok=True)
+    images = {}
+    for v in VIEWS:
+        if not v['File']:
+            continue
+        img, alphas = screen_art(v['File'], v['Box'])
+        name = v['Id'] + '.png'
+        img.save(RIG_DIR / name, format='PNG', optimize=True, transparency=alphas)
+        images[v['Id']] = (name, img.width, img.height)
+        print('  %-26s %dx%d  %d bytes' % (name, img.width, img.height, (RIG_DIR / name).stat().st_size))
+    for old in RIG_DIR.glob('*.png'):                    # a renamed or dropped view leaves no orphan
+        if old.name not in {n for n, _, _ in images.values()}:
+            old.unlink()
+    doc = rig_doc(images)
+    path = RIG_DIR / 'rig.json'
+    date = datetime.date.today().isoformat()
+    try:
+        prev = json.loads(path.read_text(encoding='utf-8'))['_meta']
+        if prev.get('hash') == doc['_meta']['hash'] and prev.get('generated'):
+            date = prev['generated']
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    doc['_meta']['generated'] = date
+    path.write_text(dump_rig(doc), encoding='utf-8', newline='\n')
+    print('  %-26s %d rows in %d views  %d bytes' % ('rig.json', doc['_meta']['counts']['rows'],
+                                                     doc['_meta']['counts']['views'], path.stat().st_size))
+
 
 def main():
     import argparse
-    argparse.ArgumentParser(description=__doc__.split('\n')[0],
-                            epilog='Set CARD_BROWSER=<path> to choose the browser used for the PNG render.').parse_args()
+    ap = argparse.ArgumentParser(description=__doc__.split('\n')[0],
+                                 epilog='Set CARD_BROWSER=<path> to choose the browser used for the PNG render.')
+    ap.add_argument('--dashboard-only', action='store_true',
+                    help='write only dashboard/web/rig/ (no cards, no browser needed)')
+    args = ap.parse_args()
+    if args.dashboard_only:
+        print('Writing the dashboard rig reference...')
+        write_rig()
+        print('Done -> %s' % RIG_DIR.relative_to(REPO).as_posix())
+        return
     browser = find_browser()
     if not browser:
         sys.exit('regen_cards: no Chrome / Edge / Chromium found to render SVG -> PNG '
-                 '(install one, or set CARD_BROWSER=<path to the browser executable>).')
+                 '(install one, or set CARD_BROWSER=<path to the browser executable>; '
+                 '--dashboard-only writes the dashboard files without one).')
+
+    print('Writing the dashboard rig reference...')
+    write_rig()
 
     print('Cropping + recoloring diagram sub-views...')
-    sub_mtq_main = get_sub_diagram('MOZA_MTQ.png', (60, 90, 612, 818))
-    sub_mtq_right = get_sub_diagram('MOZA_MTQ.png', (615, 72, 1045, 486))
-    sub_mtq_left = get_sub_diagram('MOZA_MTQ.png', (620, 488, 1045, 818))
-    sub_mhg_front = get_sub_diagram('MOZA_MHG.png', (515, 90, 985, 575))
-    sub_mhg_side = get_sub_diagram('MOZA_MHG.png', (100, 168, 460, 770))
-    sub_ab6_base = get_sub_diagram('MOZA_AB6.png', (250, 110, 785, 650))
+    sub = {v['Id']: get_sub_diagram(v['File'], v['Box']) for v in VIEWS if v['File']}
+    cap = {v['Id']: v['Caption'] for v in VIEWS}
+    text = {c['Name']: c for c in CARDS}
+
+    def img(view_id, frac, va=None):
+        im = {'D': sub[view_id], 'Frac': frac}
+        if va:
+            im['VA'] = va
+        if cap[view_id]:
+            im['Caption'] = cap[view_id]
+        return im
 
     # Layout: LEFT ~60% of the sheet = images (two stacked bands - the two small views side by
     # side on top, the one big view below); RIGHT ~40% = the lookup table in two columns.
@@ -407,41 +720,31 @@ def main():
     # --- Card 1: MHG grip + AB6 base (js1), combined ---
     # Top band: the two grip views side by side (larger). Bottom band: the AB6 base
     # (smaller - far fewer buttons). Base Frac kept below the grips' so it reads smaller.
+    t = text['MOZA_MHG_AB6_ref']
     new_card({
-        'Name': 'MOZA_MHG_AB6_ref', 'F': 1.18, 'CanvasW': 1860, 'CanvasH': 1437,
-        'Title': 'MOZA MHG Grip + AB6 Base  -  Button Reference  (js1)',
-        'Sub': 'MHG grip 1-29 mounted on the AB6 base 49-62  %s  trigger / hats / rocker / wings reused per operator mode' % MID,
+        'Name': t['Name'], 'F': 1.18, 'CanvasW': 1860, 'CanvasH': 1437,
+        'Title': t['Title'], 'Sub': t['Sub'],
         'Stack': {'X': 24, 'W': 1040, 'Gap': 22, 'Rows': [
-            {'HFrac': 1.12, 'Imgs': [
-                {'D': sub_mhg_front, 'Frac': 0.56, 'VA': 't', 'Caption': 'MHG grip - front (hats & buttons)'},
-                {'D': sub_mhg_side, 'Frac': 0.44, 'VA': 'b', 'Caption': 'MHG grip - side'}]},
-            {'HFrac': 1.00, 'Imgs': [
-                {'D': sub_ab6_base, 'Frac': 0.53, 'VA': 'b', 'Caption': 'AB6 base - wings & levers'}]},
+            {'HFrac': 1.12, 'Imgs': [img('mhg_front', 0.56, 't'), img('mhg_side', 0.44, 'b')]},
+            {'HFrac': 1.00, 'Imgs': [img('ab6_base', 0.53, 'b')]},
         ]},
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MHG_L}, {'X': 1475, 'W': 365, 'Rows': MHG_R + AB6}],
-        'Legend': ('Combat (default)  %s  Msl: Missile  %s  Mine: Mining  %s  Salv: Salvage.  One control = a '
-                   'different job per operator mode (set on the MTQ knob); the right hat 12-16 carries the mining '
-                   'modules and salvage bank. AB6 wings 49-56 = power panel in every mode.' % (MID, MID, MID)),
+        'Legend': t['Legend'],
     }, browser)
 
     # --- Card 2: MTQ throttle (js2) ---
     # Top band: the two module views side by side. Bottom band: the throttle panel
     # (the big, button-dense view) below them.
+    t = text['MOZA_MTQ_ref']
     new_card({
-        'Name': 'MOZA_MTQ_ref', 'F': 1.15, 'CanvasW': 1860, 'CanvasH': 1437,
-        'Title': 'MOZA MTQ Throttle Panel  -  Button Reference  (js2)',
-        'Sub': 'throttle 1-65 + axes  %s  buttons 44-48 are absent on the device' % MID,
+        'Name': t['Name'], 'F': 1.15, 'CanvasW': 1860, 'CanvasH': 1437,
+        'Title': t['Title'], 'Sub': t['Sub'],
         'Stack': {'X': 24, 'W': 1040, 'Gap': 22, 'Rows': [
-            {'HFrac': 0.95, 'Imgs': [
-                {'D': sub_mtq_right, 'Frac': 0.52, 'VA': 't'},
-                {'D': sub_mtq_left, 'Frac': 0.52, 'VA': 'b'}]},
-            {'HFrac': 1.30, 'Imgs': [
-                {'D': sub_mtq_main, 'Frac': 0.74, 'Caption': 'Throttle panel'}]},
+            {'HFrac': 0.95, 'Imgs': [img('mtq_right', 0.52, 't'), img('mtq_left', 0.52, 'b')]},
+            {'HFrac': 1.30, 'Imgs': [img('mtq_panel', 0.74)]},
         ]},
         'Cols': [{'X': 1090, 'W': 370, 'Rows': MTQ_L}, {'X': 1475, 'W': 365, 'Rows': MTQ_R}],
-        'Legend': ('Throttle forward = axis RY, idle detent = 0, forward detent = full; reverse = MHG stick press 29, held. '
-                   'Nothing is output outside the two detents.  FLAPS & Speedbrake levers drive analog axes (Slider / Dial) in Mining / Salvage '
-                   'modes; detent buttons 31-43 are unbound.  WPN-hat shield faces act only on S3 Quadrant shields (trial).'),
+        'Legend': t['Legend'],
     }, browser)
 
     print('Done -> MOZA_MHG_AB6_ref, MOZA_MTQ_ref (.png + .svg) in %s' % CARD_DIR)
