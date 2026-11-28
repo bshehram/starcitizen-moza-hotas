@@ -18,7 +18,10 @@ The regeneration and validation scripts. The human-facing usage, requirements, a
     [`../MOZA.xml`](../MOZA.xml) and after every game patch. `UNKNOWN` = the action name no longer
     exists; `WRONG-MAP` = the game will silently drop it; `MULTI-BIND` = the action has more
     than one `<rebind>`, and the game keeps only the last (added 2026-11-26 after a second rebind
-    silently replaced the throttle's reverse axis and Autoland); `GHOST` = a stock joystick binding
+    silently replaced the throttle's reverse axis and Autoland); `STRAY-PROFILE` = another
+    control-profile `.xml` somewhere under the mappings folder, which the game lists in its
+    profile menu as a second "MOZA (1)" (added 2026-11-28 after a session's before-copy did
+    exactly that; printed only when one is found, dot-folders skipped); `GHOST` = a stock joystick binding
     (they land on `js1`) the profile neither rebinds nor clears. A ghost on an input the profile
     also uses double-fires wherever both maps are active — judge each one by whether the two
     contexts can be live together; many (spectator, menus, turret aim) are harmless or wanted.

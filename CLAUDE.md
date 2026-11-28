@@ -17,7 +17,7 @@ This document explains, in detail, **what every bound control does**, **how the 
 
 ### Folder layout
 
-The root holds the files the workflow needs front-and-center — the profile, plus the public-repo `README.md`/`LICENSE`, this doc and the session brief `SCBOT.md`; everything else is filed by role. **`MOZA.xml` must stay in this folder** - it's the path Star Citizen loads control profiles from (subfolders are ignored by the game, so they're safe for our own files).
+The root holds the files the workflow needs front-and-center — the profile, plus the public-repo `README.md`/`LICENSE`, this doc and the session brief `SCBOT.md`; everything else is filed by role. **`MOZA.xml` must stay in this folder** - it's the path Star Citizen loads control profiles from. **It must also be the only control-profile `.xml` anywhere under this folder.** The game lists profile files from subfolders too: on 2026-11-28 a before-copy of the profile five folders down showed up in the Control Profiles menu as a second "MOZA (1)" (§6 item 27). Our own files are safe in subfolders because they are other file types; a copy of the profile is not, wherever it sits and whether or not git ignores it. `gamedata.py check` reports one as `STRAY-PROFILE`. (An earlier version of this line said the game ignores subfolders. Nobody had tested that with a profile file in one.)
 
 ```
 mappings/
@@ -681,6 +681,13 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Change:** the card now says *Scan angle +* / *Scan angle -*, and §4, the XML comments, the binding sheet and the dashboard's rig data give the game's wording. None of them claims a direction any more.
     - **Not checked in a ship, and only the user can settle it:** in Scan operator mode (knob detent 3), press lower hat ↑ a few times and watch whether the scan cone on the HUD gets wider or narrower. Then put the direction back on the card (`tools/regen_cards.py`) and in §4.
 
+27. **✅ Fixed - a second "MOZA (1)" in the game's Control Profiles menu (2026-11-28; no binding changed).**
+    - **What the user saw:** the profile list in the Keybindings menu showed "MOZA" and "MOZA (1)", with a single `MOZA.xml` in this folder.
+    - **Cause [seen]:** a Claude session that morning had saved a before-copy of the profile as `dashboard/data/handoff/session3/rig-fix/MOZA.before.xml`, to prove a comments-only edit. It is five folders down and git-ignored, and it carries the same profile name. The game lists profile files it finds in subfolders, and numbers a repeated name. After the copy was renamed to `.xml.txt` the second entry was gone, by the user's report (whether the menu was only reopened or the game restarted was not stated).
+    - **Harmless this time:** the copy's bindings were identical, and `validate_actionmaps.py` run against the game's saved profile that minute gave 127 OK, nothing different, nothing left over.
+    - **Not proven:** two more copies existed at the same time under a folder whose name starts with a dot (`.claude/worktrees/…/MOZA.xml`, the working copies of two builders) and the user saw no entries for them. So the game seems to skip dot-folders. That is an inference from one look at one menu.
+    - **Fixes:** the folder-layout note at the top of this document no longer says the game ignores subfolders. `gamedata.py check` reports any other control-profile `.xml` under the mappings folder as `STRAY-PROFILE` and exits non-zero (it skips dot-folders, on the inference above). `SCBOT.md` carries the rule for sessions: no profile copy with an `.xml` name anywhere under this folder.
+
 ---
 
 ## 7. Refreshing the keybind database
@@ -885,9 +892,11 @@ python tools/validate_actionmaps.py
 ```
 
 - **`gamedata.py check`** reports `UNKNOWN` (no such action in this build), `WRONG-MAP` (the game will
-  drop it), `MULTI-BIND` (more than one rebind on an action; the game keeps only the last) and
+  drop it), `MULTI-BIND` (more than one rebind on an action; the game keeps only the last),
+  `STRAY-PROFILE` (a second control-profile `.xml` somewhere under the mappings folder, which the
+  game lists in its profile menu; printed only when one is found, §6 item 27) and
   `GHOST` (an un-overridden stock joystick binding, §2.5). Non-zero exit on any
-  UNKNOWN / WRONG-MAP / MULTI-BIND. The expected `GHOST` list is the "deliberately left in place"
+  UNKNOWN / WRONG-MAP / MULTI-BIND / STRAY-PROFILE. The expected `GHOST` list is the "deliberately left in place"
   table in §4 - anything new there after a patch deserves a look.
 - **`validate_actionmaps.py`** reports, per action against the export:
   - `OK` - same actionmap and same input;

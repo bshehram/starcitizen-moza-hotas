@@ -19,7 +19,12 @@ seconds) and does two jobs:
                 GHOST      a game-default joystick binding the profile does not override.
                            Defaults land on joystick 1 (js1), so a ghost on a button the
                            profile also uses fires BOTH actions.
-              Exit code is non-zero if any UNKNOWN / WRONG-MAP / MULTI-BIND is found.
+                STRAY-PROFILE  another control-profile .xml somewhere under the mappings
+                           folder. The game lists every one it finds, in subfolders too, so a
+                           copy of the profile shows up in its menu as a second "MOZA (1)".
+                           Printed only when one is found.
+              Exit code is non-zero if any UNKNOWN / WRONG-MAP / MULTI-BIND / STRAY-PROFILE
+              is found.
 
 Usage (from the project root):
     python tools/gamedata.py check
@@ -282,6 +287,39 @@ def cmd_catalog(args):
 
 
 # --------------------------------------------------------------------------- check
+def stray_profiles(mapping):
+    """Other control-profile files under the mappings folder (ROOT), as paths relative to it.
+
+    The game's Control Profiles menu lists profile files from subfolders as well as from the
+    mappings folder itself, and numbers a repeated name: on 2026-11-28 a before-copy of MOZA.xml
+    five folders down appeared as "MOZA (1)" and went away when the copy lost its .xml name.
+    Folders whose names start with a dot are skipped here because copies under one did not
+    appear in the menu the same day; that the game skips them is an inference from that, not
+    something read from the game.
+    """
+    try:
+        own = mapping.resolve()
+    except OSError:
+        own = mapping
+    found = []
+    for folder, subfolders, files in os.walk(ROOT):
+        subfolders[:] = sorted(d for d in subfolders if not d.startswith('.'))
+        for name in sorted(files):
+            if not name.lower().endswith('.xml'):
+                continue
+            path = Path(folder) / name
+            try:
+                if path.resolve() == own:
+                    continue
+                with open(path, 'rb') as f:
+                    head = f.read(65536)
+            except OSError:
+                continue
+            if b'<ActionMaps' in head:
+                found.append(path.relative_to(ROOT).as_posix())
+    return found
+
+
 def cmd_check(args):
     profile, _labels = load_game_data(args.p4k)
     info = build_info(args.p4k)
@@ -325,6 +363,10 @@ def cmd_check(args):
     for (m, a), inputs in multi:
         print('  MULTI-BIND %s / %s  - %d rebinds (%s); the game keeps only the last'
               % (m, a, len(inputs), ', '.join(repr(i) for i in inputs)))
+    strays = stray_profiles(args.mapping)
+    for path in strays:
+        print('  STRAY-PROFILE %s  - a second control profile under the mappings folder; the game '
+              'lists it in its profile menu. Move it out or give it another extension.' % path)
 
     colliding, quiet = [], []
     for name, _am, actions in maps:
@@ -342,7 +384,7 @@ def cmd_check(args):
     print('Other un-overridden joystick defaults (input not otherwise used by this profile): %d' % len(quiet))
     for m, a, j, mode, _clash in quiet:
         print('  js1_%-10s %s / %s (%s)' % (j, m, a, mode or '-'))
-    return 1 if (unknown or wrong or multi) else 0
+    return 1 if (unknown or wrong or multi or strays) else 0
 
 
 def main():

@@ -96,7 +96,9 @@ at `LIVE\user\client\0\controls\mappings`.
 - **Commit and push to `main` as soon as a change is finished and checked.** Git is my source of
   truth and my rollback point, so there's no need to wait for "ship it" or to branch. One commit
   per logical change, with every file that describes the change in it. Scratch files go in your
-  scratchpad so the repo stays clean.
+  scratchpad so the repo stays clean. A copy of `MOZA.xml` never sits anywhere under this folder
+  with an `.xml` name, git-ignored or not: the game lists profile files from subfolders too, and
+  a session's before-copy once showed up in my profile menu as "MOZA (1)".
 - **The rig is for ships only.** On foot and in ground vehicles I use an Xbox controller on the
   game's stock layout, so on-foot and ground bindings would be clutter. The few entries in those
   actionmaps are clears of stock defaults, and they stay.

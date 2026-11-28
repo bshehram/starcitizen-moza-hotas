@@ -57,6 +57,10 @@ proof that the running game really kept each binding.
 - **One joystick binding per action.** The game keeps a single joystick input for each action.
   If the profile gives an action two `<rebind>` lines, the last one wins and the other is lost
   without any error. `gamedata.py check` reports this as `MULTI-BIND`.
+- **One profile file in the whole folder tree.** The game lists control-profile `.xml` files it
+  finds in subfolders of the mappings folder as well, so a backup copy of `MOZA.xml` anywhere
+  below it appears in the game's profile menu as a second "MOZA (1)". `gamedata.py check` reports
+  such a copy as `STRAY-PROFILE`. Keep backups outside the folder, or give them another extension.
 - **Loading a profile is an overlay.** An action the file doesn't mention keeps whatever binding
   the game already had, including one from an earlier version of the profile. After removing a
   binding from `MOZA.xml`, `validate_actionmaps.py` shows the old one as `LEFTOVER` until it is

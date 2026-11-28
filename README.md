@@ -58,9 +58,11 @@ The game does **not** load profiles automatically — you apply them yourself (s
 **Option A — just the file (minimal).** Copy [`MOZA.xml`](MOZA.xml) into that folder. That's it.
 
 **Option B — the whole repo as your mappings folder (what I do).** Clone this repo *into* the
-mappings folder. The game only reads `MOZA.xml` at the root and **ignores subfolders**, so the
-diagrams, cards, and tools come along harmlessly and I get the reference material right where I
-fly:
+mappings folder. The diagrams, cards, and tools come along harmlessly, because the game only
+picks up control-profile `.xml` files, and I get the reference material right where I fly. One
+caution: the game lists profile files it finds in **subfolders too**, so keep `MOZA.xml` the only
+profile in the tree. A backup copy named `something.xml` in any subfolder shows up in the game's
+profile menu as a second "MOZA (1)":
 
 ```powershell
 cd "…\StarCitizen\LIVE\user\client\0\controls\mappings\"
