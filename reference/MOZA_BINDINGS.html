@@ -166,16 +166,16 @@
     <div class="grid">
 
       <div class="card"><h3>Left wing — POWER (every mode)</h3><table>
-        <tr><td class="btn"><span class="n">49</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Weapons power toggle</td></tr>
-        <tr><td class="btn"><span class="n">50</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Thruster power toggle</td></tr>
-        <tr><td class="btn"><span class="n">51</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Shield power toggle</td></tr>
+        <tr><td class="btn"><span class="n">49</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Power → weapons +</td></tr>
+        <tr><td class="btn"><span class="n">50</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Power → engines +</td></tr>
+        <tr><td class="btn"><span class="n">51</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Power → shields +</td></tr>
         <tr><td class="btn"><span class="n">52</span> Wing 4 (bottom)</td><td class="fn"><span class="tag t-util">A</span> Power assignment reset</td></tr>
       </table></div>
 
       <div class="card"><h3>Right wing — POWER (every mode)</h3><table>
-        <tr><td class="btn"><span class="n">53</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Power → weapons +</td></tr>
-        <tr><td class="btn"><span class="n">54</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Power → engines +</td></tr>
-        <tr><td class="btn"><span class="n">55</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Power → shields +</td></tr>
+        <tr><td class="btn"><span class="n">53</span> Wing 1 (top)</td><td class="fn"><span class="tag t-util">A</span> Weapons power toggle</td></tr>
+        <tr><td class="btn"><span class="n">54</span> Wing 2</td><td class="fn"><span class="tag t-util">A</span> Thruster power toggle</td></tr>
+        <tr><td class="btn"><span class="n">55</span> Wing 3</td><td class="fn"><span class="tag t-util">A</span> Shield power toggle</td></tr>
         <tr><td class="btn"><span class="n">56</span> Wing 4 (bottom)</td><td class="fn"><span class="tag t-util">A</span> Hold → shields to MAX</td></tr>
       </table></div>
 
@@ -273,7 +273,7 @@
 
   <div class="note">
     <b>Notes.</b> Operator mode (Guns / Missile / Scan / Mining / Salvage) is set on the MTQ mode knob (17–21); it decides which action a multi-mode button fires.
-    <b>Power management</b> (the AB6 wing panel) works on every ship. The <b>WPN-hat shield faces</b> act only on Size 3 Quadrant shields (Liberator, Perseus, Ironclad Assault, Corsair) and are untested in-ship.
+    <b>Power management</b> (the AB6 wing panel) works on every ship. Since November 28 the power-assignment taps sit on the left wing with the reset, and the power toggles on the right wing above shields to MAX; that swap is written but not yet loaded in the game or flown. The <b>WPN-hat shield faces</b> act only on Size 3 Quadrant shields (Liberator, Perseus, Ironclad Assault, Corsair) and are untested in-ship.
     On foot you use an Xbox controller, not this rig.
     <b>Action-maps validated</b> against the game's own export: the power-assignment actions (<code>v_engineering_assignment_*</code>, now on the AB6 wings) sit in <code>spaceship_power</code> and Pin Target (<code>v_target_pin_selected_hold</code>) in <code>spaceship_targeting</code> — both accepted by the game on load. The game keeps one joystick input per action, so reverse sits on one control only: the stick's mini-stick press, held for full reverse. The throttle lever is calibrated on the device so that its power band lies between the two detents: zero at the idle detent, full at the forward detent, nothing outside them.
   </div>

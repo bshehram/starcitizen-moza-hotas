@@ -21,26 +21,26 @@
   <!-- MTQ bottom-center 3-position rocker (22/23/24): LEFT (23) = master power OFF (below), RIGHT (24) = Flight Ready / power ON (v_flightready in spaceship_general), CENTER (22) = rest, intentionally UNBOUND (a binding there would fire on every return-to-center). -->
   <actionmap name="spaceship_power">
     <action name="v_power_toggle_weapons">
-      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 (top) - weapons power on/off (only meaningful in SCM; weapons stow in NAV) -->
+      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 (top) - weapons power on/off (only meaningful in SCM; weapons stow in NAV) -->
     </action>
     <action name="v_power_toggle_thrusters">
-      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - thruster power on/off (off = cannot maneuver, lower engine signature / cold running) -->
+      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - thruster power on/off (off = cannot maneuver, lower engine signature / cold running) -->
     </action>
     <action name="v_power_toggle_shields">
-      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - shield power on/off (re-enable incurs a boot delay; shields are offline in NAV regardless) -->
+      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - shield power on/off (re-enable incurs a boot delay; shields are offline in NAV regardless) -->
     </action>
     <action name="v_power_set_off">
       <rebind input="js2_button23"/>  <!-- MTQ 3-pos rocker LEFT - master power OFF (discrete SET, always off, not a toggle) -->
     </action>
-    <!-- POWER PANEL on the AB6 base wings (js1 49-56, eight momentary pushbuttons), live in EVERY operator mode. LEFT wing top to bottom = power toggles weapons / thrusters / shields, then RESET of the power assignment. RIGHT wing top to bottom = assignment taps weapons + / engines + / shields +, then HOLD = shields to max (stock mode hold; returns on release). spaceship_power is always live, so these eight buttons carry NOTHING else: the old combat target-cycle bank was deleted (never used) and the Mining / Salvage banks moved off the wings (see spaceship_mining / spaceship_salvage). No decrease binds (reset rebalances). -->
+    <!-- POWER PANEL on the AB6 base wings (js1 49-56, eight momentary pushbuttons), live in EVERY operator mode. LEFT wing top to bottom = assignment taps weapons + / engines + / shields +, then RESET of the power assignment. RIGHT wing top to bottom = power toggles weapons / thrusters / shields, then HOLD = shields to max (stock mode hold; returns on release). The user's layout since 2026-11-28: they use the assignment taps far more than the toggles, so the taps sit together with the reset on the left wing (49-51 and 53-55 swapped; before, the toggles were on the left wing and the taps on the right). spaceship_power is always live, so these eight buttons carry NOTHING else: the old combat target-cycle bank was deleted (never used) and the Mining / Salvage banks moved off the wings (see spaceship_mining / spaceship_salvage). No decrease binds (reset rebalances). -->
     <action name="v_engineering_assignment_weapons_increase">
-      <rebind input="js1_button53"/>  <!-- AB6 RIGHT wing 1 (top) - power to WEAPONS + (tap) -->
+      <rebind input="js1_button49"/>  <!-- AB6 LEFT wing 1 (top) - power to WEAPONS + (tap) -->
     </action>
     <action name="v_engineering_assignment_shields_increase">
-      <rebind input="js1_button55"/>  <!-- AB6 RIGHT wing 3 - power to SHIELDS + (tap) -->
+      <rebind input="js1_button51"/>  <!-- AB6 LEFT wing 3 - power to SHIELDS + (tap) -->
     </action>
     <action name="v_engineering_assignment_engine_increase">
-      <rebind input="js1_button54"/>  <!-- AB6 RIGHT wing 2 - power to ENGINES + (tap) -->
+      <rebind input="js1_button50"/>  <!-- AB6 LEFT wing 2 - power to ENGINES + (tap) -->
     </action>
     <action name="v_engineering_assignment_reset">
       <rebind input="js1_button52"/>  <!-- AB6 LEFT wing 4 (bottom) - RESET power assignment to balanced/even -->

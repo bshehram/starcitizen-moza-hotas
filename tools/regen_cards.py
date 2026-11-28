@@ -371,20 +371,20 @@ def new_card(cfg, browser):
 # ================================================================ AB6 (js1 49-62)
 AB6 = [
     {'Header': 'AB6 BASE 49-62'},
-    {'Label': '49', 'Primary': 'Weapons power toggle', 'Hint': 'L wing 1',
-     'Screen': 'Weapons power on / off', 'Where': 'Left wing button 1 (top)', 'Group': 'left wing', 'Actions': ['v_power_toggle_weapons']},
-    {'Label': '50', 'Primary': 'Thruster power toggle', 'Hint': 'L wing 2',
-     'Screen': 'Thruster power on / off', 'Where': 'Left wing button 2', 'Group': 'left wing', 'Actions': ['v_power_toggle_thrusters']},
-    {'Label': '51', 'Primary': 'Shield power toggle', 'Hint': 'L wing 3',
-     'Screen': 'Shield power on / off', 'Where': 'Left wing button 3', 'Group': 'left wing', 'Actions': ['v_power_toggle_shields']},
+    {'Label': '49', 'Primary': 'Power to weapons +', 'Hint': 'L wing 1',
+     'Screen': 'Power assignment: weapons up (tap)', 'Where': 'Left wing button 1 (top)', 'Group': 'left wing', 'Actions': ['v_engineering_assignment_weapons_increase']},
+    {'Label': '50', 'Primary': 'Power to engines +', 'Hint': 'L wing 2',
+     'Screen': 'Power assignment: engines up (tap)', 'Where': 'Left wing button 2', 'Group': 'left wing', 'Actions': ['v_engineering_assignment_engine_increase']},
+    {'Label': '51', 'Primary': 'Power to shields +', 'Hint': 'L wing 3',
+     'Screen': 'Power assignment: shields up (tap)', 'Where': 'Left wing button 3', 'Group': 'left wing', 'Actions': ['v_engineering_assignment_shields_increase']},
     {'Label': '52', 'Primary': 'Power assignment reset', 'Hint': 'L wing 4',
      'Screen': 'Reset the power assignment to even', 'Where': 'Left wing button 4 (bottom)', 'Group': 'left wing', 'Actions': ['v_engineering_assignment_reset']},
-    {'Label': '53', 'Primary': 'Power to weapons +', 'Hint': 'R wing 1',
-     'Screen': 'Power assignment: weapons up (tap)', 'Where': 'Right wing button 1 (top)', 'Group': 'right wing', 'Actions': ['v_engineering_assignment_weapons_increase']},
-    {'Label': '54', 'Primary': 'Power to engines +', 'Hint': 'R wing 2',
-     'Screen': 'Power assignment: engines up (tap)', 'Where': 'Right wing button 2', 'Group': 'right wing', 'Actions': ['v_engineering_assignment_engine_increase']},
-    {'Label': '55', 'Primary': 'Power to shields +', 'Hint': 'R wing 3',
-     'Screen': 'Power assignment: shields up (tap)', 'Where': 'Right wing button 3', 'Group': 'right wing', 'Actions': ['v_engineering_assignment_shields_increase']},
+    {'Label': '53', 'Primary': 'Weapons power toggle', 'Hint': 'R wing 1',
+     'Screen': 'Weapons power on / off', 'Where': 'Right wing button 1 (top)', 'Group': 'right wing', 'Actions': ['v_power_toggle_weapons']},
+    {'Label': '54', 'Primary': 'Thruster power toggle', 'Hint': 'R wing 2',
+     'Screen': 'Thruster power on / off', 'Where': 'Right wing button 2', 'Group': 'right wing', 'Actions': ['v_power_toggle_thrusters']},
+    {'Label': '55', 'Primary': 'Shield power toggle', 'Hint': 'R wing 3',
+     'Screen': 'Shield power on / off', 'Where': 'Right wing button 3', 'Group': 'right wing', 'Actions': ['v_power_toggle_shields']},
     {'Label': '56', 'Primary': 'Shields to MAX (hold)', 'Hint': 'R wing 4',
      'Screen': 'All power to the shields (hold)', 'Where': 'Right wing button 4 (bottom)', 'Group': 'right wing', 'Actions': ['v_engineering_assignment_shields_max']},
     {'Label': '57-59', 'Primary': 'Left "Slider" lever', 'Hint': 'unbound - reserved', 'Unbound': True,
@@ -770,7 +770,8 @@ MAPS = {
 # The status of each function the docs say something about: the one hand-kept place for the rig's
 # statuses. Control = '<device> <card label>'; Part = None for the primary function or the variant's
 # mode; Press = 'tap' / 'hold' for one job of a row with Jobs. Status: flown (confirmed in a ship),
-# unverified (bound and loaded, not yet confirmed in a ship), trial (the docs call it a trial). When =
+# unverified (bound, not yet confirmed in a ship; a binding changed since the last load is unverified
+# too, and its quote says it is not loaded yet), trial (the docs call it a trial). When =
 # the date or build of the confirmation where the docs give it. Quote = the whole sentences of root
 # CLAUDE.md it rests on, each with In = where it sits; test_rig.py checks that each occurs exactly once
 # there, and (coarsely) that one of them says what the status says. It cannot check that a sentence
@@ -844,20 +845,20 @@ STATUS = [
         {'In': '§6 item 20', 'Text': 'Not reported from a flight since.'}]},
     {'Control': 'js1 29', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
         {'In': '§6 item 24', 'Text': 'Confirmed in flight (user, 2026-11-26 night): "pressing the coolie hat button goes in reverse now".'}]},
-    {'Control': 'js1 49', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
-    {'Control': 'js1 50', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
-    {'Control': 'js1 51', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
+    {'Control': 'js1 49', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
+    {'Control': 'js1 50', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
+    {'Control': 'js1 51', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
     {'Control': 'js1 52', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
         {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
-    {'Control': 'js1 53', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
-    {'Control': 'js1 54', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
-    {'Control': 'js1 55', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
-        {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
+    {'Control': 'js1 53', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
+    {'Control': 'js1 54', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
+    {'Control': 'js1 55', 'Part': None, 'Status': 'unverified', 'Quote': [
+        {'In': '§6 item 29', 'Text': 'The six moved bindings were written 2026-11-28, not yet loaded in game or flown.'}]},
     {'Control': 'js1 56', 'Part': None, 'Status': 'flown', 'When': '2026-11-26', 'Quote': [
         {'In': '§6 item 23', 'Text': 'The stick press (29) reversed fine, and so did the AB6 wing power panel.'}]},
     {'Control': 'js2 1', 'Part': None, 'Status': 'unverified', 'Quote': [
@@ -1706,7 +1707,8 @@ def rig_doc(images, pin=True):
         'catalog': 'reference/' + catalog_path().name,
         'doc': 'Every field is described in dashboard/RIG.md.',
         'status': {'flown': 'Confirmed in a ship: root CLAUDE.md says it worked in flight (status_when: when, where it says).',
-                   'unverified': 'Bound and loaded in the game, but not yet confirmed in a ship (CLAUDE.md says so).',
+                   'unverified': ('Bound in MOZA.xml, but not yet confirmed in a ship (CLAUDE.md says so); the quote '
+                                  'says whether the game has loaded it yet.'),
                    'trial': 'CLAUDE.md calls the binding a trial: bound to be tried out, not yet tried.',
                    'missing': 'No status key: the docs record neither a flight report nor a doubt about how that '
                               'binding behaves. Doubts about which physical control carries a number, and about '

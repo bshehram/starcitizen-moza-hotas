@@ -227,7 +227,7 @@ Button indices come directly from the MOZA configurator diagrams (`diagrams/MOZA
 
 > **Buttons 25–29 are the MHG's top mini-stick, not a fixed hat.** The "top coolie hat" in these tables is the round thumb control at the top-center of the grip head. It only reports as buttons 25–29 (4 directions + press) while MOZA Cockpit has it in **Button Mapping** mode; in **Axis Mode** it reports two analog axes and no buttons. See §1.1.
 
-> **Wing buttons (49–56)** are plain **momentary pushbuttons** (physically labeled 1–4 per wing): 49–52 = **left** wing, 53–56 = **right** wing. Since 2026-11-26 they are the always-live **power panel** (§4 *Power management*).
+> **Wing buttons (49–56)** are plain **momentary pushbuttons** (physically labeled 1–4 per wing): 49–52 = **left** wing, 53–56 = **right** wing. Since 2026-11-26 they are the always-live **power panel** (§4 *Power management*): since 2026-11-28 the left wing holds the power-assignment taps and the reset, and the right wing the power toggles and shields to max (§6 item 29).
 >
 > ⚠ **Note (corrected):** The left **"Slider"** (57/58/59) and right **"Dial"** (60/61/62) are **mixed-mode levers**, *not* button-only as an earlier version of this doc claimed. Each emits **both** its 3 detent buttons (57 = top/100 … 59 = bottom/0; 60 = top/full … 62 = bottom/0) **and** a continuous **analog axis** - the js1 slider-family `js1_slider1` / `js1_slider2` (which lever maps to which needs `joy.cpl` confirmation, the same counter-intuitive name↔number mapping seen on the MTQ). Both are **maintained** (stay where you leave them), so they suit set-and-hold analog values, not momentary actions. They are currently **UNBOUND** in this combat profile (see §6 for why). **Which of the two they emit is a MOZA Cockpit setting** (AB6 → Panel Settings → *Slider Axis Mode*, one dropdown per lever): on 2026-11-20 both were set to **Button Mapping** - buttons 57–62 only, no axis (§1.1). Switch a lever to an axis mode before giving it an analog job.
 
@@ -280,17 +280,17 @@ Every binding currently in `MOZA.xml`, grouped by action map, with the official 
 
 | Input | Control | Action → In-game label | What it does |
 | --- | --- | --- | --- |
-| `js1_button49` | AB6 left wing 1 (top) | `v_power_toggle_weapons` → *Toggle Power - Weapons* | Cuts/restores weapon power. Only meaningful in SCM (weapons are stowed in NAV). |
-| `js1_button50` | AB6 left wing 2 | `v_power_toggle_thrusters` → *Toggle Power - Thrusters* | Cuts/restores power to propulsion. Off = can't maneuver, lower engine signature (cold running). |
-| `js1_button51` | AB6 left wing 3 | `v_power_toggle_shields` → *Toggle Power - Shields* | Cuts/restores shields. Re-enabling incurs a boot delay; shields are offline in NAV mode regardless. |
+| `js1_button49` | AB6 left wing 1 (top) | `v_engineering_assignment_weapons_increase` → *Weapons - Increase (Tap)* | Tap power toward **weapons**. Mirrors the weapons toggle on the right wing. |
+| `js1_button50` | AB6 left wing 2 | `v_engineering_assignment_engine_increase` → *Engines - Increase (Tap)* | Tap power toward **engines** (thrusters). |
+| `js1_button51` | AB6 left wing 3 | `v_engineering_assignment_shields_increase` → *Shields - Increase (Tap)* | Tap power toward **shields**. |
 | `js1_button52` | AB6 left wing 4 (bottom) | `v_engineering_assignment_reset` → *Reset Assignments* | **Reset** the power assignment to balanced/even. |
-| `js1_button53` | AB6 right wing 1 (top) | `v_engineering_assignment_weapons_increase` → *Weapons - Increase (Tap)* | Tap power toward **weapons**. Mirrors the weapons toggle on the left wing. |
-| `js1_button54` | AB6 right wing 2 | `v_engineering_assignment_engine_increase` → *Engines - Increase (Tap)* | Tap power toward **engines** (thrusters). |
-| `js1_button55` | AB6 right wing 3 | `v_engineering_assignment_shields_increase` → *Shields - Increase (Tap)* | Tap power toward **shields**. |
+| `js1_button53` | AB6 right wing 1 (top) | `v_power_toggle_weapons` → *Toggle Power - Weapons* | Cuts/restores weapon power. Only meaningful in SCM (weapons are stowed in NAV). |
+| `js1_button54` | AB6 right wing 2 | `v_power_toggle_thrusters` → *Toggle Power - Thrusters* | Cuts/restores power to propulsion. Off = can't maneuver, lower engine signature (cold running). |
+| `js1_button55` | AB6 right wing 3 | `v_power_toggle_shields` → *Toggle Power - Shields* | Cuts/restores shields. Re-enabling incurs a boot delay; shields are offline in NAV mode regardless. |
 | `js1_button56` | AB6 right wing 4 (bottom) | `v_engineering_assignment_shields_max` → *Shields - Set to Max (Hold)* | **Hold** to put all power into shields (burst-tank; returns on release). Stock mode `hold`. |
 | `js2_button23` | MTQ 3-pos rocker **left** | `v_power_set_off` → *Set Power Off* | Dedicated master power **OFF** (always off, not a toggle). |
 
-> **Power panel (AB6 wings `js1_button49–56`, since 2026-11-26):** the user's layout. The **left wing** holds the power **toggles** (weapons / thrusters / shields, top to bottom) and the assignment **reset**; the **right wing** mirrors it with the assignment **taps** (weapons + / engines + / shields +) and **hold = shields to max**. `spaceship_power` is always live, so the eight wing buttons carry **nothing else** in any mode: the combat target-cycle bank that sat there was deleted (the user never used it; general cycling is on the COM hat and the MHG hats), and the Mining / Salvage banks moved to the MHG right hat (§6 item 22). Before this, the toggles were on MTQ keypad A1–A3 and the pips on the "WPN" hat, which now carries shield faces. No decrease binds - reset rebalances. **⚠ Action-map note:** `v_engineering_assignment_*` are placed in **`spaceship_power`** (the catalog confirms); if a button does nothing in-game, the action map is the suspect.
+> **Power panel (AB6 wings `js1_button49–56`, since 2026-11-26):** the user's layout. The **left wing** holds the assignment **taps** (weapons + / engines + / shields +, top to bottom) and the assignment **reset**; the **right wing** mirrors it with the power **toggles** (weapons / thrusters / shields) and **hold = shields to max**. The two wings' top three buttons were **swapped on 2026-11-28** (§6 item 29), because the user taps the assignment far more often than they toggle power, and wanted every assignment button together on one wing; that version is written, not yet loaded or flown. `spaceship_power` is always live, so the eight wing buttons carry **nothing else** in any mode: the combat target-cycle bank that sat there was deleted (the user never used it; general cycling is on the COM hat and the MHG hats), and the Mining / Salvage banks moved to the MHG right hat (§6 item 22). Before this, the toggles were on MTQ keypad A1–A3 and the pips on the "WPN" hat, which now carries shield faces. No decrease binds - reset rebalances. **⚠ Action-map note:** `v_engineering_assignment_*` are placed in **`spaceship_power`** (the catalog confirms); if a button does nothing in-game, the action map is the suspect.
 
 > **Master power rocker (`js2_button22/23/24`, bottom-center 3-position):** **left (23)** = master power **OFF** (`v_power_set_off`); **right (24)** = Flight Ready / power **ON** (`v_flightready`, in `spaceship_general`); **center (22)** = resting position, intentionally unbound. Keypad A1 is the mining **jettison** (hold), A2 / A3 fire the salvage beams left / right, and A4 toggles LAMP night-vision (see Mining, Salvage and Mode switching & LAMP).
 
@@ -624,6 +624,7 @@ This is normal and intended - only one of these action maps is "live" at a time.
       - the OX tractor in Salvage mode;
       - the salvage bank (Salvation / Hyūn).
     - **Tested since:** module activation on the right hat works in the Golem (slots 1 and 2). The user's report of 2026-11-28: they used it on all three ARC-L4 runs of 2026-11-27.
+    - *Update 2026-11-28 (item 29):* the user swapped 49–51 with 53–55, so the assignment taps now sit on the left wing above the reset and the power toggles on the right wing above shields to max.
 
 23. **✅ Fixed - the first load of the 2026-11-26 rework lost two bindings and left nine old ones behind (2026-11-26).**
     - **What the user saw:** after loading the profile, the throttle no longer reversed behind the idle detent. The stick press (29) reversed fine, and so did the AB6 wing power panel.
@@ -701,6 +702,17 @@ This is normal and intended - only one of these action maps is "live" at a time.
     - **Found by** the independent review of the dashboard's rig data, which compared each row's wording with the label of the action bound to it (2026-11-28).
     - **Change:** §4, the `MOZA.xml` comment, the binding sheet and the rig data now give the game's label and claim nothing about a hold. The printed card always said only "Launch missiles".
     - **Not checked in a ship, and only the user can settle it:** in Missile operator mode (knob detent 2) with a target locked, hold the button and see whether anything differs from a tap. If the hold matters, the unbound *Launch Missiles (Hold)* may be the action to bind.
+
+29. **✅ AB6 wings: the power-assignment taps and the power toggles swapped places (2026-11-28).**
+    - **The user's request (about 10:30 AM), in their words:** "i want to swap the ab6 wing buttons 49-51 with the buttons 53-55 because i find myself needing to use the power assignment up buttons alot more than power on off buttons and it makes more sense all the power assignment buttons are together on the left side with button 52 being and staying as reset power assignment to even on left wing".
+    - **Change:**
+      - Left wing 49 / 50 / 51 = *Weapons / Engines / Shields - Increase (Tap)* (were on 53 / 54 / 55). 52 = *Reset Assignments*, unchanged.
+      - Right wing 53 / 54 / 55 = *Toggle Power - Weapons / Thrusters / Shields* (were on 49 / 50 / 51). 56 = *Shields - Set to Max (Hold)*, unchanged: the user did not mention it, and it stays below the toggles.
+      - All eight stay in `spaceship_power` with one `<rebind>` each. Nothing else is bound on js1 49–56, so nothing doubles up and no other control moved.
+    - **Counts unchanged:** 120 bindings + 10 clears across 21 actionmaps. `gamedata.py check`: 130 OK, 0 unknown, 0 wrong-map, 0 multi-bind, and the same ghost list (none on js1 49–56).
+    - **Carried over to** the cards, `reference/MOZA_BINDINGS.html`, `README.md` and the dashboard's rig data. The dashboard's combat strip lists the power toggles and shields to max, so it now names right wing 1 / 2 / 3 and right wing 4.
+    - **Status.** The six moved bindings were written 2026-11-28, not yet loaded in game or flown. Buttons 52 and 56 did not change and keep the user's 2026-11-26 report (item 23).
+    - **After the user loads the profile and quits,** `validate_actionmaps.py` should give 0 input-diff and 0 leftover, with the six actions on their new buttons. Until that load it reports an `INPUT-DIFF` on each of the six, which is expected (§10.3).
 
 ---
 
@@ -1013,6 +1025,12 @@ what caught the stock *Landing System (Toggle)* and *Interaction Mode* overlaps.
 > `NOT-IN-EXPORT`. The export lists `v_strafe_back` = `js1_button29`. That session enumerated
 > AB6 = joystick 1, MTQ = 2, Razer keyboard = 3. Flown (Corsair, Golem); the user confirmed the
 > stick press reverses (§6 item 24).
+>
+> **State on 2026-11-28:** `MOZA.xml` changed after the last load: the AB6 wings' top three buttons
+> swapped places (§6 item 29). Step 1 passes (130 OK). Step 2, run against the saved profile before
+> any load: 121 OK, 0 mismatch, 6 input-diff (the six moved actions, each still on its old button in
+> the game), 0 leftover, and the same 3 stock-equal `NOT-IN-EXPORT`. Loading the profile clears the
+> six.
 
 ---
 

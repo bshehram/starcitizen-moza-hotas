@@ -190,7 +190,10 @@ on a Mac.
   loaded the same evening, the game accepted every entry, and the press reversed as intended in
   flight. On November 27 the throttle was recalibrated on the device so that the forward detent is
   full power; the profile itself did not change. The shield faces and the right-hat banks have not
-  been reported on.
+  been reported on. On November 28 the top three buttons of the two AB6 wings swapped places, so
+  the power-assignment taps sit together with the reset on the left wing and the power toggles
+  above shields-to-max on the right. That change passes the game-data check but has not been
+  loaded in the game or flown yet.
 
 > Badges are self-reported — this is my personal config repo, not a CI'd codebase. The XML
 > "passing" claim is reproducible locally with the `xmllint` command above, and the game-data
