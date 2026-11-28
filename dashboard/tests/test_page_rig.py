@@ -8,7 +8,7 @@ What is checked:
   and goes back to Live with one click.
 - The page's model holds every row of rig.json (`_meta.counts.rows`), each on its view's page, and
   every numbered row has one mark per button on its page, carrying the number.
-- Under each filter every row is drawn as the schema's reading rule says (RIG_SCHEMA "Reading a
+- Under each filter every row is drawn as the schema's reading rule says (RIG.md, "Reading a
   page filter", written again here in Python): changes or own job cyan, does nothing gray,
   unknown as keeping its job, unbound dim; a control live only in missile or scan mode carries
   that mode's name under Flight; the filter's label names the knob detents.

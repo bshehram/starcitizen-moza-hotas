@@ -66,7 +66,7 @@ Three rules that hold for everything in this folder:
 | `scdash/pipeline.py` | `LogReader`: follower -> records -> events -> state. What the stage 2 service drives. `read_whole()`. |
 | `scdash/timeline.py` | The `timeline` text and JSON, and the session list (`--list`). |
 | `THIRD_PARTY_NOTICES` | CSR's MIT license and what was adapted where. `tests/test_credit.py` keeps it honest: a file with a "From CSR" mark must be listed, and a listed file must carry the copyright line. |
-| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`); stage 4's window is `test_open.py` (a stand-in browser behind a `.cmd` records its command line; no real browser is started). Stage 3's page is `test_page_static.py` (the three files read as text: a renderer for every view, the content policy, no markup from text, the 18 px floor through the stylesheet's tokens), `test_page_browser.py` (headless Edge over the DevTools protocol on a real instance: every view draws, no computed type under 18 px in any view either way up with the terminal region on and off, markup in a plan stays text, the hand pick, Live, a quick timer and the rig switcher with real pointer events, a refused change shown, the red screen and alert for a missing stick base; its `Edge`, `Scene` and `shift_log` are what the capture scripts use) and `test_page_rig.py` (the rig reference in the browser: fetched only when opened, all 96 rows under each filter against the reading rule written again in Python, pointer, filter and Find, the 18 px floor across pages, filters and the four shapes). The two browser files skip without Edge (`SCDASH_EDGE` names it). |
+| `tests/` | `unittest` suite, sanitized samples in `tests/samples/` (kept byte-exact by their `.gitattributes`), `sanitize.py` to make new ones. Stage 2's are `test_server.py`, `test_service.py`, `test_cli.py`, `test_replay.py`, with `test_service_helpers.py` (helpers, no tests); stage 3's wiring is `test_wiring.py` (and `RigFiles`, `RigFolderRule` in `test_server.py`); stage 4's window is `test_open.py` (a stand-in browser behind a `.cmd` records its command line; no real browser is started). Stage 3's page is `test_page_static.py` (the three files read as text: a renderer for every view, the content policy, no markup from text, the 18 px floor through the stylesheet's tokens), `test_page_browser.py` (headless Edge over the DevTools protocol on a real instance: every view draws, no computed type under 18 px in any view either way up with the terminal region on and off, markup in a plan stays text, the hand pick, Live, a quick timer and the rig switcher with real pointer events, a refused change shown, the red screen and alert for a missing stick base; its `Edge`, `Scene` and `shift_log` are what the capture scripts use; `Scene(..., settings={...})` merges settings into the scene's `config.json`, its `terminal` argument still setting `terminal`, and `Edge.new_page(url, before=(script, ...))` runs scripts ahead of the page's own on every load) and `test_page_rig.py` (the rig reference in the browser: fetched only when opened, all 96 rows under each filter against the reading rule written again in Python, pointer, filter and Find, the 18 px floor across pages, filters and the four shapes). The two browser files skip without Edge (`SCDASH_EDGE` names it). |
 
 `scdash.py` sits beside the package folder `scdash/`. With `dashboard/` on `sys.path`, `import
 scdash` finds the package because a package directory wins over a module file of the same name;
@@ -88,8 +88,9 @@ python dashboard/scdash.py timeline --list --since 2026-11-26   # sessions: loca
 its first line looks like a session's. `tests/test_reference.py` belongs to the agent that builds
 `reference/`.
 
-The suite is 696 tests and takes about 5 min with the browser tests (seen 2026-11-28, with the
-game running); `-p "test_page*.py"` runs the page's 22 alone. Stage 1's part is about 10 s
+The suite is 713 tests (counted after `6fa5dd9`, 2026-11-28) and took about 5 min with the
+browser tests when it was 696 (seen 2026-11-28, with the game running); `-p "test_page*.py"`
+runs the page's 38 alone. Stage 1's part is about 10 s
 (the 100 MB flood test, which `SCDASH_FLOOD_MB` makes smaller, and the privacy test, which learns
 names and ids from the newest local logs for up to 4 s); stage 2's process tests start and stop
 real background instances (`test_cli.py` about 65 s, `test_replay.py` about 17 s, stage 4's
@@ -321,10 +322,11 @@ pid, game running and since, log found, replay info, terminal on), `clock` (`rat
 live mode and the replay clock in a replay; `session_end` once the game is not running), `flags`
 (clock-dependent facts the service computes: `hangar_stuck`), `state` (`to_dict(private=False)`),
 and since stage 3 `board` (`board.build`'s payload, never null; [`STATE.md`](STATE.md)).
-Sent only when it differs from the last one, merged to at most two a second, `retry: 3000`, a
-comment line every 15 s, at most 4 pages; a closed page is noticed within a second by peeking at
-its socket. Nothing half-read goes out while the service catches up on a large log (stage 3
-section below).
+Sent only when it differs from the last one, merged to at most two a second, `retry: 3000` and a
+keepalive event (`event: keepalive`, its data the interval in seconds) first, then a keepalive
+whenever nothing was written for 15 s (`keepalive_seconds`), at most 4 pages; a closed page is
+noticed within a second by peeking at its socket. Nothing half-read goes out while the service
+catches up on a large log (stage 3 section below).
 
 **Where later stages hook in:**
 
@@ -352,7 +354,9 @@ feed (major and alert lines; how many depends on the view and the window, stage 
 ones stay out, `SHOW_MINOR` in `app.js`), and the terminal region when the setting is on. Nothing below 18 px; texts that can come from the log carry `unicode-bidi: isolate`. One
 event stream, one one-second timer, only changed text redrawn. When the stream has been gone 2 s,
 the red banner takes the strip's place (its figures are stale then) and the rest is dimmed; it
-covers nothing else.
+covers nothing else. A stream that stays open but carries neither a state nor a keepalive for
+33 s (two keepalive intervals and 3 s) counts as gone too: the banner goes up at once and the
+page opens a new stream 5 s later.
 
 **The follower across a real game launch** (PLAN §8, §12 stage 2) was proved with the stage 1
 follower on 2026-11-27 at 12:57 PM, and with the service itself that evening: it followed a
@@ -737,7 +741,17 @@ orientation as in stage 2. The view region is a size container named `view`, and
 follows its own shape: *square* (terminal on, either way up; the mockup's), *wide* (aspect 1.7 or
 more: terminal off in landscape, three control columns, larger figures), *tall* (aspect 0.85 or
 less: terminal off in portrait, the view's type tokens a step larger, blocks one after another from
-the top, the controls straight after them), *narrow* (under 860 px: one column). The strip takes
+the top, the controls straight after them), *narrow* (under 860 px: one column). On top of these
+(since `6fa5dd9`), the room goes to what is acted on, view by view and never by a scale that
+follows the window: in a *tall* region panes that sat side by side take one column (Now's next
+step and its countdown, which grows to 240 px; Idle; Cargo's lead), and a *large wide* region
+(aspect 1.7 or more, at least 2200 x 860 px: the 2560 x 1300 tab) takes type tokens a step larger,
+larger countdowns and four control columns. A full contract's objective and Combat's leading one
+are a step up in a wide region 700 px high or more, and a step down in a short one: under
+1200 x 700 px (a plain tab with the terminal on, an alert and a hand pick) Mission keeps "Go next"
+beside its contract, and under 600 px high the leading objective steps down in every view. On Now
+a running countdown more than `FAR_TIMER_HOURS` (3) away steps back and the next step leads; the
+tick flips it once when it comes within 3 h, and the view is fitted again. The strip takes
 two rows in portrait and in landscape windows under 1500 px, three under 1000 px. A window of
 3000 x 1700 and more (a 4K screen at 100 %) is zoomed 1.5 as a whole: the same layout as 2560 x
 1300; every smaller window keeps its sizes. The feed is 3 lines in landscape on an activity view
@@ -751,11 +765,15 @@ the region overflows, it drops the block with the highest `data-cut` (later ones
 back, most important first, any dropped block the region has room for. The order, high to low: a
 control past the first six (7), the head's timer chip and the haul's "unverified" lines (6), notes
 and other contracts (5), reference panes and the keys line (4), the controls strip and the compact
-contract (3), the main pair of panes and objectives other than the current one (2). A downed
-Combat view drops its tally before its contract. What has no `data-cut` (the head, the hero, the
-current objective, a countdown) is never dropped; if a very small window still cannot hold it,
-the view scrolls (`is-over`) rather than cut a block in half. The rig reference is not fitted: it
-scrolls its own rows.
+contract (3), the main pair of panes and objectives other than the current one (2). In Combat
+with a contract the contract comes first and has no `data-cut`, its objective the largest type on
+the view; the tally follows in smaller figures and is dropped at 4, before the controls (3).
+Without a contract the tally is the hero. A downed view draws no controls and drops its tally at 3.
+What has no `data-cut` (the head, the hero, the current objective, a countdown) is never dropped;
+if a very small window still cannot hold it, the view scrolls (`is-over`) rather than cut a block
+in half. After the cuts, the controls' key ("not yet confirmed in a ship") is
+shown only while a row with the ring is still drawn. The rig reference is not fitted: it scrolls
+its own rows.
 
 **The switcher and the desk panel.** "Live" (pressed while the rules choose), a menu button, "Rig
 reference". The menu opens the desk panel: the eleven views to pick by hand (the one shown
@@ -782,7 +800,10 @@ section's counts and state, both for the tests and changing nothing.
 
 **Choices kept as constants at the top of `app.js`:** `FULL_ALERTS`, `ALERTS_SHOWN`,
 `TOAST_SECONDS`, `QUICK_MINUTES`, `QUICK_LABEL`, `MAX_OTHER_TIMERS`, `MAX_ORES`, `CTL_KEEP` (6),
-`HIDE_ALERT_THE_VIEW_SHOWS`, `REQUEST_SECONDS`, `CHANGE_HOLD_MS`, `MOVED_MS`, `SHORT_FEED`.
+`HIDE_ALERT_THE_VIEW_SHOWS`, `REQUEST_SECONDS`, `CHANGE_HOLD_MS`, `MOVED_MS`, `SHORT_FEED`,
+`QUIET_INTERVALS` (2) and `QUIET_EXTRA_MS` (3000: the stream counts as gone after two keepalive
+intervals and this, 33 s at the default; the interval is read from each keepalive's data), and
+`FAR_TIMER_HOURS` (3).
 
 **The rig reference** (`app.js`, after the views and before `RENDERERS`; schema in
 [`RIG.md`](RIG.md)). `vReference` returns one block whose node is made once and kept, so the
@@ -794,7 +815,8 @@ and nothing in the section runs on the tick.
 
 - Eight pages, one per view of the file, and Find. A row and its number on the diagram light
   each other on hover; a click opens the row (its job in every mode, each line with its own
-  mark).
+  mark). A mark's tooltip is the clause of `rig.json`'s `_meta.status` before its first ":" or
+  ";" (at most 160 characters), else the page's own words in `RIG_MARKS`.
 - The filter (All, Flight, Mining, Salvage) takes the live `view.mode` each time the reference
   opens. Under Mining or Salvage a control that changes job is cyan, one that keeps it white, one
   that does nothing there gray; under Flight nothing is cyan and a missile or scan job carries its
@@ -806,6 +828,11 @@ and nothing in the section runs on the tick.
   at which the closest two numbers keep `RIG_DISC_GAP` apart); the rows beside it may take up to
   `RIG_ROWS_GROW` (160 px) from it when they would scroll. Under 1500 px the head takes two rows;
   under 860 px the diagram sits above the rows and the section scrolls.
+- The head's key and filter travel together in `.rig__tools` (`display: contents` in the grid
+  shapes, so nothing changes there). In landscape with the terminal off and a region 1500 px wide
+  or more, the head is a wrapping flex row whose parts never shrink: one row when the tabs, the
+  key and the filter fit, else the key and the filter on a second row, right-aligned. Before
+  `6fa5dd9` the key slid over the Find tab at about 1920 wide (found by the user).
 - The section's taste choices are the 17 `RIG_*` constants at its head, each commented.
 
 ### Measured (the page, 2026-11-28) [seen]
@@ -843,24 +870,29 @@ page's own DOM in order (`views/replay_page.py`):
 
 ### Open points (2026-11-28)
 
-- **Not done after the page review:** Mission picked by hand at 1920x950, with the terminal and
-  an alert, loses its "go next" pane; portrait with the terminal off and the 2560x1300 tab leave
-  much of the view empty (half of it on Mining); the largest type is not yet on what is acted on
-  (Combat's tally outweighs its objective, Now can lead with a timer hours out); Combat's "not
-  yet confirmed" legend shows after the only marked rows were cut; a view picked by hand cuts
-  objectives without saying how many. 26 of the review's 35 mutations are still caught by no page
-  test.
-- **A stream that goes quiet without an error** (a hung service) raises no banner: the keepalive
-  is an event-stream comment, which the page cannot see. It needs a real keepalive event from the
-  service, after which the page could raise the banner when none arrives for, say, 40 s.
+- **Not done after the page review:** a view picked by hand cuts objectives without saying how
+  many it cut.
+- **The review's mutations:** 26 of its 35 were caught by no page test
+  (`data/handoff/session4/review-page/REPORT.md`). The follow-up in `6fa5dd9` ran 21 of those 26
+  again and its tests caught each (`page-followup/t_mut.txt`: 33 of 33 with its own additions).
+  Not run again, so not shown to be caught: `no-feed`, `no-plan-note`, `no-reconnect` (a lost 5 s
+  reconnect timer, which no test covers: the browser reconnects by itself after a network error,
+  so it shows only after an HTTP error), `rig-mark-dropped` and `rig-fetch-on-load`.
+- **A hung main loop whose web server still runs looks live** (page follow-up, 2026-11-28). The
+  keepalive is an event the page hears (`server.Hub.keepalive_event()`): with neither a state nor
+  a keepalive for two intervals plus 3 s (33 s at the default 15 s), the page raises its banner at
+  once and opens a new stream 5 s later. So a hung service whose stream carries nothing is seen,
+  but the keepalives come from each page's own thread in the server, and they keep coming while
+  the main loop is stuck.
 - **The rig reference** has not been shown to the user in both orientations (PLAN §4 item 18).
   Grip front scrolls with the terminal on (by about 1 to 3 rows in Flight, more in Mining and
   Salvage: the screen wording is longer than the mockup's), and small tabs (1280x720, 820x1000)
   draw the diagram at 0.6x to 0.76x.
 - **Not drawn from the payload** [read in `app.js`]: `strip.where.icon`, `strip.ship.icon`,
   `service.log_found`, `mining.spot_known`; `view.why` is only the desk panel's tooltip.
-- **Not checked:** the real panel, the app window, a real mouse, Salvage with real data (no log of
-  a salvage session exists: it is seen only as a hand pick), the 4K tab by eye.
+- **Not checked:** the real panel; the app window and a real mouse, beyond the user's own use
+  (which found the rig head's overlap, fixed in `6fa5dd9`); Salvage with real data (no log of a
+  salvage session exists: it is seen only as a hand pick); the 4K tab by eye.
 
 ## Stage 4: the window (`open`, `shortcut`), 2026-11-28
 

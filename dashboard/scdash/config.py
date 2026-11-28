@@ -61,7 +61,7 @@ DEFAULTS = {
     "process_check_seconds": 10.0,      # how often to look for the game process
     "state_save_seconds": 10.0,         # data/state.json at most this often, and only on change
     "push_min_seconds": 0.5,            # at most two state sends a second to each page
-    "keepalive_seconds": 15.0,          # a comment line on each event stream this often
+    "keepalive_seconds": 15.0,          # a keepalive event on each event stream after this long with nothing sent
     "retry_ms": 3000,                   # how soon a page reconnects after losing the stream
     "max_pages": 4,                     # event streams at once (a browser allows 6 connections)
     "log_max_bytes": 1_000_000,         # data/service.log, rotated at this size
@@ -122,7 +122,7 @@ SHUTDOWN_LOCK_SECONDS = 30.0         # the last save waits this long for a chang
 SHUTDOWN_SAVE_SECONDS = 30.0         # ... and this long for its write (and one in flight) to end
 MAX_DAMAGED_COPIES = 5               # state.damaged.json and state.damaged-2..5.json (the same for unmapped)
 MAX_RIG_IMAGES = 64                  # images served from web/rig/ (the cards make about ten)
-MAX_RIG_FILE_BYTES = 1 << 20         # each file served from web/rig/ (the images are 7 to 23 KB, rig.json 12 KB)
+MAX_RIG_FILE_BYTES = 1 << 20         # each file served from web/rig/ (2026-11-28: the images 5 to 15 KB, rig.json 89 KB)
 
 
 def load_settings(data_dir, overrides=None):

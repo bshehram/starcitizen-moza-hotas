@@ -1329,7 +1329,7 @@
       });
   }
 
-  /* rig.json -> the model the section draws. A plain read of schema 2 (STATE.md / RIG_SCHEMA):
+  /* rig.json -> the model the section draws. A plain read of schema 2 (dashboard/RIG.md):
        model  {modes [{id, name, detent}], modeName {id: name}, live {filter: [mode id]},
                pages [page], rows [row] (in card order), total, lost (rows no page holds)}
        page   {id, device, devName, title, tab, caption, image, w, h, notes, numbers,
@@ -1422,7 +1422,7 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(when) ? dateWords(when) : when;
   }
 
-  /* What one control does under a filter (the reading rule of RIG_SCHEMA "Reading a page filter").
+  /* What one control does under a filter (the reading rule in RIG.md, "Reading a page filter").
        kind  change   the filter's mode gives it another job (cyan)
              own      a job of the filter's mode only, such as the jettison key under Mining (cyan)
              keep     it keeps its job (white); also a control whose mode the docs do not know

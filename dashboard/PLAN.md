@@ -307,13 +307,11 @@ each folder's `NOTES.md`, `FIXROUND.md`, `HANDOFF.md` or `REPORT.md`) and `.clau
   Draw them or take them out of the message.
 - Fixed but not looked at again: nine quick timers in the panel (the list now scrolls at
   280 px), a change that is never answered (an 8 s limit now), the reference's captures after
-  the diagrams' largest scale went to 2. Two of the review's mutations were not run again
-  (`rig-mark-dropped`, `rig-fetch-on-load`), and a lost reconnect timer is covered by no test.
-- **Doc text still owed** (`page-followup/DOCS.md` has it ready): `CLAUDE.md` in this folder
-  still calls the keepalive a comment line (about line 325) and its "Open points" list items
-  that `6fa5dd9` closed; so do `config.example.json` (`_keepalive_seconds`) and a comment in
-  `scdash/config.py`. Two comments in `web/app.js` name "RIG_SCHEMA" where the schema is now
-  [`RIG.md`](RIG.md).
+  the diagrams' largest scale went to 2. Five of the review's mutations were not run again
+  (`no-feed`, `no-plan-note`, `no-reconnect`, `rig-mark-dropped`, `rig-fetch-on-load`), and a
+  lost reconnect timer is covered by no test.
+- The doc text `6fa5dd9` left owed is in (`T021`, 2026-11-28): the keepalive described as an
+  event everywhere, `CLAUDE.md`'s "Open points" without the four items that commit closed.
 
 **The rig reference** (`T013`):
 
@@ -351,12 +349,9 @@ second display is tested (queue item 6).
 
 **Housekeeping:**
 
-- **A stray test instance of the service was still running at 11:40 AM [seen in the process
-  list].** A `pythonw` started at 7:40 AM by a mutation run of the logic's review, from
-  `data/handoff/session4/review-3a-r4/mut2/`, on a port of its own (50975) with a data folder
-  under `%TEMP%`. It touches nothing of the live service. A restart of the PC ends it;
-  otherwise end that one process, with the user's OK, and take care not to end the live
-  service, whose command line names the repo's own `dashboard/scdash.py`.
+- A stray test instance of the service, left by a mutation run at 7:40 AM on 2026-11-28, was
+  gone by 12:10 PM: the only `pythonw` left was the live service **[seen in the process
+  list]**. How a run can leave one behind is `T014`'s.
 - The game plan page's Controls note (above, "Closed at the end of the fourth session").
 
 ### Reference data: what a reader must know

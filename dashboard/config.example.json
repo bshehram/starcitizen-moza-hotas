@@ -22,7 +22,7 @@
   "_push_min_seconds": "The shortest time between two state sends to one page: bursts are merged into their last state (0.5 = at most two a second). Allowed: 0.1 to 10.",
   "push_min_seconds": 0.5,
 
-  "_keepalive_seconds": "A comment line is sent on each event stream this often, so a closed page is noticed. Allowed: 2 to 120.",
+  "_keepalive_seconds": "A keepalive event is sent on each event stream when nothing else was for this long, so a closed page is noticed and the page can tell a hung service from a quiet one (it waits two of these plus 3 s). Allowed: 2 to 120.",
   "keepalive_seconds": 15.0,
 
   "_retry_ms": "How soon a page reconnects after the stream drops, in milliseconds. Allowed: 500 to 60,000.",
