@@ -16,6 +16,40 @@ Every log of the user's from before that evening is gone (see "What the Windows 
 changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
 re-run.*
 
+### The fourth session, 2026-11-28, from 6:00 AM: four agents at work
+
+*Written at 6:10 AM. The memory is in: Windows reports 63.9 GB (four 16 GB modules). The game
+is not running, the service is stopped, there is one display, and no game session has been
+played since the evening of 2026-11-27. The table of the pause below is still the state of
+each piece; this block says who has picked each one up. Rewrite both blocks into the sections
+under them as the pieces land.*
+
+| Piece (the numbers are "Next, in this order" below) | Agent | Where it works | Its notes |
+| --- | --- | --- | --- |
+| 1. Finish the wiring | Opus 5.5 | The main tree | `data/handoff/session4/wiring/` |
+| 2. The fix round for stage 3's first half | Opus 5.5 | A worktree, `.claude/worktrees/agent-a24fb15f36041def4` | `data/handoff/session4/fix-3a/` |
+| 3. Part B of the rig data | Opus 5.5 | A worktree, `.claude/worktrees/agent-a0f721a2dfac41b36` | `data/handoff/session4/rig-b/` |
+| 4. Render and capture the rig mockup | Fable 5.2 | `data/design/rig/` only | `data/design/rig/NOTES.md` |
+
+- **How the two copies come back.** Each worktree builder leaves its changes uncommitted and
+  writes them as `changes.patch` into its notes folder. The orchestrator applies a patch to the
+  main tree (`git apply`), runs the whole suite on the result, and only then sends a reviewer.
+  The three builders' files do not overlap. `.claude/` is git-ignored.
+- **Two things changed against the pause's list.** The server is to serve whatever images
+  `web/rig/` holds (a strict name pattern, the table built once at start), so that Part B can
+  rename and add images without touching `server.py`. And the lone surrogate is fixed on both
+  sides: taken out where text enters (`words.clean_text`, `plan._text`, the fix round) and made
+  harmless where it is encoded (the service, the wiring).
+- **Docs the worktree builders may not touch** (`CLAUDE.md` and `STATE.md` in this folder
+  belong to the wiring builder for now): each reports the exact text it wants, and the
+  orchestrator puts it in after the merge. The rig data's schema arrives as
+  `data/handoff/session4/rig-b/RIG_SCHEMA.md`, to go into `STATE.md`.
+- **A trap in the tooling:** the Agent tool's own worktree isolation refuses this repo (it
+  compares the path with a lower-case `c:` against git's upper-case `C:`), but it leaves the
+  worktrees it made, and they are sound. Start the builder without isolation and give it the
+  worktree's path. Remove the worktrees and their branches when their patches are on `main`
+  (`git worktree unlock`, `git worktree remove`, `git branch -D`).
+
 ### The third session, 2026-11-28: paused at 5:46 AM for a shutdown
 
 *The user stopped the session to install memory (an extra 32 GB, by their word). Every agent
@@ -70,8 +104,8 @@ held the frozen copies; they are only exports of `b399f18` and can be made again
   haul to New Babbage), then Run B. That order was the orchestrator's call.
 
 **Also changed this session:** the session brief is `SCBOT.md` (it was `STARCITIZEN.md`), and
-it now says which model a subagent runs on ("How the build is run" below). Once the new memory
-is confirmed, the "while the game runs" limits below can be loosened.
+it now says which model a subagent runs on ("How the build is run" below). The new memory is
+confirmed (above), and the "while the game runs" limits below are loosened to match.
 
 **The live service is still stopped.** Start it only once the wiring is committed: started
 now, it would run half-finished code against the real data folder.
@@ -343,8 +377,11 @@ laying out a view that has no mockup. On 2026-11-27 every subagent was Opus 5.5.
   working tree with a temporary index, leaving the tree and the real index alone, and pushes
   it to `wip-dashboard` only after the privacy scan finds nothing. Delete the branch once
   everything on it is on `main`.
-- **While the game runs:** `SCDASH_FLOOD_MB=5` for the suite, never the reference generator
-  (520 MB), and one headless browser at a time. The PC sits at about 96% of its memory then.
+- **While the game runs:** with 32 GB the PC sat at about 96% of its memory then, so the rule
+  was `SCDASH_FLOOD_MB=5` for the suite, never the reference generator (520 MB), and one
+  headless browser at a time. With 64 GB (since 2026-11-28) those limits are dropped. Not yet
+  seen: how much memory is free with the game running on 64 GB. Look once at the first flown
+  session, and bring the limits back if it is tight after all.
 - **The user's decisions are put to them as questions with a recommendation** and recorded in
   §15. A rule from the docs is not a fact until someone has seen it: the joystick-order check
   was built on one, raised a false alarm with the user in the pilot seat, and was corrected the
