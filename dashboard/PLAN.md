@@ -16,7 +16,7 @@ Every log of the user's from before that evening is gone (see "What the Windows 
 changed" below): counts marked **[seen]** from the old logs stand as a record and cannot be
 re-run.*
 
-### The third session, 2026-11-28 (in progress when this was written, about 11 AM)
+### The third session, 2026-11-28 (in progress when this was written, about 5:30 AM)
 
 *Kept here so a session that ends without warning loses nothing. Fold it into the sections
 below as each piece lands, then delete it.*

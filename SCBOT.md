@@ -128,6 +128,8 @@ at `LIVE\user\client\0\controls\mappings`.
   label you made up during the work. On a long job, say in a line what you're about to do, give a
   short update now and then, and close with a recap that stands on its own: what you found, what
   you did, what's next. Use a table for routes and numbers, and give times in my local time.
+  Read the current time from the PC's clock before you write it, in a reply or a note: a
+  session once wrote "about 11 AM" at 5:30 AM.
 - **American English.** I'm American, so write American spelling and usage everywhere: replies,
   the docs, memory, the page and commit messages. That means "center", "armor" and "catalog", and
   dates written month first. Text quoted from the game keeps the game's own spelling.
