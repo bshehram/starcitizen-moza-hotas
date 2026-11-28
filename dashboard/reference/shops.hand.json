@@ -1,0 +1,23 @@
+{
+ "_doc": "Hand-written rules for shops.json, read by build_reference.py. Every shop name and place comes from the game's object containers; these rules only word them. `kinds`: the first rule whose `pattern` matches the shop name and whose `inventory` equals the shop's inventory type in the game files (COMMODITY or ITEM) gives the kind; a rule without one of the two ignores it. `labels`: the first pattern matching the shop name gives its display name; without one, a shop franchise name from the game (ShopFranchise records) that appears in the shop name, else the shop name itself in words. `shops`: per-name overrides, field by field.",
+ "kinds": [
+  {"pattern": "(?i)rental", "kind": "rental"},
+  {"pattern": "(?i)landing_?services", "kind": "landing services"},
+  {"pattern": "(?i)refinery", "kind": "refinery"},
+  {"inventory": "COMMODITY", "kind": "commodity terminal"},
+  {"inventory": "ITEM", "kind": "item shop"}
+ ],
+ "labels": [
+  {"pattern": "(?i)refinery_?rental", "name": "Refinery ship rentals"},
+  {"pattern": "(?i)refineryadmin|_refinery(_|$)", "name": "Refinery"},
+  {"pattern": "(?i)cargo_?office_?rental", "name": "Cargo office rentals"},
+  {"pattern": "(?i)cargo_?office", "name": "Cargo office"},
+  {"pattern": "(?i)(^|_)admin", "name": "Admin office"},
+  {"pattern": "(?i)commex_tdd|_tdd(_|$)", "name": "Trade & Development Division"},
+  {"pattern": "(?i)landing_?services", "name": "Landing services"},
+  {"pattern": "(?i)aparelli", "name": "Aparelli"},
+  {"pattern": "(?i)platinumbay", "name": "Platinum Bay"},
+  {"pattern": "(?i)kelto", "name": "Kel-To"}
+ ],
+ "shops": {}
+}

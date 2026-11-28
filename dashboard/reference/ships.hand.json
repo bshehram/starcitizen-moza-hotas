@@ -1,0 +1,17 @@
+{
+ "_doc": "Hand-entered ship data, merged into ships.json by build_reference.py. `fleet`: the player's ships (CLAUDE.md section 11, the fleet as of 2026-11-23) by vehicle class, with the one job each stands for in the dashboard's view rules: mining, salvage, cargo or combat; null for a ship with two jobs or none (it decides no view). A class the installed build does not have stops the run. `ships`: field-level overrides of generated ship entries (none so far).",
+ "fleet": {
+  "ANVL_Liberator": {"job": null, "note": "Mothership and home base; carries the others."},
+  "ORIG_m80": {"job": "combat"},
+  "RSI_Perseus": {"job": null, "note": "Role not stated yet (CIG: heavy gunship); no pilot guns."},
+  "DRAK_Ironclad_Assault": {"job": null, "note": "Role not stated yet (CIG: heavy dropship)."},
+  "DRAK_Corsair": {"job": null, "note": "Role not stated yet (CIG: expedition)."},
+  "GAMA_Hyun": {"job": null, "note": "Mines and salvages: two jobs, so it decides no view."},
+  "DRAK_Golem": {"job": "mining"},
+  "DRAK_Golem_OX": {"job": "cargo", "note": "Light cargo runs."},
+  "RSI_Salvation": {"job": "salvage"},
+  "RSI_Ursa_Medivac": {"job": null, "note": "Ground vehicle, driven on the Xbox controller."},
+  "ANVL_C8R_Pisces": {"job": null, "note": "Medical and courier."}
+ },
+ "ships": {}
+}

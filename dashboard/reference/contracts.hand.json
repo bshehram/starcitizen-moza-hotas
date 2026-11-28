@@ -1,0 +1,73 @@
+{
+ "_doc": "Hand-written rules that turn the game's contract records into the dashboard's kinds and views, read by build_reference.py. Nothing here is a contract: every contract in contracts.json comes from the game's ContractGenerator records. `types`: the game's MissionType record -> kind and view (and setting, for mining); a type with no view here (the event types: Priority, IASI, Battaglia) takes its view from `templates`, the first pattern matching the contract template's name. `template_settings`: a template whose setting the spawn check gets wrong. `setting_rules`: for combat, salvage and mining contracts whose setting the records do not settle, the first pattern matching the contract or generator name. `rules`: the fallback the service uses for a contract the table does not know (a new patch, a test build): tried in order on the contract name, then the generator name (and the title where `on` says so); no match means kind 'unknown' and the general Mission view. The generator checks `rules` against every contract in this build and prints how many it gets right. Views: combat, cargo, salvage, mining, mission. Settings: foot, ship, vehicle, or null.",
+ "types": {
+  "Mercenary": {"kind": "combat", "view": "combat"},
+  "BountyHunter": {"kind": "bounty", "view": "combat"},
+  "PVPMission": {"kind": "bounty", "view": "combat"},
+  "Collector": {"kind": "combat", "view": "combat"},
+  "Delivery": {"kind": "delivery", "view": "cargo"},
+  "Courier": {"kind": "delivery", "view": "cargo"},
+  "Hauling": {"kind": "hauling", "view": "cargo"},
+  "Hauling_Local": {"kind": "hauling", "view": "cargo"},
+  "Hauling_Planetary": {"kind": "hauling", "view": "cargo"},
+  "Hauling_Solar": {"kind": "hauling", "view": "cargo"},
+  "Hauling_Interstellar": {"kind": "hauling", "view": "cargo"},
+  "Salvage": {"kind": "salvage", "view": "salvage"},
+  "ShipMining": {"kind": "mining", "view": "mining", "setting": "ship"},
+  "GroundMining": {"kind": "mining", "view": "mining", "setting": "vehicle"},
+  "FPSMining": {"kind": "mining", "view": "mining", "setting": "foot"},
+  "Mining": {"kind": "mining", "view": "mining"},
+  "Investigation": {"kind": "investigation", "view": "mission"},
+  "Maintenance": {"kind": "maintenance", "view": "mission"},
+  "Refueling": {"kind": "refueling", "view": "mission"},
+  "Race": {"kind": "race", "view": "mission"},
+  "Collection": {"kind": "collection", "view": "mission"},
+  "WIkelo_Ships": {"kind": "collection", "view": "mission"},
+  "WIkelo_SmallItems": {"kind": "collection", "view": "mission"},
+  "Appointment": {"kind": "appointment", "view": "mission"},
+  "Search": {"kind": "search", "view": "mission"},
+  "Rescue": {"kind": "rescue", "view": "mission"},
+  "Research": {"kind": "research", "view": "mission"},
+  "Survival": {"kind": "survival", "view": "mission"},
+  "ServiceBeacon": {"kind": "service beacon", "view": "mission"},
+  "ECN": {"kind": "alert", "view": "mission"},
+  "Escort": {"kind": "escort", "view": "combat"},
+  "Job": {"kind": "job", "view": "mission"},
+  "Local": {"kind": "job", "view": "mission"},
+  "Priority": {"kind": "event"},
+  "Priority_ArcCorp": {"kind": "event"},
+  "Priority_CFP": {"kind": "event"},
+  "Priority_Crusader": {"kind": "event"},
+  "Priority_HH": {"kind": "event"},
+  "Priority_Hurston": {"kind": "event"},
+  "Priority_MicroTech": {"kind": "event"},
+  "IASI": {"kind": "event"},
+  "Battaglia": {"kind": "event"}
+ },
+ "templates": [
+  {"pattern": "^(Bounty|ShipAmbush|ShipWaveAttack|SupportAttackedShip|SecurityPatrol|DefendLocationSpace|EscortShip|DefendEntites|DefendDestructible|MultiKillShip|DestroyItems_BombingRun|AssistShipInCombat|TSG_FullStrike|DestroySatellite|ShipRefuellingAmbush|HijackedShip)", "kind": "combat", "view": "combat"},
+  {"pattern": "^(Eliminate|ChainEliminate|MultiEliminate|Defend$|DestroyItems|KillAnimals|BoardShip|ShipHeist|SandboxCriminalKills)", "kind": "combat", "view": "combat"},
+  {"pattern": "^(HaulCargo|DeliveryPilot|Courier|RecoverCargo)", "kind": "hauling", "view": "cargo"},
+  {"pattern": "^Salvage", "kind": "salvage", "view": "salvage"}
+ ],
+ "template_settings": {
+  "BoardShip": null,
+  "Bounty_BoardedShip": null,
+  "ShipHeist": null,
+  "KillAnimals": "foot"
+ },
+ "setting_rules": [
+  {"pattern": "FPS|_Caves?_|Bunker|Outpost|Facility", "setting": "foot"},
+  {"pattern": "Ship|Space", "setting": "ship"}
+ ],
+ "rules": [
+  {"pattern": "(?i)salvage", "kind": "salvage", "view": "salvage"},
+  {"pattern": "(?i)(mining|_RG_.*(Ore|Gems?)(_|$)|^shubin|_(fps|s|g|gv)?mine_)", "kind": "mining", "view": "mining"},
+  {"pattern": "(?i)(harvestable|fauna|plants|fungus|resourcegathering|espionage|download|diagnostic|poweron|repair|research|investigat|missingperson|refuel|wikelo|thecollector|tutorial|race_|_race)", "kind": "unknown", "view": "mission"},
+  {"pattern": "(?i)recovercargo", "kind": "combat", "view": "combat", "setting": "ship"},
+  {"pattern": "(?i)(haul|courier|delivery|deliver|recoveritem|cargo)", "kind": "hauling", "view": "cargo"},
+  {"pattern": "(?i)(eliminate|_kill_?npc|killfps|fpskill|_fps(_|$)|killanimals|assassinat|basesweep|infiltrat|_ugf|bunker|derelict|caves?(_|$)|killhvt|hvt(_|$))", "kind": "combat", "view": "combat", "setting": "foot"},
+  {"pattern": "(?i)(bounty|killship|ambush|wave_?attack|patrol|escort|defendship|support_?attacked|bombing|dogfight|mercenary_ship|shipcombat|shipwave|heist)", "kind": "combat", "view": "combat", "setting": "ship"},
+  {"pattern": "(?i)(mercenary|assault|defend|destroy|sabotage|attack|kill|_pvp|(^|_)MG_)", "kind": "combat", "view": "combat"}
+ ]
+}

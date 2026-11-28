@@ -1,19 +1,29 @@
 #!/usr/bin/env python3
 """build_reference.py - rebuild the dashboard's reference tables from the installed game's files.
 
-Writes four files next to this script:
+Writes these files next to this script:
 
   locations.json    every location code the game log can print -> display name, kind, body, system,
                     and a shared `place` id (quantum targets, inventory locations, route start names)
   resources.json    the resource id in a commodity sale or purchase line -> the commodity's name
   ores.json         per ore: scan value per rock and per cluster size, look-alikes, rarity tier,
                     fixed quality values, where it spawns; plus `spots` (what spawns at each place)
-  refineries.json   refining methods (from the game) and yield bonus by station and ore
-                    (player-reported, from refineries.hand.json)
+  refineries.json   refining methods (from the game), the places with a refinery (from the game) and
+                    yield bonus by station and ore (player-reported, from refineries.hand.json)
+  controls.json     the controls strip per operator mode, worded from tools/regen_cards.py
+  ships.json        every vehicle class as the log prints it -> name, maker, crew, career, role,
+                    cargo grid in SCU; plus `fleet` (the player's ships and their job, ships.hand.json)
+  contracts.json    every released contract by its internal name -> mission type, kind, view, on foot
+                    or in a ship, giver, title; per generator; titles; the fallback rules
+  shops.json        every shop name a purchase or sale line prints -> kind, display name, place(s)
+
+and one into dashboard/data/reference/ (git-ignored, see PRICES_WHY):
+
+  prices.json       commodity buy and sell prices per terminal, from a UEX snapshot on disk
 
 Game facts are read from the installed build: `Data\\Game2.dcb` (the game's record database),
-`global.ini` (English text) and the solar-system object containers (`.socpak`), all inside
-Data.p4k, read-only.
+`global.ini` (English text) and the object containers (`.socpak`), all inside Data.p4k, read-only.
+Nothing goes online unless --fetch is given (and --check never fetches).
 
 Generated and hand-entered data are kept apart by file:
   * `<name>.json` is output only. Every run rebuilds it from the game files plus `<name>.hand.json`.
@@ -32,8 +42,9 @@ deleting an entry from a hand file just deletes it. `--force` overrides both gua
 changes nothing keeps the old `generated` date, so a re-run on the same build is byte-identical.
 
 Usage (from the project root):
-    python dashboard/reference/build_reference.py           rebuild the four files
+    python dashboard/reference/build_reference.py           rebuild the files
     python dashboard/reference/build_reference.py --check   rebuild in memory, report differences, write nothing
+    python dashboard/reference/build_reference.py --fetch   first save a new UEX snapshot (the only online step)
     python dashboard/reference/build_reference.py --p4k "D:\\...\\LIVE\\Data.p4k"
 
 Needs the game installed and a zstd decoder (Python 3.14+, or `python -m pip install zstandard`).
@@ -59,12 +70,9 @@ DCB_ENTRY = 'Data\\Game2.dcb'
 SYSTEM_ROOTS = ('Data\\ObjectContainers\\PU\\system\\stanton\\stantonsystem.socpak',
                 'Data\\ObjectContainers\\PU\\system\\pyro\\pyrosystem.socpak',
                 'Data\\ObjectContainers\\PU\\system\\nyx\\nyxsystem.socpak')
-OUTPUTS = ('locations', 'resources', 'ores', 'refineries', 'controls')
+OUTPUTS = ('locations', 'resources', 'ores', 'refineries', 'controls', 'ships', 'contracts', 'shops', 'prices')
 MAIN_MAP = {'locations': 'locations', 'resources': 'resources', 'ores': 'ores', 'refineries': 'stations',
-            'controls': 'modes'}
-# NOT WIRED YET (round 2, stopped 2026-11-27 before they were finished and tested): build_ships,
-# fetch_snapshots and build_prices below exist but no output uses them, so a normal run never goes
-# online. See dashboard/data/handoff/activity_survey.md for where that work stopped.
+            'controls': 'modes', 'ships': 'ships', 'contracts': 'contracts', 'shops': 'shops', 'prices': 'commodities'}
 SOURCES = {
     'game': 'Read from the installed game files for this build: Data\\Game2.dcb records, '
             'Data\\Localization\\english\\global.ini, and the solar-system object containers (.socpak) '
@@ -451,7 +459,9 @@ class Game:
 # =========================================================================== object-container hierarchy
 def walk_hierarchy(game):
     """Every Child entity under the three system roots, following every external .socpak once.
-    Returns a list of dicts: entity, smr (star-map record guid or None), cls, pak, parent (index), in."""
+    Returns a list of dicts: entity, smr (star-map record guid or None), cls, pak, parent (index), in,
+    cont (the .socpak whose file lists this Child). A container used in many places is read only
+    under its first user, so its own children appear once: `container_places` puts them everywhere."""
     ents = []
     seen_paks = set()
     queue = [(r, None) for r in SYSTEM_ROOTS]
@@ -477,7 +487,7 @@ def walk_hierarchy(game):
                     # "selected point <CODE> as ..." cannot show it, so keys are stripped
                     ents.append({'entity': (ch.get('entityName') or '').strip(), 'smr': ch.get('starMapRecord'),
                                  'cls': ch.get('class'), 'pak': (ch.get('name') or '').lower().replace('/', '\\'),
-                                 'parent': par, 'in': stem,
+                                 'parent': par, 'in': stem, 'cont': key,
                                  'pos': _floats(ch.get('pos'), 3, (0.0, 0.0, 0.0)),
                                  'rot': _floats(ch.get('rot'), 4, (1.0, 0.0, 0.0, 0.0))})
                     if ch.get('external') == '1' and ents[me]['pak'].endswith('.socpak'):
@@ -1251,8 +1261,31 @@ def _comp(d, t):
     return next((c for c in _components(d) if c['_type'] == t), None)
 
 
+SHIP_NPC_RE = re.compile(r'_AI_|_PU_AI|_Template$|_Template_|_Unmanned|_Teach$|_Tutorial|_NoInterior', re.I)
+CARGO_HOW = {
+    'loadout': "the cargo grids in the ship's default loadout",
+    'named grid': 'no grid in the default loadout; the one cargo-grid record named for the ship class '
+                  '(<class>_CargoGrid...) [verify: tied by name, not by a reference the client records hold]',
+    'several named grids': 'no grid in the default loadout and several cargo-grid records named for the ship '
+                           'class; which of them the ship carries is not in the readable records',
+    'none': 'no cargo grid found',
+}
+
+
+def grid_cells(dim):
+    """Whole 1.25 m cells in a box of interior dimensions (meters): its SCU."""
+    cells = 1
+    for axis in ('x', 'y', 'z'):
+        cells *= int(round(float((dim or {}).get(axis) or 0) / SCU_CELL, 6))
+    return cells
+
+
 def build_ships(game):
-    """Every vehicle entity class: name, maker, cargo grid (SCU), crew, the game's career and role."""
+    """Every vehicle entity class: name, maker, cargo grid (SCU), crew, the game's career and role.
+
+    Cargo: the grids in the default loadout. When there are none, the grid may still be attached by
+    the ship's own vehicle definition, which this build stores encrypted: then a cargo-grid record
+    named for the class is used, and the entry says so (`cargo_how`)."""
     dc = game.dc
     grid_cache = {}
 
@@ -1267,12 +1300,28 @@ def build_ships(game):
         if not att or not inv or (att.get('AttachDef') or {}).get('Type') != 'CargoGrid':
             return 0
         cont = dc.record(inv.get('containerParams'), 3) if inv.get('containerParams') else None
-        dim = (cont or {}).get('interiorDimensions') or {}
-        cells = 1
-        for axis in ('x', 'y', 'z'):
-            cells *= int(round(float(dim.get(axis) or 0) / SCU_CELL, 6))
+        cells = grid_cells((cont or {}).get('interiorDimensions'))
         grid_cache[cls] = cells
         return cells
+
+    # cargo-grid records by the class name in front of "_CargoGrid" (lower case)
+    named = defaultdict(list)
+    for r in dc.records:
+        if r['struct'] != 'EntityClassDefinition' or '_cargogrid' not in r['name'].lower():
+            continue
+        m = re.match(r'^(.+?)_CargoGrid', short_record(r['name']), re.I)
+        if m:
+            scu = grid_scu(r['name'])
+            if scu > 0:
+                named[m.group(1).lower()].append((short_record(r['name']), scu))
+
+    def named_grids(code):
+        parts = code.lower().split('_')
+        for n in range(len(parts), 1, -1):
+            hit = named.get('_'.join(parts[:n]))
+            if hit:
+                return sorted(hit)
+        return []
 
     def loadout_scu(entries):
         total = 0
@@ -1310,21 +1359,488 @@ def build_ships(game):
             makers[mk] = {'code': md.get('Code') or short_record(mk), 'name': game.label(loc.get('Name')) or None}
         lo = _comp(d, 'SEntityComponentDefaultLoadoutParams')
         scu = loadout_scu(((lo or {}).get('loadout') or {}).get('entries'))
+        how, grids = 'loadout', None
+        if not scu:
+            grids = named_grids(code)
+            if len(grids) == 1:
+                scu, how = grids[0][1], 'named grid'
+            elif grids:
+                scu, how = None, 'several named grids'
+            else:
+                how = 'none'
+        career, role = game.label(v.get('vehicleCareer')), game.label(v.get('vehicleRole'))
         e = {'name': name, 'maker': (makers.get(mk) or {}).get('name'), 'maker_code': (makers.get(mk) or {}).get('code'),
              'kind': 'ground vehicle' if '/entities/groundvehicles/' in f else 'ship',
-             'cargo_scu': scu, 'crew': v.get('crewSize'),
-             'career': game.label(v.get('vehicleCareer')) or None, 'role': game.label(v.get('vehicleRole')) or None}
-        if re.search(r'_AI_|_PU_AI|_Template$|_Unmanned|_Teach$|_Tutorial|_NoInterior', code, re.I):
+             'cargo_scu': scu, 'cargo_how': how, 'crew': v.get('crewSize'),
+             'career': career if valid_name(career) else None, 'role': role if valid_name(role) else None}
+        if grids:
+            e['cargo_grids'] = {g: s for g, s in grids}
+        if SHIP_NPC_RE.search(code):
             e['variant'] = 'npc or special'
         e['src'] = 'game'
         out[code] = e
     return out
 
 
-# =========================================================================== online snapshots (--fetch only)
+def assemble_ships(ships, hand):
+    """ships.json: every vehicle class, plus `fleet` (the player's ships and their one job) from
+    ships.hand.json. A fleet class the game does not have stops the run."""
+    hs = hand.get('ships') or {}
+    for k, v in hs.items():
+        ships.setdefault(k, {}).update(v)
+    fleet = {}
+    missing = []
+    lower = {k.lower(): k for k in ships}
+    for cls, f in sorted((hand.get('fleet') or {}).items()):
+        real = lower.get(cls.lower())
+        if real is None:
+            missing.append(cls)
+            continue
+        job = f.get('job')
+        if job not in FLEET_JOBS:
+            sys.exit('ships.hand.json: fleet %s has job %r; use one of %s' % (cls, job, sorted(FLEET_JOBS, key=str)))
+        e = {'name': ships[real]['name'], 'job': job, 'src': f.get('src', 'user')}
+        if f.get('note'):
+            e['note'] = f['note']
+        fleet[real] = e
+    if missing:
+        sys.exit('ships.hand.json names fleet classes this build does not have: %s' % ', '.join(missing))
+    return sort_map(ships), fleet
+
+
+FLEET_JOBS = {'mining', 'salvage', 'cargo', 'combat', None}
+
+
+# =========================================================================== contract kinds
+VIEWS = ('combat', 'cargo', 'salvage', 'mining', 'mission')
+SETTINGS = ('foot', 'ship', 'vehicle', None)
+CONTRACT_LISTS = ('contracts', 'introContracts', 'serviceBeaconContracts', 'PVPBountyContract', 'legacyContracts')
+SPAWN_SHIP = 'MissionPropertyValue_ShipSpawnDescriptions'
+SPAWN_NPC = 'MissionPropertyValue_NPCSpawnDescriptions'
+TOKEN_RE = re.compile(r'~mission\([^)]*\)')
+SUB_RE = re.compile(r'^(.+)_(\d+)$')
+
+
+def _sparam(po, name):
+    for s in (po or {}).get('stringParamOverrides') or []:
+        if s and s.get('param') == name and s.get('value'):
+            return s['value']
+    return None
+
+
+def _types_in(o, acc):
+    """Every `_type` name anywhere inside a record dict."""
+    if isinstance(o, dict):
+        t = o.get('_type')
+        if t:
+            acc.add(t)
+        for v in o.values():
+            _types_in(v, acc)
+    elif isinstance(o, list):
+        for v in o:
+            _types_in(v, acc)
+    return acc
+
+
+def _text(game, key):
+    """English text for a key, or None when there is none or it is a placeholder."""
+    t = game.label(key) if key else ''
+    return t if valid_name(t) and not t.startswith('<=') else None
+
+
+def spawn_setting(types):
+    """'foot' when a mission spawns people and no ships, 'ship' when it spawns ships and no people."""
+    ship, npc = SPAWN_SHIP in types, SPAWN_NPC in types
+    if npc and not ship:
+        return 'foot'
+    if ship and not npc:
+        return 'ship'
+    return None
+
+
+def classify(rules, mtype, template, types, names):
+    """kind, view and setting for one contract, from the game's data and the hand rules:
+      kind and view: the mission type (rules `types`); for a type that names no view (the event types),
+        the first `templates` rule matching the template name; else 'unknown' / 'mission';
+      setting: the type's own (mining), else the template's override (`template_settings`), else for
+        combat what the mission spawns (people only: on foot; ships only: in a ship), else the first
+        `setting_rules` pattern matching the contract or generator name."""
+    t = (rules.get('types') or {}).get(mtype) or {}
+    kind, view, setting = t.get('kind'), t.get('view'), t.get('setting')
+    if view is None:
+        for r in rules.get('templates') or []:
+            if template and re.search(r['pattern'], template):
+                kind, view = r.get('kind', kind), r['view']
+                setting = r.get('setting', setting)
+                break
+    kind, view = kind or 'unknown', view or 'mission'
+    over = rules.get('template_settings') or {}
+    if setting is None and template in over:
+        return kind, view, over[template]
+    if setting is None and view == 'combat':
+        setting = spawn_setting(types)
+    if setting is None and view in ('combat', 'salvage', 'mining'):
+        for r in rules.get('setting_rules') or []:
+            if any(n and re.search(r['pattern'], n) for n in names):
+                setting = r['setting']
+                break
+    return kind, view, setting
+
+
+def match_rules(rules, contract=None, generator=None, title=None):
+    """The fallback rules (contracts.hand.json `rules`) in order: the first that matches the contract
+    name, the generator name or the title. Mirrors what the service does for a name the table lacks."""
+    for r in rules or []:
+        for field, value in (('contract', contract), ('generator', generator), ('title', title)):
+            if value and field in r.get('on', ('contract', 'generator')) and re.search(r['pattern'], value):
+                return r.get('kind', 'unknown'), r['view'], r.get('setting')
+    return None
+
+
+def title_regex(title):
+    """A full-match regex for a title whose ~mission(...) tokens stand for any text."""
+    parts = TOKEN_RE.split(title)
+    return '^' + '.+?'.join(re.escape(p) for p in parts) + '$'
+
+
+def build_contracts(game, hand):
+    """Every released contract the game's contract generators define, keyed by its internal name
+    (the `contract [...]` in the log's mission marker line), with its mission type, the dashboard's
+    kind, view and setting (on foot or in a ship), the giver and the title."""
+    dc = game.dc
+    type_names = {}
+    for r in dc.records:
+        if r['struct'] == 'MissionType':
+            d = dc.record(r, 1)
+            nm = d.get('LocalisedTypeName') or ''
+            type_names[short_record(r['name'])] = _text(game, nm) if nm.startswith('@') else (
+                nm if valid_name(nm) and not nm.startswith('<=') else None)
+    tmpl_cache = {}
+
+    def template(name):
+        if name not in tmpl_cache:
+            d = dc.record(name, 12) if name else None
+            info = {'type': None, 'types': set(), 'title': None}
+            if d:
+                info['type'] = (d.get('contractDisplayInfo') or {}).get('type')
+                info['types'] = _types_in(d.get('contractProperties'), set()) | _types_in(d.get('objectiveTokens'), set())
+            tmpl_cache[name] = info
+        return tmpl_cache[name]
+
+    contracts, skipped = {}, defaultdict(int)
+    generators = {}
+    for r in dc.records:
+        if r['struct'] != 'ContractGenerator':
+            continue
+        gname = short_record(r['name'])
+        d = dc.record(r, 7)
+        for h in d.get('generators') or []:
+            if not h:
+                continue
+            hp = h.get('contractParams') or {}
+            hgiver = _sparam(hp, 'Contractor')
+            htype = hp.get('missionTypeOverride')
+            for key in CONTRACT_LISTS:
+                for c in h.get(key) or []:
+                    if not c:
+                        continue
+                    name = (c.get('debugName') or '').strip()
+                    if h.get('notForRelease') or c.get('notForRelease'):
+                        skipped['not for release'] += 1
+                        continue
+                    if not name:
+                        skipped['no name'] += 1
+                        continue
+                    po = c.get('paramOverrides') or {}
+                    be = dc.record(c['missionBrokerEntry'], 6) if c.get('missionBrokerEntry') else None
+                    tname = short_record(c['template']) if c.get('template') else None
+                    if be is not None:
+                        types = _types_in(be.get('properties'), set())
+                        mtype = po.get('missionTypeOverride') or htype or be.get('type')
+                        title = _sparam(po, 'Title') or be.get('title')
+                        giver = _sparam(po, 'Contractor') or hgiver or be.get('missionGiver')
+                    else:
+                        ti = template(c['template']) if c.get('template') else {'type': None, 'types': set()}
+                        types = ti['types'] | _types_in(po.get('propertyOverrides'), set())
+                        mtype = po.get('missionTypeOverride') or htype or ti['type']
+                        title = _sparam(po, 'Title') or _sparam(hp, 'Title')
+                        giver = _sparam(po, 'Contractor') or hgiver
+                    mshort = short_record(mtype) if mtype else None
+                    kind, view, setting = classify(hand, mshort, tname, types, (name, gname))
+                    e = {'generator': gname, 'type': mshort,
+                         'kind': kind, 'view': view, 'setting': setting,
+                         'giver': _text(game, giver) if giver and not TOKEN_RE.search(game.label(giver) or '') else None,
+                         'title': _text(game, title), 'template': tname,
+                         'legacy': True if be is not None else None, 'src': 'game'}
+                    subs = [s for s in c.get('subContracts') or [] if s]
+                    if subs:
+                        e['subs'] = len(subs)
+                    e = {k: v for k, v in e.items() if v is not None or k in ('setting', 'giver', 'title', 'type')}
+                    prev = contracts.get(name)
+                    if prev and (prev['generator'], prev['view']) != (gname, view):
+                        prev.setdefault('also', []).append({'generator': gname, 'view': view, 'kind': kind})
+                    elif not prev:
+                        contracts[name] = e
+                    # sub-contracts that change the type or the title get their own entry: <name>_<index>
+                    for i, s in enumerate(subs):
+                        stype = s.get('missionTypeOverride')
+                        stitle = _sparam(s, 'Title')
+                        if not stype and not stitle:
+                            continue
+                        se = dict(e)
+                        se.pop('subs', None)
+                        if stype:
+                            se['type'] = short_record(stype)
+                            se['kind'], se['view'], se['setting'] = classify(hand, se['type'], tname, types,
+                                                                             (name, gname))
+                        if stitle:
+                            se['title'] = _text(game, stitle)
+                        se['sub_of'] = name
+                        contracts.setdefault('%s_%d' % (name, i), se)
+    # per generator: its giver and the views of its contracts
+    for name, e in contracts.items():
+        g = generators.setdefault(e['generator'], {'views': defaultdict(int), 'givers': defaultdict(int),
+                                                     'settings': defaultdict(int), 'kinds': defaultdict(int)})
+        g['views'][e['view']] += 1
+        g['kinds'][e['kind']] += 1
+        g['settings'][str(e['setting'])] += 1
+        if e.get('giver'):
+            g['givers'][e['giver']] += 1
+    gen_out = {}
+    for gname, g in sorted(generators.items()):
+        views = dict(sorted(g['views'].items()))
+        out = {'contracts': sum(views.values()), 'views': views}
+        if len(views) == 1:
+            out['view'] = next(iter(views))
+            if len(g['kinds']) == 1:
+                out['kind'] = next(iter(g['kinds']))
+            if len(g['settings']) == 1 and next(iter(g['settings'])) != 'None':
+                out['setting'] = next(iter(g['settings']))
+        if g['givers']:
+            out['giver'] = max(sorted(g['givers']), key=lambda k: g['givers'][k])
+        out['src'] = 'game'
+        gen_out[gname] = out
+    # titles: exact text -> kind, view, setting, when every contract with that title agrees
+    by_title = defaultdict(set)
+    for e in contracts.values():
+        if e.get('title'):
+            by_title[e['title']].add((e['kind'], e['view'], e['setting']))
+    titles, patterns = {}, []
+    for t, ks in sorted(by_title.items()):
+        if len(ks) != 1:
+            continue
+        kind, view, setting = next(iter(ks))
+        if TOKEN_RE.search(t):
+            literal = TOKEN_RE.sub('', t)
+            if len(re.sub(r'\W', '', literal)) >= 8:
+                patterns.append({'pattern': title_regex(t), 'kind': kind, 'view': view, 'setting': setting,
+                                 'src': 'game'})
+        else:
+            titles[t] = {'kind': kind, 'view': view, 'setting': setting, 'src': 'game'}
+    # how well the fallback rules alone agree with the game's own table (a check, printed and kept)
+    agree = disagree = unmatched = 0
+    examples = []
+    for name, e in sorted(contracts.items()):
+        got = match_rules(hand.get('rules'), contract=name, generator=e['generator'])
+        if got is None:
+            unmatched += 1
+        elif got[1] == e['view']:
+            agree += 1
+        else:
+            disagree += 1
+            if len(examples) < 8:
+                examples.append('%s: rules say %s, the game %s' % (name, got[1], e['view']))
+    check = {'contracts': len(contracts), 'same_view': agree, 'other_view': disagree, 'no_rule': unmatched,
+             'examples': examples}
+    used = set(e['type'] for e in contracts.values() if e.get('type'))
+    types_out = {t: {'name': type_names.get(t), 'src': 'game'} for t in sorted(used)}
+    return sort_map(contracts), gen_out, titles, patterns, types_out, dict(skipped), check
+
+
+# =========================================================================== shops
+SHOP_SOC_RE = re.compile(rb'\x00(SCShop_[A-Za-z0-9_\-]+)\x00')
+SHOP_XML_RE = re.compile(rb'label="(SCShop_[A-Za-z0-9_\-]+)"')
+SHOP_INV_RE = re.compile(rb'\x00(COMMODITY|ITEM|INVALID)\x00')
+SHOP_JSON_RE = re.compile(rb'ShopInventories[/\\]([A-Za-z0-9_.\-]+)\.json\x00', re.I)
+SHOP_SUFFIX_RE = re.compile(r'-\d+$')
+
+
+def container_places(ents, place_of_ent):
+    """{container (.socpak path, lower case): set of place ids} for every container the hierarchy
+    reaches. walk_hierarchy reads a container once, under its first user, so a container's places are
+    collected from every Child that names it: the nearest place inside that Child's own container, or
+    else that container's places, and so on up."""
+    by_pak = defaultdict(list)
+    for i, e in enumerate(ents):
+        if e['pak']:
+            by_pak[e['pak']].append(i)
+
+    def local_place(i):
+        cont = ents[i]['cont']
+        p = i
+        while p is not None and ents[p]['cont'] == cont:
+            pl = place_of_ent(ents[p])
+            if pl:
+                return pl
+            p = ents[p]['parent']
+        return None
+
+    memo = {}
+
+    def places(pak, stack):
+        if pak in memo:
+            return memo[pak]
+        if pak in stack:
+            return set()
+        stack.add(pak)
+        out = set()
+        for i in by_pak.get(pak, []):
+            pl = local_place(i)
+            if pl:
+                out.add(pl)
+            else:
+                out |= places(ents[i]['cont'], stack)
+        stack.discard(pak)
+        memo[pak] = out
+        return out
+
+    return {pak: places(pak, set()) for pak in by_pak}
+
+
+def scan_shops(game, paks):
+    """{shop name: {'paks': set, 'inventory': set, 'json': set}}: every shop entity (class SCShop) named
+    in the given containers. The name, its inventory type and inventory file follow each other in the
+    container's entity data (.soc); a main .xml also lists exposed shop entities by label."""
+    found = defaultdict(lambda: {'paks': set(), 'inventory': set(), 'json': set()})
+    for key in sorted(paks):
+        base, inner = game.arc.socpak_files(key)
+        if not inner:
+            continue
+        for iname, ie in sorted(inner.items()):
+            is_soc = iname.endswith('.soc')
+            if not is_soc and not (iname.endswith('.xml') and not iname.endswith('_editor.xml')):
+                continue
+            body = game.arc.socpak_read(base, ie)
+            if b'SCShop_' not in body:
+                continue
+            if not is_soc:
+                for m in SHOP_XML_RE.finditer(body):
+                    found[m.group(1).decode()]['paks'].add(key)
+                continue
+            ms = [m for m in SHOP_SOC_RE.finditer(body)]
+            for j, m in enumerate(ms):
+                nm = m.group(1).decode()
+                f = found[nm]
+                f['paks'].add(key)
+                end = ms[j + 1].start() if j + 1 < len(ms) else len(body)
+                win = body[m.end():min(end, m.end() + 700)]
+                t = SHOP_INV_RE.search(win)
+                if t:
+                    f['inventory'].add(t.group(1).decode())
+                js = SHOP_JSON_RE.search(win)
+                if js:
+                    f['json'].add(js.group(1).decode())
+    return found
+
+
+def _humanize(name):
+    s = SHOP_SUFFIX_RE.sub('', name[len('SCShop_'):] if name.startswith('SCShop_') else name)
+    s = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', s.replace('_', ' '))
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def build_shops(game, ents, locs, hand):
+    """shops.json: every shop the hierarchy places, by the name a purchase or sale line prints
+    (`shopName[...]`): its kind, a display name, and the place when the game puts that name at exactly
+    one place. A name used at several places (a shop template shared across a chain) has `place`
+    null and lists `places`; the service then takes the place from the log's last inventory location."""
+    dc = game.dc
+
+    def place_of_ent(e):
+        a = locs.by_guid.get(e['smr']) if e['smr'] else None
+        return locs.place_of_code.get(a['code']) if a else None
+
+    cplaces = container_places(ents, place_of_ent)
+    paks = set(cplaces) | set(r.lower() for r in SYSTEM_ROOTS)
+    found = scan_shops(game, paks)
+    franchises = {}
+    for r in dc.records:
+        if r['struct'] == 'ShopFranchise':
+            nm = (dc.record(r, 1) or {}).get('localizedName') or ''
+            tok = short_record(r['name'])
+            if tok.lower().startswith('sf_') and valid_name(game.label(nm)):
+                franchises[tok[3:].lower()] = game.label(nm)
+    kinds, labels = hand.get('kinds') or [], hand.get('labels') or []
+    out = {}
+    for name, f in sorted(found.items()):
+        places = set()
+        for pak in f['paks']:
+            places |= cplaces.get(pak, set())
+        inv = sorted(f['inventory'] - {'INVALID'})
+        kind = None
+        for k in kinds:
+            if 'pattern' in k and not re.search(k['pattern'], name):
+                continue
+            if 'inventory' in k and k['inventory'] not in inv:
+                continue
+            kind = k['kind']
+            break
+        label = next((lb['name'] for lb in labels if re.search(lb['pattern'], name)), None)
+        if label is None:
+            toks = [t.lower() for t in re.split(r'[_\-]', name)]
+            label = next((franchises[t] for t in toks if t in franchises), None) or _humanize(name)
+        e = {'name': label, 'kind': kind or 'other', 'place': next(iter(places)) if len(places) == 1 else None,
+             'places': sorted(places), 'inventory': inv[0] if len(inv) == 1 else (inv or None)}
+        if f['json']:
+            e['inventory_file'] = sorted(f['json'])[0]
+        if len(places) > 1:
+            e['note'] = 'Used at %d places; the log\'s last inventory location says which.' % len(places)
+        elif not places:
+            e['note'] = 'Not placed anywhere this build\'s object containers reach.'
+        e['src'] = 'game'
+        out[name] = e
+    for k, v in (hand.get('shops') or {}).items():
+        out.setdefault(k, {}).update(v)
+    return sort_map(out)
+
+
+def refinery_places(game, locs):
+    """{place id: entry} for every place whose star-map record lists the Refinery amenity."""
+    dc = game.dc
+    ref = next((r['name'] for r in dc.records if r['struct'] == 'StarMapAmenityTypeEntry'
+                and (dc.record(r, 0) or {}).get('name') == 'Refinery'), None)
+    out = {}
+    if not ref:
+        return out
+    for r in dc.records:
+        if r['struct'] != 'StarMapObject':
+            continue
+        d = dc.record(r, 1)
+        if ref not in (d.get('amenities') or []):
+            continue
+        code = short_record(r['name'])
+        pid = locs.place_of_code.get(code)
+        if not pid:
+            continue
+        p = locs.places[code]
+        out[pid] = {'name': p['name'], 'short': p['short'], 'system': p['system'], 'code': code, 'src': 'game'}
+    return sort_map(out)
+
+
+# =========================================================================== commodity prices (UEX; online only with --fetch)
 UEX = 'https://api.uexcorp.space/2.0/'
-SCMDB = 'https://scmdb.net/data/'
-USER_AGENT = 'sc-reference-builder/1.0'          # a generic client name: nothing about the user
+UEX_FILES = {'prices': 'commodities_prices_all.json', 'terminals': 'terminals.json'}
+USER_AGENT = 'reference-builder'                 # a generic client name: nothing about the user
+DATA_REF = HERE.parent / 'data' / 'reference'    # git-ignored: prices.json lives here (see PRICES_WHY)
+# Where a normal run looks for UEX's two files, in order: what --fetch saves, then the handoff copy
+# fetched by the first build session on 2026-11-27.
+UEX_DIRS = (DATA_REF / 'uex', HERE.parent / 'data' / 'handoff' / 'downloads')
+PRICES_WHY = ("UEX's API page says \"You're welcome to use the UEX API in any project, open source or closed, "
+              "free or paid.\" It does not say the data may be republished, and its terms limit the website to "
+              "personal, non-commercial use, so the snapshot stays out of the public repo: prices.json is written "
+              "to dashboard/data/reference/ (git-ignored). A missing file means no prices.")
+UEX_TERMINAL_KINDS = {'commodity': 'commodity terminal', 'commodity_raw': 'commodity terminal',
+                      'refinery': 'refinery'}
 
 
 def _get_json(url):
@@ -1334,100 +1850,117 @@ def _get_json(url):
         return json.loads(r.read().decode('utf-8'))
 
 
-def _write_snapshot(name, doc):
-    p = HERE / name
-    p.write_text(json.dumps(doc, indent=0, ensure_ascii=False, sort_keys=False) + '\n', encoding='utf-8', newline='\n')
-    print('  wrote snapshot %s (%d bytes)' % (name, p.stat().st_size))
+def fetch_snapshots(dest=None):
+    """The one step that goes online, and only with --fetch: UEX's commodity prices and terminals,
+    saved as received into dashboard/data/reference/uex/ (git-ignored)."""
+    dest = Path(dest or UEX_DIRS[0])
+    print('Fetching UEX prices and terminals (the only online step) ...')
+    dest.mkdir(parents=True, exist_ok=True)
+    for key, fn in UEX_FILES.items():
+        doc = _get_json(UEX + fn[:-len('.json')])
+        (dest / fn).write_text(json.dumps(doc, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+        print('  saved %s' % (dest / fn).name)
 
 
-def fetch_snapshots(change):
-    """The one step that goes online: UEX commodity prices and terminals, and SCMDB's mission list
-    for the installed build (and the newest test build, if SCMDB has one). Saved lean, so a normal
-    run rebuilds prices.json and contracts.json from these files byte for byte."""
-    print('Fetching (the only online step) ...')
-    prices = _get_json(UEX + 'commodities_prices_all')['data']
-    terms = _get_json(UEX + 'terminals')['data']
-    used = {r['id_terminal'] for r in prices}
-    tdoc = {}
-    for t in sorted(terms, key=lambda t: t['id']):
-        if t['id'] in used:
-            tdoc[str(t['id'])] = {'name': t.get('name'), 'display': t.get('displayname'), 'type': t.get('type'),
-                                  'station': t.get('space_station_name'), 'city': t.get('city_name'),
-                                  'outpost': t.get('outpost_name'), 'planet': t.get('planet_name'),
-                                  'moon': t.get('moon_name'), 'system': t.get('star_system_name')}
-    rows = sorted([r['commodity_name'], r['id_terminal'], r.get('price_buy') or 0, r.get('price_sell') or 0,
-                   _day(r.get('date_modified'))] for r in prices)
-    _write_snapshot('prices.hand.json', {
-        '_doc': 'Snapshot of UEX Corp API 2.0 /commodities_prices_all and /terminals, written by '
-                'build_reference.py --fetch and read by every normal run. Rows: [commodity, terminal id, buy, sell, '
-                'last updated]. Prices are aUEC per SCU, crowd-reported by players. Do not edit by hand; fetch again.',
-        'source': 'UEX Corp API 2.0 (api.uexcorp.space)', 'fetched': TODAY, 'terminals': tdoc, 'rows': rows})
-    versions = _get_json(SCMDB + 'game-versions.json')
-    builds = {}
-    for v in versions:
-        ver, fn = v.get('version', ''), v.get('file', '')
-        if ver.endswith('.' + change) or '-ptu.' in ver:
-            d = _get_json(SCMDB + fn)
-            lean = []
-            for c in (d.get('contracts') or []) + (d.get('legacyContracts') or []):
-                names = sorted(set([c.get('debugName')] + list(c.get('debugNames') or [])) - {None})
-                lean.append({'names': names, 'type': c.get('missionType'), 'category': c.get('category'),
-                             'giver': c.get('contractorName'), 'title': c.get('title')})
-            builds[ver] = sorted(lean, key=lambda c: (c['names'][:1], c['type'] or '', c['title'] or ''))
-    _write_snapshot('contracts.scmdb.hand.json', {
-        '_doc': 'Snapshot of SCMDB (scmdb.net) mission data: per build, every contract with its internal names '
-                '(the `contract [...]` in a mission marker line), mission type, contractor and title. Written by '
-                'build_reference.py --fetch; do not edit by hand.',
-        'source': 'SCMDB (scmdb.net/data), community extract of the game files', 'fetched': TODAY, 'builds': builds})
+def load_uex(dirs=UEX_DIRS):
+    """UEX's two files from the first folder that has both, or None. Untrusted data: only the fields
+    used are read, and each is type-checked."""
+    for d in dirs:
+        d = Path(d)
+        if not all((d / fn).is_file() for fn in UEX_FILES.values()):
+            continue
+        out = {'dir': d}
+        for key, fn in UEX_FILES.items():
+            try:
+                doc = json.loads((d / fn).read_text(encoding='utf-8'))
+            except (OSError, ValueError):
+                return None
+            rows = doc.get('data') if isinstance(doc, dict) else None
+            if not isinstance(rows, list):
+                return None
+            out[key] = [r for r in rows if isinstance(r, dict)]
+            out['fetched_' + key] = datetime.datetime.fromtimestamp(
+                (d / fn).stat().st_mtime, datetime.timezone.utc).date().isoformat()
+        return out
+    return None
 
 
 def _day(ts):
-    if not ts:
+    try:
+        return datetime.datetime.fromtimestamp(int(ts), datetime.timezone.utc).date().isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
         return None
-    return datetime.datetime.fromtimestamp(int(ts), datetime.timezone.utc).date().isoformat()
 
 
-def build_prices(locs_entries, resources, snap):
-    """prices.json from the UEX snapshot: per commodity, every terminal's buy and sell price and date."""
-    if not snap:
-        return {}, {}
+def _num(v):
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and 0 < v < 1e9 else None
+
+
+def _str(v):
+    return v.strip() if isinstance(v, str) and v.strip() and len(v) < 200 else None
+
+
+def build_prices(locs_entries, resources, shops, snap):
+    """prices.json from the UEX snapshot: per commodity (by the game's English name), every terminal's
+    buy and sell price in aUEC per SCU, with the terminal's place and, where only one shop of that
+    kind is at that place, our shop name. Returns (commodities, terminals, counts)."""
     by_name = {}
-    for k, v in locs_entries.items():
+    for v in locs_entries.values():
         if v.get('place'):
             for n in (v['name'], v['short']):
                 by_name.setdefault(n.lower(), v['place'])
+    shop_at = defaultdict(list)                  # (place, kind) -> shop names
+    for sname, s in shops.items():
+        for p in s.get('places') or []:
+            shop_at[(p, s['kind'])].append(sname)
     terms = {}
-    unmatched = set()
-    for tid, t in snap['terminals'].items():
+    for t in snap['terminals']:
+        tid = t.get('id')
+        if not isinstance(tid, int):
+            continue
         place = None
-        for n in (t.get('station'), t.get('city'), t.get('outpost'), t.get('display')):
+        for n in (t.get('space_station_name'), t.get('city_name'), t.get('outpost_name'), t.get('displayname'),
+                  t.get('nickname')):
+            n = _str(n)
             if n and n.lower() in by_name:
                 place = by_name[n.lower()]
                 break
-        if place is None:
-            unmatched.add(tid)
-        terms[tid] = {'terminal': t.get('name'), 'place': place,
-                      'where': t.get('station') or t.get('city') or t.get('outpost') or t.get('display'),
-                      'body': t.get('moon') or t.get('planet'), 'system': t.get('system')}
+        kind = UEX_TERMINAL_KINDS.get(t.get('type'))
+        cand = sorted(shop_at.get((place, kind), [])) if place and kind else []
+        tname = (_str(t.get('name')) or '').lower()
+        if len(cand) > 1:                        # several of that kind there: the one whose name UEX uses
+            named = [c for c in cand if shops[c]['name'].split()[0].lower() in tname]
+            cand = named if len(named) == 1 else cand
+        terms[tid] = {'terminal': _str(t.get('name')), 'type': _str(t.get('type')), 'place': place,
+                      'where': _str(t.get('space_station_name')) or _str(t.get('city_name'))
+                      or _str(t.get('outpost_name')) or _str(t.get('displayname')),
+                      'system': _str(t.get('star_system_name')),
+                      'shop': cand[0] if len(cand) == 1 else None, 'src': 'ref'}
     names = {}
     for rid, r in resources.items():
         names.setdefault(r['name'].lower(), (r['name'], rid))
-    out = {}
-    for cname, tid, buy, sell, date in snap['rows']:
-        t = terms.get(str(tid))
-        if not t:
+    out, used = {}, set()
+    for r in snap['prices']:
+        cname, tid = _str(r.get('commodity_name')), r.get('id_terminal')
+        buy, sell = _num(r.get('price_buy')), _num(r.get('price_sell'))
+        if not cname or tid not in terms or (buy is None and sell is None):
             continue
+        used.add(tid)
         game = names.get(cname.lower())
         key = game[0] if game else cname
-        e = out.setdefault(key, {'resource': game[1] if game else None, 'terminals': [], 'src': 'ref'})
-        row = dict(t)
-        row.update({'buy': buy or None, 'sell': sell or None, 'date': date})
-        e['terminals'].append(row)
-    for e in out.values():
-        e['terminals'].sort(key=lambda r: (r['system'] or '', r['where'] or '', r['terminal'] or ''))
+        e = out.setdefault(key, {'resource': game[1] if game else None, 'rows': [], 'src': 'ref'})
+        e['rows'].append({'terminal': tid, 'place': terms[tid]['place'], 'buy': buy, 'sell': sell,
+                          'date': _day(r.get('date_modified'))})
+    for k, e in out.items():
+        e['rows'].sort(key=lambda x: (x['place'] or '~', x['terminal']))
         if e['resource'] is None:
-            e['note'] = 'No game commodity has this exact name; it is the UEX name.'
-    return out, {'terminals': len(terms), 'terminals_without_place': len(unmatched)}
+            e['note'] = 'No game commodity has this exact English name; this is the UEX name.'
+    tout = {str(t): terms[t] for t in sorted(used)}
+    counts = {'commodities': len(out), 'rows': sum(len(e['rows']) for e in out.values()), 'terminals': len(tout),
+              'terminals_without_place': sum(1 for t in tout.values() if not t['place']),
+              'terminals_with_shop': sum(1 for t in tout.values() if t['shop']),
+              'commodities_without_game_name': sum(1 for e in out.values() if e['resource'] is None)}
+    return sort_map(out), tout, counts
 
 
 # =========================================================================== controls (from the card tables)
@@ -1597,9 +2130,26 @@ def load_hand(name):
 GENERATOR_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
 
 
+def inputs_hash(extra_files=()):
+    """A hash of everything besides the game files that shapes the outputs: the hand files, the card
+    tables, and any extra input (the UEX snapshot for prices). With the build and this script it
+    decides whether a difference in an output can only be a hand edit (see `guard`)."""
+    h = hashlib.sha256()
+    for p in sorted(HERE.glob('*.hand.json')) + [CARD_FILE] + [Path(f) for f in extra_files]:
+        try:
+            h.update(p.name.encode() + b'\0' + p.read_bytes() + b'\0')
+        except OSError:
+            h.update(p.name.encode() + b'\0missing\0')
+    return h.hexdigest()[:12]
+
+
+def out_path(name):
+    return DATA_REF / 'prices.json' if name == 'prices' else HERE / ('%s.json' % name)
+
+
 def meta(game, name, extra):
     m = {'build': game.build['version'], 'change': game.build['change'], 'generated': TODAY,
-         'generator': GENERATOR_HASH,
+         'generator': GENERATOR_HASH, 'inputs': inputs_hash(),
          'generated_by': 'dashboard/reference/build_reference.py (do not edit by hand; put hand-entered data '
                          'in %s.hand.json)' % name,
          'sources': dict(SOURCES)}
@@ -1621,7 +2171,8 @@ def guard(name, old, new, hand_keys, force):
     # Strict check only when both the build and this script are unchanged: then the output is fully
     # determined by the game files and the hand files, so any other difference is a hand edit.
     same_build = (om_meta.get('change') == new['_meta']['change']
-                  and om_meta.get('generator') == new['_meta']['generator'])
+                  and om_meta.get('generator') == new['_meta']['generator']
+                  and om_meta.get('inputs') == new['_meta'].get('inputs'))
     # keys the hand file supplied last time: removing them from the hand file is deliberate
     old_hand = set(om_meta.get('hand_keys') or [])
     for k, v in om.items():
@@ -1656,7 +2207,7 @@ def write_outputs(game, docs, hand_keys, check, force):
     changed, problems = [], []
     texts = {}
     for name, doc in docs.items():
-        path = HERE / ('%s.json' % name)
+        path = out_path(name)
         old = None
         if path.exists():
             try:
@@ -1683,24 +2234,37 @@ def write_outputs(game, docs, hand_keys, check, force):
         print('Run again with --force only if those edits are meant to go.')
         return 2
     if check:
-        print('\n--check: %s' % ('these files would change: ' + ', '.join(changed) if changed else 'all four files are up to date'))
+        print('\n--check: %s' % ('these files would change: ' + ', '.join(changed) if changed
+                                 else 'all %d files are up to date' % len(docs)))
         return 1 if changed else 0
     for name in changed:
-        (HERE / ('%s.json' % name)).write_text(texts[name], encoding='utf-8', newline='\n')
+        path = out_path(name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(texts[name], encoding='utf-8', newline='\n')
     for name in docs:
         print('  %-16s %s (%d bytes)' % (name + '.json', 'written' if name in changed else 'unchanged', len(texts[name].encode('utf-8'))))
     return 0
 
 
 # =========================================================================== main
-def main():
+def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--p4k', type=Path, default=gamedata.LIVE / 'Data.p4k' if gamedata.LIVE else None)
-    ap.add_argument('--check', action='store_true', help='build in memory and report; write nothing')
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument('--check', action='store_true', help='build in memory and report; write nothing, fetch nothing')
+    mode.add_argument('--fetch', action='store_true',
+                      help='first download a new UEX price snapshot into dashboard/data/reference/uex/ '
+                           '(the only step that goes online)')
     ap.add_argument('--force', action='store_true', help='overwrite even if hand edits in an output would be lost')
-    args = ap.parse_args()
+    return ap.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
     if args.p4k is None or not args.p4k.exists():
         sys.exit('Data.p4k not found (%s). Pass --p4k.' % args.p4k)
+    if args.fetch:
+        fetch_snapshots()
 
     game = Game(args.p4k)
     ents = walk_hierarchy(game)
@@ -1789,8 +2353,107 @@ def main():
                       'counts': {'stations': len(stations)}}
     if hf.get('_sources'):
         ref_meta_extra['report_sources'] = hf['_sources']
+
+    # ---- shops (needed by the refinery places and the prices)
+    hs = hand['shops']
+    shops = build_shops(game, ents, locs, hs)
+    hand_keys['shops'] = set(hs.get('shops') or {})
+    n_unique = sum(1 for s in shops.values() if s.get('place'))
+    n_shared = sum(1 for s in shops.values() if len(s.get('places') or []) > 1)
+    shop_doc = {'_meta': meta(game, 'shops', {
+        'lookup': 'Keys are shop names exactly as purchase and sale lines print them (shopName[<name>]); a name '
+                  'with a "-<digits>" ending can also be looked up without it. `place` is set only when the game '
+                  'puts that name at exactly one place; a name shared by several places (one shop template used '
+                  'across a chain) has `place` null and lists them in `places`: take the place from the last '
+                  'inventory location the log printed before the line. `kind`: commodity terminal, item shop, '
+                  'refinery, rental, landing services or other, from the inventory type the game gives the shop '
+                  '(`inventory`: COMMODITY or ITEM) and the rules in shops.hand.json. `name` is a display name: '
+                  'a rule in shops.hand.json, else a shop franchise name from the game, else the name in words.',
+        'counts': {'shops': len(shops), 'one_place': n_unique, 'shared': n_shared,
+                   'unplaced': len(shops) - n_unique - n_shared}}), 'shops': shops}
+
+    # ---- refinery places: the Refinery amenity on the star map, and where a refinery shop is placed
+    amen = refinery_places(game, locs)
+    code_of_place = {}
+    for code, p in sorted(locs.places.items()):
+        code_of_place.setdefault(p['place'], code)
+    with_shop = set(pl for k, s in shops.items() if s['kind'] == 'refinery' for pl in s['places'])
+    rplaces = {}
+    for pid in sorted(set(amen) | with_shop):
+        code = code_of_place.get(pid)
+        p = locs.places.get(code) if code else None
+        if not p:
+            continue
+        rplaces[pid] = {'name': p['name'], 'short': p['short'], 'system': p['system'],
+                        'amenity': pid in amen, 'refinery_shop': pid in with_shop, 'src': 'game'}
+    ref_meta_extra['lookup'] += (' `places` lists every place with a refinery: `amenity` when its star-map record '
+                                 'lists the Refinery amenity, `refinery_shop` when a refinery shop (shops.json, '
+                                 'kind refinery) is placed there. `methods` carries only what the game holds: a '
+                                 'speed and a yield grade and the descriptive text; the game files have no '
+                                 'figure for the cost or the time of a method.')
+    ref_meta_extra['counts']['places'] = len(rplaces)
     ref_doc = {'_meta': meta(game, 'refineries', ref_meta_extra), 'methods': build_methods(game),
-               'stations': sort_map(stations)}
+               'places': rplaces, 'stations': sort_map(stations)}
+
+    # ---- ships, and the player's fleet with one job each
+    hsh = hand['ships']
+    ships, fleet = assemble_ships(build_ships(game), hsh)
+    hand_keys['ships'] = set(hsh.get('ships') or {})
+    ship_doc = {'_meta': meta(game, 'ships', {
+        'lookup': 'Keys are vehicle classes as the log prints them: the <CLASS> in \'<CLASS>_<id>\' (match without '
+                  'regard to case if the exact key is missing). `cargo_scu` counts the cargo grid in 1.25 m '
+                  'cells; `cargo_how` says where it came from (see `cargo_how_means`); null when the records do '
+                  'not settle it. `variant` marks NPC, template and tutorial classes. `fleet` (from '
+                  'ships.hand.json, src user) is the player\'s fleet: `job` is the one activity view a ship '
+                  'stands for (mining, salvage, cargo, combat) or null for a ship with no single job.',
+        'cargo_how_means': CARGO_HOW,
+        'counts': {'ships': len(ships), 'fleet': len(fleet)}}), 'fleet': fleet, 'ships': ships}
+
+    # ---- contract kinds
+    hct = hand['contracts']
+    contracts, gens, titles, title_pats, mtypes, skipped, check = build_contracts(game, hct)
+    hand_keys['contracts'] = set()
+    con_doc = {'_meta': meta(game, 'contracts', {
+        'lookup': 'From a mission marker line (generator name [<G>], contract [<C>]) and the notice title, the '
+                  'first of these that answers gives kind, view and setting: (1) contracts[C]; if C is missing '
+                  'and ends in "_<n>", contracts[<C without it>] when that entry has subs > n (sub-contracts are '
+                  'logged as <name>_<index>, from 0); if the entry has `also` and G is one of those generators, '
+                  'that one; (2) generators[G] when it has a `view` (all its contracts agree); (3) titles[title], '
+                  'then the first title_patterns regex that matches; (4) the first of `rules` whose pattern '
+                  'matches C or G (in that order per rule); (5) kind "unknown", view "mission". Anything that '
+                  'lands on (5) goes to data/unmapped.json. `setting`: foot, ship, vehicle or null (not settled); '
+                  'for combat it comes from what the mission spawns (people only: foot; ships only: ship). '
+                  '`types` names the game\'s mission types. `rules_check` is how the fallback rules alone do on '
+                  'this build\'s contracts.',
+        'views': list(VIEWS), 'skipped': skipped, 'rules_check': check,
+        'counts': {'contracts': len(contracts), 'generators': len(gens), 'titles': len(titles),
+                   'title_patterns': len(title_pats)}}),
+        'types': mtypes, 'generators': gens, 'titles': titles, 'title_patterns': title_pats,
+        'rules': hct.get('rules') or [], 'contracts': contracts}
+    print('  contracts: %d (%d generators); the fallback rules agree on %d, differ on %d, no rule %d'
+          % (len(contracts), len(gens), check['same_view'], check['other_view'], check['no_rule']))
+
+    # ---- prices (UEX snapshot on disk, never fetched here; the output is git-ignored)
+    snap = load_uex()
+    price_doc = None
+    if snap is None:
+        print('  prices: no UEX snapshot in %s; prices.json not built' % ' or '.join(str(d) for d in UEX_DIRS))
+    else:
+        commodities, pterms, pcounts = build_prices(loc_entries, res, shops, snap)
+        pm = meta(game, 'prices', {
+            'lookup': 'commodities.<game English name>.rows: one per terminal that buys or sells it: `buy` is what '
+                      'the terminal charges, `sell` what it pays, both aUEC per SCU, null when it does not trade that '
+                      'way; `date` is the day UEX last updated the row; `place` is a place id from locations.json '
+                      '(null when the terminal could not be matched). terminals.<id> gives the terminal\'s name, '
+                      'place and, when exactly one shop of the same kind is at that place, the shop name in '
+                      'shops.json. Every figure is crowd-reported (src ref): show its date.',
+            'source': 'UEX Corp API 2.0 (api.uexcorp.space): /commodities_prices_all and /terminals',
+            'fetched': snap['fetched_prices'], 'why_not_in_git': PRICES_WHY, 'counts': pcounts})
+        pm['inputs'] = inputs_hash([snap['dir'] / fn for fn in UEX_FILES.values()])
+        price_doc = {'_meta': pm, 'terminals': pterms, 'commodities': commodities}
+        print('  prices: %d commodities, %d rows, %d terminals (%d without a place) from %s'
+              % (pcounts['commodities'], pcounts['rows'], pcounts['terminals'], pcounts['terminals_without_place'],
+                 snap['dir']))
 
     # ---- controls per operator mode, worded from the card tables in tools/regen_cards.py
     hc = hand['controls']
@@ -1806,7 +2469,9 @@ def main():
         'cards': 'tools/regen_cards.py', 'counts': {'modes': len(ctl_modes)}}), 'modes': ctl_modes}
 
     docs = {'locations': loc_doc, 'resources': res_doc, 'ores': ore_doc, 'refineries': ref_doc,
-            'controls': ctl_doc}
+            'controls': ctl_doc, 'ships': ship_doc, 'contracts': con_doc, 'shops': shop_doc}
+    if price_doc is not None:
+        docs['prices'] = price_doc
     for name, doc in docs.items():
         doc['_meta']['hand_keys'] = sorted(hand_keys.get(name, set()))
     loc_doc['_meta']['hand_patterns'] = sorted(p['prefix'] for p in hl.get('patterns') or [])

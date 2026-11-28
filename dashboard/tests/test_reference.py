@@ -4,18 +4,31 @@ Standard library only; needs no game install. Run from the project root:
     python -m unittest dashboard/tests/test_reference.py
 or  python -m unittest discover -s dashboard/tests -p test_reference.py
 
-What is checked: the four tables (and their hand-entered inputs) parse as JSON with no duplicate or
+What is checked: the tables (and their hand-entered inputs) parse as JSON with no duplicate or
 empty keys, follow their shape, say where every entry came from, and use `place` ids consistently
-across locations.json, ores.json and refineries.json.
+across locations.json, ores.json, refineries.json and shops.json; ships, contract kinds, shops and
+prices against what the log samples print; and that the generator never goes online by itself.
 """
+import ast
 import json
+import os
 import re
+import subprocess
+import sys
+import tempfile
+import unicodedata
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REF = Path(__file__).resolve().parent.parent / 'reference'
-CARDS = Path(__file__).resolve().parent.parent.parent / 'tools' / 'regen_cards.py'
-TABLES = ('locations', 'resources', 'ores', 'refineries', 'controls')
+ROOT = REF.parent.parent
+SAMPLES = Path(__file__).resolve().parent / 'samples'
+PRICES = REF.parent / 'data' / 'reference' / 'prices.json'
+CARDS = ROOT / 'tools' / 'regen_cards.py'
+TABLES = ('locations', 'resources', 'ores', 'refineries', 'controls', 'ships', 'contracts', 'shops')
+VIEWS = ('combat', 'cargo', 'salvage', 'mining', 'mission')
+SETTINGS = ('foot', 'ship', 'vehicle', None)
 SRC = {'game', 'ref', 'seen', 'user'}
 PLACE_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 GUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
@@ -108,7 +121,9 @@ class ReferenceTables(unittest.TestCase):
 
     def test_keys_are_clean(self):
         for name, main in (('locations', 'locations'), ('resources', 'resources'), ('ores', 'ores'),
-                           ('ores', 'spots'), ('refineries', 'stations')):
+                           ('ores', 'spots'), ('refineries', 'stations'), ('refineries', 'places'),
+                           ('ships', 'ships'), ('ships', 'fleet'), ('contracts', 'contracts'),
+                           ('contracts', 'generators'), ('contracts', 'titles'), ('shops', 'shops')):
             with self.subTest(table=name, map=main):
                 for k in self.t[name][main]:
                     self.assertTrue(k and k == k.strip(), 'key %r is empty or has outer spaces' % k)
@@ -311,6 +326,29 @@ class ReferenceTables(unittest.TestCase):
                 self.assertIn(it['src'], SRC)
                 self.assertIn(it.get('status', 'flown'), ('flown', 'unverified', 'trial'))
 
+    # ------------------------------------------------------------------ refining (places and methods)
+    def test_refinery_places_and_methods(self):
+        ref = self.t['refineries']
+        self.assertTrue(ref['places'])
+        for pid, p in ref['places'].items():
+            with self.subTest(place=pid):
+                self.assertIn(pid, self.places)
+                self.assertEqual(p['name'], self.places[pid][0][1]['name'])
+                self.assertEqual(p['src'], 'game')
+                self.assertTrue(p['amenity'] or p['refinery_shop'])
+        for pid in ref['stations']:
+            with self.subTest(yield_station=pid):
+                self.assertIn(pid, ref['places'], 'a station with reported yields has a refinery in the game files')
+        self.assertEqual(len(ref['methods']), 9)
+        for k, m in ref['methods'].items():
+            with self.subTest(method=k):
+                self.assertLessEqual(set(m), {'name', 'speed', 'yield', 'detail', 'src'},
+                                     'the game holds no numeric cost or time per method: none is invented')
+                self.assertIn(m['speed'], ('Slow', 'Normal', 'Fast'))
+                self.assertIn(m['yield'], ('low', 'medium', 'high'))
+                self.assertEqual(m['src'], 'game')
+        self.assertEqual(ref['methods']['FastCareful']['name'], 'Pyrometric Chromalysis')
+
     # ------------------------------------------------------------------ privacy
     def test_no_personal_data(self):
         """Generic game data only: no Windows user folders, log file names or session ids."""
@@ -318,6 +356,417 @@ class ReferenceTables(unittest.TestCase):
         for p in sorted(REF.glob('*.json')):
             with self.subTest(file=p.name):
                 self.assertIsNone(bad.search(p.read_text(encoding='utf-8')))
+
+
+# ====================================================================== helpers for the round-2 tables
+SUB_RE = re.compile(r'^(.+)_(\d+)$')
+MARKER_RE = re.compile(r'generator name \[([^\]]*)\], contract \[([^\]]*)\]')
+ACCEPTED_RE = re.compile(r'Added notification "Contract (?:Accepted|Complete): +(.+?): "')
+SHOP_RE = re.compile(r'shopName\[([^\]]+)\]')
+CLASS_RE = re.compile(r"'([A-Z]{3,4}_[A-Za-z0-9_]+?)_(\d{6,})'")
+
+
+def contract_kind(doc, generator=None, contract=None, title=None):
+    """The lookup order contracts.json `_meta.lookup` describes, as the service is to do it.
+    Returns (how, kind, view, setting)."""
+    cs, gens = doc['contracts'], doc['generators']
+    e = cs.get(contract) if contract else None
+    if e is None and contract:
+        m = SUB_RE.match(contract)
+        if m and m.group(1) in cs and int(m.group(2)) < cs[m.group(1)].get('subs', 0):
+            e = cs[m.group(1)]
+    if e is not None:
+        for a in e.get('also') or []:
+            if a['generator'] == generator:
+                return 'contract', a['kind'], a['view'], e['setting']
+        return 'contract', e['kind'], e['view'], e['setting']
+    g = gens.get(generator) if generator else None
+    if g and g.get('view'):
+        return 'generator', g.get('kind', 'unknown'), g['view'], g.get('setting')
+    if title:
+        t = doc['titles'].get(title)
+        if t is None:
+            t = next((p for p in doc['title_patterns'] if re.match(p['pattern'], title)), None)
+        if t is not None:
+            return 'title', t['kind'], t['view'], t['setting']
+    for r in doc['rules']:
+        for value in (contract, generator):
+            if value and re.search(r['pattern'], value):
+                return 'rule', r.get('kind', 'unknown'), r['view'], r.get('setting')
+    return 'none', 'unknown', 'mission', None
+
+
+def sample_text():
+    return '\n'.join(p.read_text(encoding='utf-8', errors='replace') for p in sorted(SAMPLES.glob('*.log')))
+
+
+def fold(s):
+    """Compare names without diacritics or case ('Gatac Hyūn' is 'Gatac Hyun' in the game files)."""
+    return ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c)).lower()
+
+
+def import_generator():
+    if str(REF) not in sys.path:
+        sys.path.insert(0, str(REF))
+    import build_reference
+    return build_reference
+
+
+# ====================================================================== ships
+class Ships(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load('ships.json')
+        cls.ships, cls.fleet = cls.doc['ships'], cls.doc['fleet']
+        cls.hand = load('ships.hand.json')
+
+    def test_shape(self):
+        how = self.doc['_meta']['cargo_how_means']
+        self.assertGreater(len(self.ships), 500)
+        for k, e in self.ships.items():
+            with self.subTest(cls=k):
+                self.assertRegex(k, r'^[A-Za-z0-9_]+$')
+                self.assertTrue(e['name'])
+                self.assertIn(e['kind'], ('ship', 'ground vehicle'))
+                self.assertIn(e['cargo_how'], how)
+                if e['cargo_how'] == 'several named grids':
+                    self.assertIsNone(e['cargo_scu'])
+                    self.assertGreaterEqual(len(e['cargo_grids']), 2)
+                else:
+                    self.assertIsInstance(e['cargo_scu'], int)
+                    self.assertGreaterEqual(e['cargo_scu'], 0)
+                    self.assertEqual(e['cargo_scu'] > 0, e['cargo_how'] in ('loadout', 'named grid'))
+                self.assertTrue(e['crew'] is None or isinstance(e['crew'], int))
+                self.assertEqual(e['src'], 'game')
+
+    def test_golem_ox_cargo(self):
+        self.assertEqual(self.ships['DRAK_Golem_OX']['cargo_scu'], 64)
+        self.assertEqual(self.ships['DRAK_Golem_OX']['cargo_how'], 'loadout')
+        self.assertEqual(self.ships['ANVL_Liberator']['cargo_scu'], 400)
+
+    def test_fleet_is_claude_md_section_11(self):
+        """Every ship in the root CLAUDE.md section 11 table is a fleet class here, and no other."""
+        text = (ROOT / 'CLAUDE.md').read_text(encoding='utf-8')
+        sec = text[text.index('## 11. Fleet'):text.index('### 11.1')]
+        names = {fold(n) for n in re.findall(r'^\| \*\*(.+?)\*\* \|', sec, re.M)}
+        self.assertEqual(len(names), 11)
+        self.assertEqual(names, {fold(f['name']) for f in self.fleet.values()})
+        for cls in self.fleet:
+            self.assertIn(cls, self.ships)
+
+    def test_fleet_jobs(self):
+        jobs = {cls: f['job'] for cls, f in self.fleet.items()}
+        self.assertEqual({c: j for c, j in jobs.items() if j},
+                         {'DRAK_Golem': 'mining', 'RSI_Salvation': 'salvage', 'DRAK_Golem_OX': 'cargo',
+                          'ORIG_m80': 'combat'})
+        self.assertIsNone(jobs['GAMA_Hyun'], 'a ship with two jobs decides no view')
+        for f in self.fleet.values():
+            self.assertEqual(f['src'], 'user')
+        self.assertEqual({c: f.get('job') for c, f in self.hand['fleet'].items()}, jobs)
+
+    def test_log_classes_resolve(self):
+        """The vehicle classes the sanitized log samples print are keys (the log's own spelling)."""
+        classes = set(m.group(1) for m in CLASS_RE.finditer(sample_text()))
+        self.assertIn('ORIG_m80', classes)
+        for c in sorted(classes):
+            with self.subTest(cls=c):
+                self.assertIn(c, self.ships)
+
+
+# ====================================================================== contract kinds
+class Contracts(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load('contracts.json')
+        cls.hand = load('contracts.hand.json')
+
+    def test_shape(self):
+        cs, gens = self.doc['contracts'], self.doc['generators']
+        self.assertGreater(len(cs), 1500)
+        for name, e in cs.items():
+            with self.subTest(contract=name):
+                self.assertIn(e['generator'], gens)
+                self.assertIn(e['view'], VIEWS)
+                self.assertIn(e['setting'], SETTINGS)
+                self.assertTrue(e['kind'])
+                self.assertEqual(e['src'], 'game')
+                self.assertTrue(e['type'] is None or e['type'] in self.doc['types'])
+                if 'subs' in e:
+                    self.assertGreater(e['subs'], 0)
+                if 'sub_of' in e:
+                    self.assertIn(e['sub_of'], cs)
+        for g, e in gens.items():
+            with self.subTest(generator=g):
+                self.assertEqual(sum(e['views'].values()), e['contracts'])
+                self.assertEqual('view' in e, len(e['views']) == 1)
+        for t, e in self.doc['titles'].items():
+            self.assertIn(e['view'], VIEWS)
+        for p in self.doc['title_patterns']:
+            re.compile(p['pattern'])
+            self.assertIn(p['view'], VIEWS)
+
+    def test_every_game_type_has_a_rule(self):
+        types = set(self.hand['types'])
+        for t in self.doc['types']:
+            self.assertIn(t, types, 'mission type %s has no row in contracts.hand.json' % t)
+
+    def test_rules(self):
+        self.assertEqual(self.doc['rules'], self.hand['rules'])
+        for r in self.hand['rules'] + self.hand['templates'] + self.hand['setting_rules']:
+            re.compile(r['pattern'])
+            if 'view' in r:
+                self.assertIn(r['view'], VIEWS)
+            self.assertIn(r.get('setting'), SETTINGS)
+        chk = self.doc['_meta']['rules_check']
+        self.assertGreaterEqual(chk['same_view'] / chk['contracts'], 0.9,
+                                'the fallback rules should agree with the game on most contracts')
+
+    def test_example_is_combat_on_foot(self):
+        """The marker line seen in the old logs: generator name [CitizensForProsperity_Mercenary_FPS],
+        contract [CFP_Pyro_E_DerelictOutpostsCaves_EliminateAll]."""
+        got = contract_kind(self.doc, 'CitizensForProsperity_Mercenary_FPS',
+                            'CFP_Pyro_E_DerelictOutpostsCaves_EliminateAll')
+        self.assertEqual(got, ('contract', 'combat', 'combat', 'foot'))
+        self.assertEqual(self.doc['contracts']['CFP_Pyro_E_DerelictOutpostsCaves_EliminateAll']['giver'],
+                         'Citizens for Prosperity')
+        # a contract of that generator the table does not know still lands on combat, on foot
+        self.assertEqual(contract_kind(self.doc, 'CitizensForProsperity_Mercenary_FPS', 'CFP_NotYetMade'),
+                         ('generator', 'combat', 'combat', 'foot'))
+
+    def test_marker_lines_in_the_samples(self):
+        """Every marker line in the samples resolves to a game record of the same generator; the
+        `_<n>` endings the log prints are sub-contract indexes the record has."""
+        pairs = set(MARKER_RE.findall(sample_text()))
+        self.assertTrue(pairs)
+        subs = 0
+        for gen, con in sorted(pairs):
+            with self.subTest(contract=con):
+                how, kind, view, _setting = contract_kind(self.doc, gen, con)
+                self.assertEqual(how, 'contract')
+                base = con if con in self.doc['contracts'] else SUB_RE.match(con).group(1)
+                subs += base != con
+                self.assertEqual(self.doc['contracts'][base]['generator'], gen)
+                self.assertEqual(view, 'cargo')
+        self.assertGreater(subs, 0, 'the samples include sub-contract names')
+
+    def test_titles_in_the_samples(self):
+        titles = set(ACCEPTED_RE.findall(sample_text()))
+        self.assertTrue(titles)
+        for t in sorted(titles):
+            with self.subTest(title=t):
+                self.assertEqual(contract_kind(self.doc, title=t)[:3], ('title', 'delivery', 'cargo'))
+
+    def test_unknown_lands_on_mission(self):
+        self.assertEqual(contract_kind(self.doc, 'Zzz_NewGiver_Generator', 'Zzz_Unheard_Of_Thing'),
+                         ('none', 'unknown', 'mission', None))
+        self.assertEqual(contract_kind(self.doc), ('none', 'unknown', 'mission', None))
+
+    def test_bounty_hunters_guild(self):
+        """5.0's guild missions come from a contractor this build already has generators for; a new
+        contract name under a new generator still lands on combat by the rules (names invented)."""
+        gens = self.doc['generators']
+        bhg = sorted(g for g in gens if g.startswith('BountyHuntersGuild_'))
+        self.assertTrue(bhg)
+        for g in bhg:
+            self.assertEqual(gens[g]['view'], 'combat')
+        self.assertEqual(contract_kind(self.doc, 'BountyHuntersGuild_FPS', 'Zzz_New')[2:], ('combat', 'foot'))
+        self.assertEqual(contract_kind(self.doc, 'Zzz_BountyHuntersGuild_Board', 'Zzz_BHG_Bounty_Easy')[2:],
+                         ('combat', 'ship'))
+
+
+# ====================================================================== shops
+class Shops(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load('shops.json')
+        cls.shops = cls.doc['shops']
+        places = set(v['place'] for v in load('locations.json')['locations'].values() if v.get('place'))
+        cls.place_ids = places
+
+    def test_shape(self):
+        kinds = {'commodity terminal', 'item shop', 'refinery', 'rental', 'landing services', 'other'}
+        for name, s in self.shops.items():
+            with self.subTest(shop=name):
+                self.assertTrue(name.startswith('SCShop_'))
+                self.assertIn(s['kind'], kinds)
+                self.assertTrue(s['name'])
+                self.assertEqual(s['place'] is not None, len(s['places']) == 1)
+                if s['place']:
+                    self.assertEqual(s['places'], [s['place']])
+                for p in s['places']:
+                    self.assertIn(p, self.place_ids)
+                self.assertIn(s['src'], SRC)
+        c = self.doc['_meta']['counts']
+        self.assertEqual(c['one_place'] + c['shared'] + c['unplaced'], len(self.shops))
+
+    def test_names_seen_in_logs(self):
+        """The nine shop names in the old logs (data/handoff/activity_survey.md) and those in the samples."""
+        seen = {'SCShop_CommEx_TDD_NewBabbage', 'SCShop_Admin_lt_base_g', 'SCShop_AdminOffice_GrimHex',
+                'SCShop_Levski_CargoOffice_Commodities', 'SCShop_Pyro_RestStop_Rund_Admin',
+                'SCShop_ht_delta_rayari_m_store', 'SCShop_ht_delta_shubin_m_store', 'SCShop_RefineryAdmin_ORE',
+                'SCShop_Refinery_Rentals'}
+        seen |= set(SHOP_RE.findall(sample_text()))
+        for n in sorted(seen):
+            with self.subTest(shop=n):
+                self.assertIn(n, self.shops)
+        tdd = self.shops['SCShop_CommEx_TDD_NewBabbage']
+        self.assertEqual((tdd['kind'], tdd['place']), ('commodity terminal', 'new-babbage'))
+        ore = self.shops['SCShop_RefineryAdmin_ORE']
+        self.assertEqual(ore['kind'], 'refinery')
+        self.assertIsNone(ore['place'])
+        self.assertIn('mic-l2', ore['places'])
+        self.assertEqual(self.shops['SCShop_Refinery_Rentals']['kind'], 'rental')
+        self.assertGreater(len(self.shops['SCShop_Admin_lt_base_g']['places']), 10, 'a chain template is shared')
+
+
+# ====================================================================== prices, and staying offline
+def _uex_fixture(folder):
+    """A tiny made-up UEX snapshot in the API's own envelope (invented figures)."""
+    prices = {'status': 'ok', 'data': [
+        {'commodity_name': 'Tungsten', 'id_terminal': 7, 'price_buy': 0, 'price_sell': 3000,
+         'date_modified': 1795000000},
+        {'commodity_name': 'Agricium', 'id_terminal': 7, 'price_buy': 2500, 'price_sell': 0,
+         'date_modified': 1795000000},
+        {'commodity_name': 'Made Up Goods', 'id_terminal': 8, 'price_buy': 10, 'price_sell': 9,
+         'date_modified': 'not a time'},
+        {'commodity_name': 'Tungsten', 'id_terminal': 99, 'price_buy': 1, 'price_sell': 1}]}
+    terms = {'status': 'ok', 'data': [
+        {'id': 7, 'name': 'Admin - Test', 'type': 'commodity', 'space_station_name': 'ARC-L1 Wide Forest Station',
+         'star_system_name': 'Stanton'},
+        {'id': 8, 'name': 'Nowhere', 'type': 'commodity', 'city_name': 'No Such City'}, 'junk']}
+    (Path(folder) / 'commodities_prices_all.json').write_text(json.dumps(prices), encoding='utf-8')
+    (Path(folder) / 'terminals.json').write_text(json.dumps(terms), encoding='utf-8')
+
+
+class Prices(unittest.TestCase):
+
+    def test_prices_are_not_committed(self):
+        self.assertFalse((REF / 'prices.json').exists(), 'prices.json belongs in dashboard/data/reference/')
+        self.assertFalse(list(REF.glob('*uex*')) + list(REF.glob('*scmdb*')))
+        ignore = (ROOT / '.gitignore').read_text(encoding='utf-8')
+        self.assertIn('dashboard/data/', ignore)
+
+    def test_builder_offline(self):
+        """The normal-run prices path (load_uex + build_prices) works with every socket refused."""
+        br = import_generator()
+        locs = load('locations.json')['locations']
+        res = load('resources.json')['resources']
+        shops = load('shops.json')['shops']
+
+        def refuse(*a, **k):
+            raise AssertionError('network use')
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch('socket.socket.connect', refuse), mock.patch('socket.create_connection', refuse), \
+                mock.patch.object(br, '_get_json', refuse):
+            _uex_fixture(d)
+            snap = br.load_uex([Path(d) / 'missing', d])
+            self.assertIsNotNone(snap)
+            com, terms, counts = br.build_prices(locs, res, shops, snap)
+        self.assertEqual(set(terms), {'7', '8'})
+        self.assertEqual(terms['7']['place'], 'arc-l1')
+        self.assertEqual(terms['7']['shop'], 'SCShop_Admin_lt_base_g')
+        self.assertIsNone(terms['8']['place'])
+        self.assertEqual(com['Tungsten']['rows'], [{'terminal': 7, 'place': 'arc-l1', 'buy': None, 'sell': 3000,
+                                                    'date': '2026-11-18'}])
+        self.assertIsNotNone(com['Tungsten']['resource'])
+        self.assertIsNone(com['Made Up Goods']['resource'])
+        self.assertIsNone(com['Made Up Goods']['rows'][0]['date'])
+        self.assertEqual(counts['terminals_without_place'], 1)
+
+    def test_prices_file_shape(self):
+        if not PRICES.exists():
+            self.skipTest('no prices.json (git-ignored; built when a UEX snapshot is on disk)')
+        p = json.loads(PRICES.read_text(encoding='utf-8'))
+        shops = load('shops.json')['shops']
+        places = set(v['place'] for v in load('locations.json')['locations'].values() if v.get('place'))
+        self.assertIn('why_not_in_git', p['_meta'])
+        for tid, t in p['terminals'].items():
+            self.assertTrue(t['place'] is None or t['place'] in places)
+            self.assertTrue(t['shop'] is None or t['shop'] in shops)
+            self.assertEqual(t['src'], 'ref')
+        for c, e in p['commodities'].items():
+            for r in e['rows']:
+                self.assertIn(str(r['terminal']), p['terminals'])
+                self.assertTrue(r['buy'] is not None or r['sell'] is not None)
+                self.assertTrue(r['date'] is None or DATE_RE.match(r['date']))
+
+
+class StaysOffline(unittest.TestCase):
+
+    def test_import_loads_no_network_module(self):
+        code = ('import sys; sys.path.insert(0, %r); import build_reference; '
+                'print("urllib.request" in sys.modules, "http.client" in sys.modules)' % str(REF))
+        out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.stdout.split(), ['False', 'False'], out.stderr)
+
+    def test_check_and_fetch_exclude_each_other(self):
+        br = import_generator()
+        self.assertFalse(br.parse_args(['--check']).fetch)
+        with mock.patch('sys.stderr'), self.assertRaises(SystemExit):
+            br.parse_args(['--check', '--fetch'])
+
+    def test_only_fetch_goes_online(self):
+        """In the generator's source, urlopen is reached only through _get_json, _get_json only from
+        fetch_snapshots, and fetch_snapshots only under `if args.fetch:` in main."""
+        tree = ast.parse((REF / 'build_reference.py').read_text(encoding='utf-8'))
+        calls = {}
+        guarded = []
+        for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
+            for node in ast.walk(fn):
+                if isinstance(node, ast.Call):
+                    f = node.func
+                    name = f.attr if isinstance(f, ast.Attribute) else getattr(f, 'id', None)
+                    calls.setdefault(name, set()).add(fn.name)
+            if fn.name == 'main':
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.If) and ast.unparse(node.test) == 'args.fetch':
+                        guarded += [ast.unparse(s) for s in node.body]
+        self.assertEqual(calls.get('urlopen'), {'_get_json'})
+        self.assertEqual(calls.get('_get_json'), {'fetch_snapshots'})
+        self.assertEqual(calls.get('fetch_snapshots'), {'main'})
+        self.assertIn('fetch_snapshots()', guarded)
+        src = ast.unparse(next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'main'))
+        self.assertEqual(src.count('fetch_snapshots('), 1)
+
+    def test_check_never_reaches_the_network(self):
+        """`main(['--check', ...])` with no game stops before anything else, and never opens a socket."""
+        br = import_generator()
+
+        def refuse(*a, **k):
+            raise AssertionError('network use')
+        with mock.patch('socket.socket.connect', refuse), mock.patch.object(br, '_get_json', refuse), \
+                mock.patch.object(br, 'fetch_snapshots', refuse), self.assertRaises(SystemExit):
+            br.main(['--check', '--p4k', os.path.join(tempfile.gettempdir(), 'no-such-Data.p4k')])
+
+
+# ====================================================================== generated and hand files apart
+class HandAndGenerated(unittest.TestCase):
+
+    def test_hand_files_hold_only_hand_data(self):
+        self.assertEqual(set(load('ships.hand.json')), {'_doc', 'fleet', 'ships'})
+        self.assertEqual(set(load('shops.hand.json')), {'_doc', 'kinds', 'labels', 'shops'})
+        self.assertEqual(set(load('contracts.hand.json')),
+                         {'_doc', 'types', 'templates', 'template_settings', 'setting_rules', 'rules'})
+
+    def test_outputs_say_they_are_generated(self):
+        for name in ('ships', 'contracts', 'shops', 'refineries'):
+            with self.subTest(table=name):
+                m = load('%s.json' % name)['_meta']
+                self.assertIn('%s.hand.json' % name, m['generated_by'])
+                self.assertIn('inputs', m)
+                self.assertRegex(m['inputs'], r'^[0-9a-f]{12}$')
+
+    def test_generated_entries_come_from_the_game(self):
+        """Only the hand file's keys may carry another source; the rest of each table is the game's."""
+        for name, main in (('ships', 'ships'), ('contracts', 'contracts'), ('shops', 'shops')):
+            doc = load('%s.json' % name)
+            hk = set(doc['_meta']['hand_keys'])
+            for k, v in doc[main].items():
+                if k not in hk:
+                    self.assertEqual(v.get('src'), 'game', '%s: %s' % (name, k))
 
 
 if __name__ == '__main__':

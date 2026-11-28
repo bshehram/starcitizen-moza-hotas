@@ -3,7 +3,8 @@
     "build": "4.10.201.48085",
     "change": "13220821",
     "generated": "2026-11-27",
-    "generator": "336a086a6c30",
+    "generator": "3a5edc82e6e6",
+    "inputs": "8ba29f4872c7",
     "generated_by": "dashboard/reference/build_reference.py (do not edit by hand; put hand-entered data in refineries.hand.json)",
     "sources": {
       "game": "Read from the installed game files for this build: Data\\Game2.dcb records, Data\\Localization\\english\\global.ini, and the solar-system object containers (.socpak) in Data.p4k.",
@@ -11,9 +12,10 @@
       "seen": "Seen in the game's own output (Game.log lines or the in-game screen); the entry says what.",
       "user": "Told to an earlier session by the player."
     },
-    "lookup": "stations.<place>.yields.<ore> is a list of reports, newest first; `bonus` is the yield modifier in percent shown on the refinery terminal. Every report carries its date and source. `methods` comes from the game files.",
+    "lookup": "stations.<place>.yields.<ore> is a list of reports, newest first; `bonus` is the yield modifier in percent shown on the refinery terminal. Every report carries its date and source. `methods` comes from the game files. `places` lists every place with a refinery: `amenity` when its star-map record lists the Refinery amenity, `refinery_shop` when a refinery shop (shops.json, kind refinery) is placed there. `methods` carries only what the game holds: a speed and a yield grade and the descriptive text; the game files have no figure for the cost or the time of a method.",
     "counts": {
-      "stations": 20
+      "stations": 20,
+      "places": 29
     },
     "report_sources": {
       "uex": "UEX Corp API 2.0, /2.0/refineries_yields (api.uexcorp.space), crowd-reported by players. Snapshot fetched 2026-11-27; `date` is the day UEX last updated that row.",
@@ -52,6 +54,37 @@
     "SlowCareful": {"name": "Dinyx Solventation", "src": "game", "detail": "High Yield // Low Cost // Slowest", "speed": "Slow", "yield": "high"},
     "SlowNormal": {"name": "Thermonatic Deposition", "src": "game", "detail": "Moderate Yield // Low Cost // Slow", "speed": "Slow", "yield": "medium"},
     "SlowWasteful": {"name": "Kazen Winnowing", "src": "game", "detail": "Low Yield // Low Cost // Slightly Slow", "speed": "Slow", "yield": "low"}
+  },
+  "places": {
+    "arc-l1": {"name": "ARC-L1 Wide Forest Station", "short": "ARC-L1", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "arc-l2": {"name": "ARC-L2 Lively Pathway Station", "short": "ARC-L2", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "arc-l4": {"name": "ARC-L4 Faint Glen Station", "short": "ARC-L4", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "checkmate": {"name": "Checkmate", "short": "Checkmate", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": true},
+    "cru-l1": {"name": "CRU-L1 Ambitious Dream Station", "short": "CRU-L1", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "hur-l1": {"name": "HUR-L1 Green Glade Station", "short": "HUR-L1", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "hur-l2": {"name": "HUR-L2 Faithful Dream Station", "short": "HUR-L2", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "levski": {"name": "Levski", "short": "Levski", "system": "Nyx", "src": "game", "amenity": false, "refinery_shop": true},
+    "mic-l1": {"name": "MIC-L1 Shallow Frontier Station", "short": "MIC-L1", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "mic-l2": {"name": "MIC-L2 Long Forest Station", "short": "MIC-L2", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "mic-l5": {"name": "MIC-L5 Modern Icarus Station", "short": "MIC-L5", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "nyx-gateway-pyro": {"name": "Nyx Gateway", "short": "Nyx Gateway (Pyro)", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": true},
+    "nyx-gateway-stanton": {"name": "Nyx Gateway", "short": "Nyx Gateway (Stanton)", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "orbituary": {"name": "Orbituary", "short": "Orbituary", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": true},
+    "pyam-farstat-1-2": {"name": "PYAM-FARSTAT-1-2", "short": "PYAM-FARSTAT-1-2", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-1-3": {"name": "PYAM-FARSTAT-1-3", "short": "PYAM-FARSTAT-1-3", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-1-5": {"name": "PYAM-FARSTAT-1-5", "short": "PYAM-FARSTAT-1-5", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-2-0": {"name": "PYAM-FARSTAT-2-0", "short": "PYAM-FARSTAT-2-0", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-2-3": {"name": "PYAM-FARSTAT-2-3", "short": "PYAM-FARSTAT-2-3", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-3-5": {"name": "PYAM-FARSTAT-3-5", "short": "PYAM-FARSTAT-3-5", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-5-1": {"name": "PYAM-FARSTAT-5-1", "short": "PYAM-FARSTAT-5-1", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-5-3": {"name": "PYAM-FARSTAT-5-3", "short": "PYAM-FARSTAT-5-3", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyam-farstat-6-2": {"name": "PYAM-FARSTAT-6-2", "short": "PYAM-FARSTAT-6-2", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": false},
+    "pyro-gateway-nyx": {"name": "Pyro Gateway", "short": "Pyro Gateway (Nyx)", "system": "Nyx", "src": "game", "amenity": true, "refinery_shop": true},
+    "pyro-gateway-stanton": {"name": "Pyro Gateway", "short": "Pyro Gateway (Stanton)", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true},
+    "ruin-station": {"name": "Ruin Station", "short": "Ruin Station", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": true},
+    "stanton-gateway-nyx": {"name": "Stanton Gateway", "short": "Stanton Gateway (Nyx)", "system": "Nyx", "src": "game", "amenity": true, "refinery_shop": true},
+    "stanton-gateway-pyro": {"name": "Stanton Gateway", "short": "Stanton Gateway (Pyro)", "system": "Pyro", "src": "game", "amenity": true, "refinery_shop": true},
+    "terra-gateway-stanton": {"name": "Terra Gateway", "short": "Terra Gateway (Stanton)", "system": "Stanton", "src": "game", "amenity": true, "refinery_shop": true}
   },
   "stations": {
     "arc-l1": {"name": "ARC-L1 Wide Forest Station", "system": "Stanton", "place": "arc-l1", "src": "ref", "yields": {"Aluminum": [{"bonus": -5, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Beryl": [{"bonus": 7, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Corundum": [{"bonus": -4, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Hephaestanite": [{"bonus": -4, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Iron": [{"bonus": 1, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Laranite": [{"bonus": -2, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Quantainium": [{"bonus": 3, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Quartz": [{"bonus": 11, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Taranite": [{"bonus": -6, "date": "2026-10-24", "src": "ref", "source": "uex"}], "Titanium": [{"bonus": 5, "date": "2026-10-24", "src": "ref", "source": "uex"}]}},
