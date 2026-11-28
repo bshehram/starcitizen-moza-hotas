@@ -489,9 +489,9 @@ evening, see "The first recording" below].**
     between other tools over which of the two means decoupled does not matter in this build:
     either works, and absent means decoupled. `vtol` followed the switch truthfully:
     `RETRACTED`, `DEPLOYING` for two seconds, `DEPLOYED`, then `RETRACTING` for two seconds and
-    `RETRACTED`. One thing to ask the user before leaning on it: coupled came back one second
-    after VTOL finished deploying, and went off again one second after it began retracting.
-    Either the user pressed it then, or the game couples the ship by itself while VTOL is out.
+    `RETRACTED`. The coupled changes that fell close to the VTOL ones were the user's own
+    presses (they toggled both several times, by their report), so nothing here suggests the
+    game couples the ship by itself while VTOL is out.
   - Nothing in it gives a position, a location name, a shield or hull value, or a quantum
     state, as the layout said.
 - **Quirks other tools recorded on the live build [ref: Starglance's `docs/FIELDS.md`, CSR's
