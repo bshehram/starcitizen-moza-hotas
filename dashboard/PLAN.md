@@ -41,8 +41,23 @@ sweep removes only its own dead-writer files (a junction or hard link named like
 link, not its target); and 101 raw request variants, plus a foreign page in a real browser, got
 nothing past the guard.
 
-**That review also found new faults, and a fix round for them is with a builder** (started
-5:40 PM, not committed):
+**Stage 3, first half, is built and with its reviewer (2026-11-27, about 7 PM; not on `main`
+yet, a snapshot is on the branch `wip-dashboard`).** Everything behind the page that does not
+touch the service: the new notice kinds and readings from [`SURVEY.md`](SURVEY.md), the lookups
+into the reference tables (`refdata.py`), the plan loader (`plan.py`, with `plan.example.json`),
+alerts and timers (`alerts.py`), the view rules (`rules.py`), one ready-to-draw model per view
+(`views.py`), and one entry point, `board.build(state, plans, user, now, game_running)`, whose
+payload [`STATE.md`](STATE.md) describes for the page builder. 425 tests pass on the combined
+tree. Replayed on the user's real 5:20 PM session with no plan loaded, it picked Preflight at
+launch, Now in the game world, Mining on boarding the Golem, Travel on the jump, Mining again on
+arrival at ARC-L4, and Idle after the quit. Line shapes that no real log has shown yet are in
+`tests/samples/built_*.log`, kept apart from the real samples and marked unverified in the
+payload. Left for the second half: wiring it into `service.py` (the plan's reload, the board in
+the page's message, the user's quick timers and hand-picked view, four changing endpoints) and
+then the views in `web/`.
+
+**That review also found new faults. The fix round for them is built and with the reviewer**
+(the whole suite passes on a clean copy of it, 368 tests; staged, not committed):
 
 - One failed save at start-up ends the service, which a scheduled relaunch would turn into a
   crash loop.
@@ -1407,9 +1422,9 @@ wins:
 
 | State | View |
 | --- | --- |
-| No game running | Now, with the last session's summary |
+| No game running | Idle, with the last session's summary |
 | Game starting or in the menu | Preflight |
-| Downed or dead | Now, with the alert on top |
+| Downed or dead | Combat when a combat contract is active (the mockup has that screen), otherwise Now; the alert on top either way |
 | Quantum target chosen, until arrival | Travel |
 | Arrived at a leg of the current run | The view that leg names: Mining, Salvage, Combat, Cargo, Refinery or Selling |
 | At a place with a sell list | Selling |
